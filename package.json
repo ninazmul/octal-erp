@@ -6,8 +6,7 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "migrate:device-statuses": "node scripts/migrate-device-statuses.mjs"
+    "lint": "next lint"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.39.6",

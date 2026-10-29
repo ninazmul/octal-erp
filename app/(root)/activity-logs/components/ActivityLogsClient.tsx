@@ -60,10 +60,15 @@ import { usePermissions } from "@/components/providers/PermissionContext";
 
 const MODULE_OPTIONS = [
   { label: "All Modules", value: "all" },
-  { label: "Devices", value: "devices" },
-  { label: "Customers", value: "customers" },
-  { label: "Billing", value: "billing" },
-  { label: "Catalog", value: "catalog" },
+  { label: "Academic", value: "academic" },
+  { label: "Students", value: "students" },
+  { label: "Payments", value: "payments" },
+  { label: "Commissions", value: "commissions" },
+  { label: "Staff", value: "staff" },
+  { label: "Payroll", value: "payroll" },
+  { label: "Expenses", value: "expenses" },
+  { label: "Finance & Accounts", value: "finance" },
+  { label: "Reports", value: "reports" },
   { label: "Admins & Roles", value: "admins" },
   { label: "Settings", value: "settings" },
 ];

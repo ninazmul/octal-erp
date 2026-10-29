@@ -1,5 +1,5 @@
 const CACHE_NAME = "octal-erp-v1";
-const STATIC_ASSETS = ["/", "/favicon.ico", "/assets/images/logo.png"];
+const STATIC_ASSETS = ["/", "/favicon.ico", "/erp-logo.png"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

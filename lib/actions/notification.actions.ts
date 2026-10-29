@@ -5,39 +5,23 @@ import Notification from "@/lib/database/models/notification.model";
 import { getCurrentAdminProfile } from "@/lib/auth-guard";
 import { INotification } from "@/types";
 
-const DEVICE_APPROVAL_ACTIONS = [
-  "DEVICE_SUBMISSION",
-  "DEVICE_APPROVAL",
-  "DEVICE_REJECTION",
-];
-
 /**
- * Fetches notifications for super admins and engineers along with the unread count.
+ * Fetches notifications for super admins and admins along with the unread count.
  */
 export async function getSuperAdminNotifications() {
   await connectToDatabase();
   const profile = await getCurrentAdminProfile();
 
-  if (
-    !profile ||
-    (profile.role !== "super_admin" && profile.role !== "engineer")
-  ) {
+  if (!profile) {
     return { notifications: [], unreadCount: 0 };
   }
 
-  const normalNotificationFilter = {
-    $nor: [
-      { action: { $in: DEVICE_APPROVAL_ACTIONS } },
-      { module: "devices", action: "STATUS_CHANGE" },
-    ],
-  };
-  const notifications = (await Notification.find(normalNotificationFilter)
+  const notifications = (await Notification.find({})
     .sort({ createdAt: -1 })
     .limit(30)
     .lean()) as unknown as INotification[];
 
   const unreadCount = await Notification.countDocuments({
-    ...normalNotificationFilter,
     readBy: { $ne: profile.email.toLowerCase() },
   });
 
@@ -52,18 +36,11 @@ export async function getSuperAdminUnreadCount() {
   await connectToDatabase();
   const profile = await getCurrentAdminProfile();
 
-  if (
-    !profile ||
-    (profile.role !== "super_admin" && profile.role !== "engineer")
-  ) {
+  if (!profile) {
     return 0;
   }
 
   return Notification.countDocuments({
-    $nor: [
-      { action: { $in: DEVICE_APPROVAL_ACTIONS } },
-      { module: "devices", action: "STATUS_CHANGE" },
-    ],
     readBy: { $ne: profile.email.toLowerCase() },
   });
 }
@@ -72,28 +49,17 @@ export async function getSuperAdminUnreadCount() {
 export const getAdminNotifications = getSuperAdminNotifications;
 
 /**
- * Marks a notification as read by an authorized admin audience member.
+ * Marks a notification as read by an authorized admin.
  */
 export async function markNotificationAsRead(notificationId: string) {
   await connectToDatabase();
   const profile = await getCurrentAdminProfile();
 
-  if (
-    !profile ||
-    (profile.role !== "super_admin" && profile.role !== "engineer")
-  ) {
-    throw new Error(
-      "Only Super Admins and Engineers can manage notifications.",
-    );
+  if (!profile) {
+    throw new Error("Unauthorized.");
   }
 
-  const notification = await Notification.findOne({
-    _id: notificationId,
-    $nor: [
-      { action: { $in: DEVICE_APPROVAL_ACTIONS } },
-      { module: "devices", action: "STATUS_CHANGE" },
-    ],
-  }).select("_id");
+  const notification = await Notification.findById(notificationId).select("_id");
   if (!notification) {
     throw new Error("Notification not found.");
   }
@@ -112,21 +78,12 @@ export async function markAllNotificationsAsRead() {
   await connectToDatabase();
   const profile = await getCurrentAdminProfile();
 
-  if (
-    !profile ||
-    (profile.role !== "super_admin" && profile.role !== "engineer")
-  ) {
-    throw new Error(
-      "Only Super Admins and Engineers can manage notifications.",
-    );
+  if (!profile) {
+    throw new Error("Unauthorized.");
   }
 
   await Notification.updateMany(
     {
-      $nor: [
-        { action: { $in: DEVICE_APPROVAL_ACTIONS } },
-        { module: "devices", action: "STATUS_CHANGE" },
-      ],
       readBy: { $ne: profile.email.toLowerCase() },
     },
     { $addToSet: { readBy: profile.email.toLowerCase() } },

@@ -12,22 +12,22 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
         {/* Sidebar Brand info for desktop */}
         <aside className="relative hidden lg:flex lg:w-5/12 flex-col items-center justify-center border-r border-slate-200/80 dark:border-slate-800 p-8 xl:p-10 text-center bg-slate-50/50 dark:bg-slate-950/30">
-          <div className="relative flex flex-col items-center space-y-6">
+          <div className="relative flex flex-col items-center space-y-5">
             <Image
-              src="/assets/images/logo.png"
-              alt="GESN Device Management"
-              width={260}
-              height={104}
-              className="h-auto w-52 xl:w-60 object-contain drop-shadow-sm"
+              src="/erp-logo.png"
+              alt="Octal ERP"
+              width={120}
+              height={120}
+              className="h-28 w-28 rounded-2xl object-cover shadow-md border border-slate-200/80 dark:border-slate-800"
               priority
             />
 
             <div className="space-y-2">
               <span className="inline-flex items-center rounded-full border border-sky-200 dark:border-sky-800/80 bg-sky-50/80 dark:bg-sky-950/50 px-3.5 py-1 text-[11px] font-bold uppercase tracking-wider text-sky-700 dark:text-sky-300">
-                Enterprise Infrastructure
+                Octal ERP
               </span>
               <p className="max-w-xs text-xs xl:text-sm text-slate-500 dark:text-slate-400">
-                Centralized network inventory, real-time monitoring, and hardware lifecycle control.
+                Course, Student, Staff, Payroll & Financial Management System
               </p>
             </div>
           </div>
@@ -38,15 +38,18 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           {/* Mobile Header */}
           <div className="flex flex-col items-center lg:hidden mb-4 sm:mb-6 text-center w-full max-w-sm">
             <Image
-              src="/assets/images/logo.png"
-              alt="GESN Device Management"
-              width={200}
+              src="/erp-logo.png"
+              alt="Octal ERP"
+              width={80}
               height={80}
-              className="h-10 w-auto object-contain mb-2"
+              className="h-16 w-16 rounded-xl object-cover shadow-sm mb-2"
               priority
             />
+            <h1 className="text-sm font-bold text-slate-900 dark:text-slate-100">
+              Octal ERP
+            </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Enterprise network & device administration
+              Academic operations, staff, payroll & finance
             </p>
           </div>
 

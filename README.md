@@ -1,8 +1,7 @@
 <div align="center">
 
-# 🌐 GESN ISP & Device Management ERP
-
-**An Enterprise-Grade, Modern ISP Business Operations & Network Infrastructure Management Platform**
+# 🎓 Octal ERP
+### Academic Operations, Student Admissions, Staff, Payroll & Financial Management System
 
 [![Next.js](https://img.shields.io/badge/Next.js-15.5-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-19.0-61DAFB?style=for-the-badge&logo=react)](https://react.dev/)
@@ -10,11 +9,9 @@
 [![MongoDB](https://img.shields.io/badge/MongoDB-Mongoose-47A248?style=for-the-badge&logo=mongodb)](https://www.mongodb.com/)
 [![Clerk Auth](https://img.shields.io/badge/Clerk-Authentication-6C47FF?style=for-the-badge&logo=clerk)](https://clerk.com/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4-38B2AC?style=for-the-badge&logo=tailwind-css)](https://tailwindcss.com/)
-[![License](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)](LICENSE)
+[![PWA Ready](https://img.shields.io/badge/PWA-Ready-5A0FC8?style=for-the-badge&logo=pwa)](https://web.dev/progressive-web-apps/)
 
-*Streamlining ISP Infrastructure Assets, Hardware Catalogs, Dynamic Billing Engines, Customer Records, Operational Expenses, and Real-Time Financial Analytics.*
-
-[Explore Features](#-key-features) • [Quick Start](#-quick-start--installation) • [Tech Stack](#️-tech-stack) • [Database Schemas](#️-database-schemas) • [Technical Docs](docs/APP_DOCUMENTATION.md)
+*One ERP · Unified Academic Operations · Complete Staff Management · Accurate Financial Tracking · Progressive Web App (PWA)*
 
 </div>
 
@@ -22,293 +19,224 @@
 
 ## 📌 Table of Contents
 
-- [✨ Key Features](#-key-features)
-  - [📡 Network Infrastructure & Hardware Catalog](#-network-infrastructure--hardware-catalog)
-  - [👥 Customer Database & Bulk Operations](#-customer-database--bulk-operations)
-  - [💳 Automated Billing & Invoice Engine](#-automated-billing--invoice-engine)
-  - [📊 Financial Analytics & Expense Tracking](#-financial-analytics--expense-tracking)
-  - [🔐 RBAC & Access Control](#-rbac--access-control)
-  - [⚙️ System Settings & Company Branding](#️-system-settings--company-branding)
+- [✨ Key Modules & Capabilities](#-key-modules--capabilities)
+  - [📚 Academic Management (Subjects, Courses, Batches)](#-academic-management)
+  - [👨‍🎓 Student Directory, Admissions & Referrals](#-student-directory-admissions--referrals)
+  - [💳 Payment Collections, Invoicing & Receipts](#-payment-collections-invoicing--receipts)
+  - [🤝 Instructor Commissions & Batch Settlements](#-instructor-commissions--batch-settlements)
+  - [👥 Staff Directory & Confidential Monthly Payroll](#-staff-directory--confidential-monthly-payroll)
+  - [💸 Operational Expenses & Multi-Account Cash Ledger](#-operational-expenses--multi-account-cash-ledger)
+  - [📈 Financial Dashboard & 14 Operational Reports](#-financial-dashboard--14-operational-reports)
+  - [📱 Progressive Web App (PWA) & Mobile UX](#-progressive-web-app-pwa--mobile-ux)
+  - [🔐 Server-Enforced RBAC & Resource Security](#-server-enforced-rbac--resource-security)
 - [🛠️ Tech Stack](#️-tech-stack)
 - [📁 Project Architecture](#-project-architecture)
 - [🗄️ Database Schemas](#️-database-schemas)
-- [🌐 Routes & Page Matrix](#-routes--page-matrix)
-- [⚡ Quick Start & Installation](#-quick-start--installation)
-  - [Prerequisites](#prerequisites)
-  - [Installation Steps](#installation-steps)
-  - [Environment Variables Schema](#environment-variables-schema)
-- [🔄 Core Business Workflows](#-core-business-workflows)
-- [📜 NPM Scripts Reference](#-npm-scripts-reference)
-- [🛡️ Security & Authorization Model](#️-security--authorization-model)
-- [📄 License & Author](#-license--author)
+- [🌐 Routes Matrix](#-routes-matrix)
+- [⚡ Quick Start & Setup](#-quick-start--setup)
+- [🛡️ Verification & Acceptance Tests](#️-verification--acceptance-tests)
 
 ---
 
-## ✨ Key Features
+## ✨ Key Modules & Capabilities
 
-### 📡 Network Infrastructure & Hardware Catalog
-- **Asset Lifecycle Management**: Track core hardware including Antennas, Access Points, Routers, Switches, and Servers with status tracking (`Active`, `Maintenance`, `Retired`, `Decommissioned`, `Backup`).
-- **Auto-Generated Serial Numbers**: Automatic prefix-based serial numbering (`ANT-0001`, `RTR-0001`, `SW-0001`, `AP-0001`, `SRV-0001`) via atomic MongoDB counter actions.
-- **Dynamic Hardware Catalog**: Maintain structured hardware specifications by Device Type, Brand (Ubiquiti, MikroTik, Cisco, TP-Link, Dell, HP, Huawei), and Model.
-- **Network & Spatial Details**: Store IP Addresses, MAC Addresses, Activation Dates, Documentation links, and GPS Links for physical deployment tracking.
-- **High-Performance Search**: Multi-field text index search across SL, Device Name, IP, MAC address, and specifications.
+### 📚 Academic Management
+- **Subjects & Courses**: Manage core academic disciplines and structured courses with prerequisite tracking, syllabus modules, fee schedules, and default instructor assignments.
+- **Batch Lifecycle**: Schedule batches with unique auto-generated codes (`FSWD-B01`), room/schedule slots, seat limits, and assigned instructors.
+- **Instructor Scoping**: Instructors only access courses and batches explicitly assigned to them.
 
-### 👥 Customer Database & Bulk Operations
-- **Full Lifecycle Records**: Search, filter, and manage customer accounts with status tracking (`Active`, `Inactive`, `Disconnected`) and soft-delete safeguards.
-- **Connection Details**: Maintain Customer Code, Contact Information, Address, Package Name, Monthly Fee, Connection Date, Router Assignment, and IP allocations.
-- **Bulk Data Suite**: Download sample Excel templates, bulk-import customer lists from `.xlsx` files, and export active customer directories with a single click.
+### 👨‍🎓 Student Directory, Admissions & Referrals
+- **Student Admissions**: Comprehensive profile capture with automated student ID assignment (`OCT-2026-0001`), contact info, guardian emergency details, and blood group.
+- **Fee Configuration**: Course agreed fee and upfront discount configuration (`Agreed Fee - Discount = Net Payable`).
+- **Referral Attribution**: Direct attribution of enrolled students to referring instructors or staff members with percentage commission calculations.
 
-### 💳 Automated Billing & Invoice Engine
-- **One-Click Monthly Bill Generation**: Automatically generate monthly invoices for all active customers with duplicate protection keying `(customer, month, year)`.
-- **Flexible Financial Reconciliation**: Full tracking for `amount`, `paidAmount`, `dueAmount`, and `advanceAmount` with partial and advance payment capabilities.
-- **Custom Invoice Prefixes**: Configurable invoice numbering schema based on company settings (e.g., `INV-2026-001`).
-- **PDF Export & Thermal/Browser Print**: Render client-side invoices into high-definition downloadable PDFs (`jsPDF` + `html2canvas`) or print layouts.
+### 💳 Payment Collections, Invoicing & Receipts
+- **Multi-Installment Collections**: Record student tuition payments via Cash, bKash, Nagad, Rocket, Bank Transfer, or Card.
+- **Atomic Receipt Generation**: Auto-incremented sequence numbers (`REC-2026-0001`) with printable student vouchers.
+- **Audit-Safe Financial Reversals**: Reversals preserve immutable audit history rather than hard deleting records.
 
-### 📊 Financial Analytics & Expense Tracking
-- **Real-Time KPI Dashboard**: Interactive metrics displaying total collections, pending dues, operational expenditure, net profit, and active customer distribution.
-- **Categorized Expense Records**: Track operational expenses across 8 core categories (Bandwidth, Electricity, Staff Salaries, Maintenance, Equipment, Rent, Transport, Miscellaneous).
-- **Comprehensive Reports**: Multi-tab P&L reporting (Income, Expense, Profit, Dues) with CSV data export functionality.
-- **Data Visualization**: Dynamic visual trend charts powered by `Recharts`.
+### 🤝 Instructor Commissions & Batch Settlements
+- **Automated Commission Calculations**: Real-time commission ledger entries generated upon student payment collection.
+- **Batch Settlements**: Aggregate eligible collections per batch, compute net earnings, deductions, and payouts.
+- **Instructor Portal**: Restricted view for instructors showing only their assigned batches, referred students, commission statements, and payout history.
 
-### 🔐 RBAC & Access Control
-- **Clerk Authentication**: Seamless sign-in and sign-up flows powered by `@clerk/nextjs`.
-- **Database Role Verification**: Admin access restriction backed by MongoDB email whitelist verification.
-- **Automatic First-Admin Setup**: Automatic super-admin bootstrapping for the first signed-in user.
-- **Multi-Admin Management**: Authorized admins can grant or revoke ERP access permissions.
+### 👥 Staff Directory & Confidential Monthly Payroll
+- **Staff Directory**: Track all employees with designations, departments, contact info, joining date, and salary terms.
+- **Monthly Payroll Generation**: Idempotent monthly payroll generator preventing duplicate salary records for the same month (`OCT-PAY-2026-10-001`).
+- **Disbursements & Slips**: Partial or full disbursements with printable pay vouchers. Non-administrative staff cannot view peer salaries.
 
-### ⚙️ System Settings & Company Branding
-- **Company Identity**: Global configuration for company name, logo image, phone, email, and physical office address.
-- **Financial Prefixes & Currency**: Customize currency symbols and invoice document prefixes system-wide.
+### 💸 Operational Expenses & Multi-Account Cash Ledger
+- **Expense Tracking**: Categorized expenses (Rent, Utilities, Marketing, Supplies, Software) with approval workflows and receipt attachments.
+- **Multi-Account Cashflow Ledger**: Real-time cash balance reconciliation across physical Cash Drawers, Bank Accounts, and Mobile Money accounts.
+
+### 📈 Financial Dashboard & 14 Operational Reports
+- **Real-Time Financial Dashboard**: Super Admin executive overview of Total Revenue, Collected Fees, Outstanding Receivables, Payroll Liabilities, Commission Commitments, and True Cash Reserves.
+- **14 Built-In Operational Reports**:
+  1. Student Enrollment Report
+  2. Tuition Due & Aging Report
+  3. Daily Payment Collection Sheet
+  4. Batch Revenue Performance
+  5. Referral Performance Report
+  6. Instructor Commission Ledger
+  7. Batch Settlement Statements
+  8. Monthly Payroll Register
+  9. Salary Payment History
+  10. Operational Expenses Summary
+  11. Account Cashflow Ledger
+  12. Profit & Loss Statement
+  13. Comprehensive Balance Sheet
+  14. System Audit Trail
+
+### 📱 Progressive Web App (PWA) & Mobile UX
+- Fully responsive mobile-first UI built with Tailwind CSS and Radix UI primitives.
+- PWA installability with web manifest, offline service worker caching, and live online/offline indicator.
+
+### 🔐 Server-Enforced RBAC & Resource Security
+- Server-side role validation across all Server Actions and API endpoints.
+- Role matrix supporting `super_admin`, `admin`, `instructor`, `receptionist`, `accountant`, and `staff`.
+- Data isolation ensuring instructors and staff cannot inspect global finances or peer records.
 
 ---
 
 ## 🛠️ Tech Stack
 
-| Category | Technology / Package | Purpose |
-| :--- | :--- | :--- |
-| **Framework** | [Next.js 15 (App Router)](https://nextjs.org/) | Core full-stack framework with React Server Components & Turbopack |
-| **Frontend Library** | [React 19](https://react.dev/) | Component architecture & UI state management |
-| **Language** | [TypeScript 5](https://www.typescriptlang.org/) | Type safety across server actions, models, and client components |
-| **Authentication** | [Clerk Auth (`@clerk/nextjs`)](https://clerk.com/) | User identity, session tokens, and secure middleware guards |
-| **Database & ORM** | [MongoDB](https://www.mongodb.com/) & [Mongoose 8](https://mongoosejs.com/) | Document database with schema indexing and Mongoose models |
-| **Styling & UI** | [Tailwind CSS 3](https://tailwindcss.com/) & [Radix UI](https://www.radix-ui.com/) | Modern utility styling, theme support, and accessible primitives |
-| **Icons & Utilities** | [Lucide React](https://lucide.dev/) & [clsx](https://github.com/lukeed/clsx) / `tailwind-merge` | Vector icons and dynamic conditional class compositions |
-| **Data Visualization** | [Recharts](https://recharts.org/) | Responsive income, expense, and operational analytics charts |
-| **Data Processing** | [SheetJS (`xlsx`)](https://sheetjs.com/) | Client-side Excel `.xlsx` bulk import, export, and template generation |
-| **Document Export** | `html2canvas` & `jspdf` | Client-side HTML rendering to downloadable PDF invoices |
-| **Forms & Validation** | [React Hook Form](https://react-hook-form.com/) & [Zod](https://zod.dev/) | Client & server schema validation and form state handling |
-| **Notifications** | `react-hot-toast` | Real-time toast notifications for user interactions |
+- **Framework**: [Next.js 15.5](https://nextjs.org/) (App Router, Turbopack)
+- **UI Library**: [React 19](https://react.dev/)
+- **Language**: [TypeScript 5](https://www.typescriptlang.org/) (Strict typing, no `any`)
+- **Styling**: [Tailwind CSS 3.4](https://tailwindcss.com/) & [shadcn/ui](https://ui.shadcn.com/)
+- **Authentication**: [Clerk](https://clerk.com/)
+- **Database**: [MongoDB](https://www.mongodb.com/) via [Mongoose 8.24](https://mongoosejs.com/)
+- **Icons**: [Lucide React](https://lucide.dev/)
+- **Forms**: [React Hook Form](https://react-hook-form.com/) & [Zod](https://zod.dev/)
 
 ---
 
 ## 📁 Project Architecture
 
-```text
+```
 octal-erp/
 ├── app/
-│   ├── (auth)/                # Public authentication routes
-│   │   ├── sign-in/           # Clerk sign-in screen
-│   │   └── sign-up/           # Clerk sign-up screen
-│   ├── (root)/                # Protected ERP dashboard layout & modules
-│   │   ├── admins/            # Admin user access control
-│   │   ├── billing/           # Monthly billing & payment tracking
-│   │   ├── catalog/           # Hardware catalog (Device Types, Brands, Models)
-│   │   ├── components/        # Dashboard client views & invoice generators
-│   │   ├── customers/         # Customer database & bulk import/export
-│   │   ├── devices/           # Network device inventory & GPS location tracking
-│   │   ├── expenses/          # Operational expense logging & categories
-│   │   ├── reports/           # Financial reporting & CSV exports
-│   │   ├── settings/          # Company branding & invoice prefix settings
-│   │   ├── layout.tsx         # Root protected layout with Clerk & DB admin guard
-│   │   └── page.tsx           # Primary executive dashboard page
-│   ├── access-denied/         # Access denied view for unauthorized users
-│   ├── layout.tsx             # Root html/body layout & Clerk Provider wrapper
-│   └── globals.css            # Tailwind CSS directives & global design tokens
+│   ├── (auth)/                  # Clerk Sign-In & Sign-Up with Octal Branding
+│   ├── (root)/
+│   │   ├── academic/            # Subjects, Courses & Batches
+│   │   ├── students/            # Student Directory & Admissions
+│   │   ├── payments/            # Tuition Collections & Receipts
+│   │   ├── finance/             # Commissions, Settlements & Accounts
+│   │   ├── staff/               # Employee Directory & Salary Terms
+│   │   ├── payroll/             # Monthly Payroll & Pay Slips
+│   │   ├── expenses/            # Operational Expenses
+│   │   ├── reports/             # 14 Operational & Financial Reports
+│   │   ├── admins/              # RBAC & Admin User Management
+│   │   ├── activity-logs/       # System Audit Trail
+│   │   └── settings/            # System & Institution Settings
 ├── components/
-│   ├── shared/                # Shared layout components (Sidebar, Header, Cards)
-│   └── ui/                    # Reusable Radix UI design primitives
-├── docs/
-│   └── APP_DOCUMENTATION.md   # Detailed technical documentation
-├── hooks/                     # Custom React client hooks
+│   ├── academic/                # Academic UI & dialog components
+│   ├── students/                # Student admission forms & details
+│   ├── payments/                # Payment collection modals & receipts
+│   ├── finance/                 # Commissions, settlements, accounts
+│   ├── staff/                   # Employee management forms
+│   ├── payroll/                 # Payroll generator & disbursement modals
+│   ├── expenses/                # Expense tracking dialogs
+│   ├── reports/                 # Financial reporting tables & filters
+│   ├── shared/                  # Header, Sidebar, PWA offline banner
+│   └── ui/                      # shadcn/ui accessible components
 ├── lib/
-│   ├── actions/               # Server Actions (Device, Billing, Catalog, Customer, Dashboard, Admin)
+│   ├── actions/                 # Clean Server Actions with RBAC guards
 │   ├── database/
-│   │   ├── models/            # Mongoose schemas (Device, Customer, Bill, Expense, Setting, Catalog)
-│   │   └── index.ts           # Cached MongoDB Mongoose connection handler
-│   └── constants.ts           # Application-wide constants & device configurations
-├── public/                    # Static assets & placeholders
-├── types/                     # Shared TypeScript interfaces & model contracts
-└── middleware.ts              # Clerk authentication middleware guard
+│   │   ├── models/              # 14 Mongoose Schema Definitions
+│   │   └── index.ts             # Cached MongoDB Connection
+│   ├── auth-guard.ts            # Server-side authentication & role guards
+│   ├── rbac-utils.ts            # Permission hierarchy & module resolvers
+│   └── utils.ts                 # Currency (৳ BDT) & Date formatters
+├── public/
+│   ├── erp-logo.png             # Official 1:1 Octal ERP Logo
+│   ├── manifest.webmanifest     # PWA Web App Manifest
+│   └── sw.js                    # Offline Service Worker
+└── scripts/
+    └── verify-acceptance-tests.mjs # 17-Scenario E2E Acceptance Test Suite
 ```
 
 ---
 
-## 🗄️ Database Schemas
+## 🌐 Routes Matrix
 
-The application utilizes **MongoDB** via **Mongoose**. Below are the core schemas managed under `lib/database/models/`:
-
-| Model | Schema File | Key Fields & Indexes | Description |
+| Route | Module | Access Level | Description |
 | :--- | :--- | :--- | :--- |
-| **Device** | `device.model.ts` | `sl` (unique), `deviceType`, `brand`, `model`, `deviceName`, `macAddress`, `ipAddress`, `gps`, `status` | Stores network infrastructure hardware assets with compound search indexes. |
-| **DeviceType** | `deviceType.model.ts` | `name`, `slug` (unique), `description`, `isProtected`, `isActive` | Classifies hardware (e.g., Antenna, Router, Switch, Access Point, Server). |
-| **Brand** | `brand.model.ts` | `name` (unique), `deviceTypes[]`, `isActive` | Manages hardware manufacturer brands (e.g., Ubiquiti, MikroTik, Cisco). |
-| **DeviceModel** | `model.model.ts` | `name`, `brand`, `deviceType`, `specifications`, `isActive` | Stores hardware model definitions and technical specs. |
-| **Counter** | `counter.model.ts` | `id` (unique), `seq` | Atomic sequence generator for device serial numbers (`SL`). |
-| **Customer** | `customer.model.ts` | `customerCode` (unique), `name`, `phone`, `packageName`, `monthlyFee`, `router`, `ipAddress`, `status`, `isDeleted` | Customer directory with soft-delete flag for data retention. |
-| **Bill** | `billing.model.ts` | `customer`, `month`, `year`, `amount`, `paidAmount`, `dueAmount`, `advanceAmount`, `status`, `invoiceNumber` | Stores monthly billing records. Compound index on `(customer, month, year)`. |
-| **Expense** | `expense.model.ts` | `title`, `category`, `amount`, `expenseDate`, `description` | Operational expense records categorized by expenditure type. |
-| **Setting** | `setting.model.ts` | `companyName`, `logo`, `phone`, `email`, `address`, `invoicePrefix`, `currency` | Global business identity and invoice formatting rules. |
-| **Admin** | `admin.model.ts` | `email` (unique, lowercase) | Whitelisted admin emails permitted to access protected ERP routes. |
+| `/` | **Financial Dashboard** | Super Admin, Admin, Instructor | Executive dashboard with metrics & reserve calculations |
+| `/academic/subjects` | **Subjects** | Super Admin, Admin | Curriculum subjects & modules |
+| `/academic/courses` | **Courses** | Super Admin, Admin, Instructor | Course catalog, syllabi & fees |
+| `/academic/batches` | **Batches** | Super Admin, Admin, Instructor | Active & scheduled batches |
+| `/students` | **Student Directory** | Super Admin, Admin, Staff | Student roster & search |
+| `/students/new` | **Admission Form** | Super Admin, Admin, Receptionist | Enroll student & configure fees |
+| `/payments` | **Collections** | Super Admin, Admin, Accountant | Tuition collections & receipts |
+| `/finance/commissions` | **Commissions** | Super Admin, Admin, Instructor | Referral commission statements |
+| `/finance/settlements` | **Settlements** | Super Admin, Admin | Batch commission disbursements |
+| `/finance/accounts` | **Ledger** | Super Admin, Admin, Accountant | Multi-account cash drawer ledger |
+| `/staff` | **Staff Directory** | Super Admin, Admin | Employee roster & designations |
+| `/payroll` | **Monthly Payroll** | Super Admin, Admin, Accountant | Salary generation & pay slips |
+| `/expenses` | **Expenses** | Super Admin, Admin, Accountant | Operational expense tracker |
+| `/reports` | **Reports** | Super Admin, Admin | 14 financial & operational statements |
+| `/admins` | **Admins & RBAC** | Super Admin | Access control & user permissions |
+| `/settings` | **Settings** | Super Admin | System configuration & branding |
 
 ---
 
-## 🌐 Routes & Page Matrix
+## ⚡ Quick Start & Setup
 
-| Route Path | Module Name | Access Level | Description | Key Server Actions / Components |
-| :--- | :--- | :--- | :--- | :--- |
-| `/` | **Dashboard** | Admin | Executive summary with financial metrics, active counts, and visual charts | `getDashboardMetrics()`, `DashboardClient` |
-| `/devices` | **Device Management** | Admin | Infrastructure device inventory, status filtering, and network IP/MAC assignment | `getDevices()`, `createDevice()`, `updateDevice()` |
-| `/catalog` | **Hardware Catalog** | Admin | Manage hardware Device Types, Manufacturer Brands, and Model Specifications | `seedDefaultCatalog()`, `createBrand()`, `createModel()` |
-| `/customers` | **Customer Directory** | Admin | Customer management, bulk Excel import, template downloader, and `.xlsx` export | `getCustomers()`, `importCustomers()`, `CustomerForm` |
-| `/billing` | **Billing & Invoices** | Admin | Monthly bill generation, payment recording (paid/due/advance), PDF download, print | `generateMonthlyBills()`, `recordPayment()`, `InvoiceTemplate` |
-| `/expenses` | **Expense Tracker** | Admin | Record and filter operational expenditures by category and date | `getExpenses()`, `createExpense()`, `deleteExpense()` |
-| `/reports` | **Financial Reports** | Admin | P&L multi-tab reporting (Income, Expenses, Net Profit, Dues) with CSV exports | `getReportData()`, `exportToCSV()` |
-| `/settings` | **Company Settings** | Admin | Update business contact information, logo URL, invoice prefix, and currency symbol | `getSettings()`, `updateSettings()` |
-| `/admins` | **Admin Access Control**| Admin | Grant or revoke ERP admin access privileges by email | `getAdmins()`, `addAdmin()`, `removeAdmin()` |
+### 1. Clone & Install Dependencies
+```bash
+git clone https://github.com/ninazmul/octal-erp.git
+cd octal-erp
+npm install
+```
 
----
-
-## ⚡ Quick Start & Installation
-
-### Prerequisites
-
-Ensure you have the following installed on your machine:
-- **Node.js**: `v18.0.0` or higher
-- **Package Manager**: `npm` (v9+) or `yarn` / `pnpm`
-- **Database**: MongoDB instance (Local MongoDB server or [MongoDB Atlas](https://www.mongodb.com/cloud/atlas) cluster)
-- **Authentication**: A free [Clerk account](https://clerk.com/) to obtain publishable and secret keys
-
-### Installation Steps
-
-1. **Clone the Repository**
-   ```bash
-   git clone https://github.com/ninazmul/octal-erp.git
-   cd octal-erp
-   ```
-
-2. **Install Dependencies**
-   ```bash
-   npm install
-   ```
-
-3. **Configure Environment Variables**
-   Create a `.env.local` file in the root directory:
-   ```bash
-   cp .env.local.example .env.local # Or create manually
-   ```
-
-4. **Run Development Server**
-   ```bash
-   npm run dev
-   ```
-
-5. **Access Application**
-   Open your browser and navigate to [http://localhost:3000](http://localhost:3000).
-
----
-
-### Environment Variables Schema
-
-Add the following keys to your `.env.local` file:
-
+### 2. Configure Environment
+Copy `.env.local.example` to `.env.local`:
 ```env
-# Clerk Authentication Keys (From https://dashboard.clerk.com)
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
 CLERK_SECRET_KEY=sk_test_...
 
-# Clerk Route Redirect Configurations
 NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
 NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
 NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/
 NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/
 
-# MongoDB Connection String
-MONGODB_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/octal-erp?retryWrites=true&w=majority
+MONGODB_URI=mongodb+srv://user:password@cluster.mongodb.net/octal-erp?retryWrites=true&w=majority
+```
+
+### 3. Run Development Server
+```bash
+npm run dev
+```
+Visit `http://localhost:3000` to interact with Octal ERP.
+
+### 4. Build for Production
+```bash
+npm run build
+npm start
 ```
 
 ---
 
-## 🔄 Core Business Workflows
+## 🛡️ Verification & Acceptance Tests
 
-```mermaid
-flowchart TD
-    A[User Signs In via Clerk] --> B{Email in Admin DB?}
-    B -- No & DB Empty --> C[Auto-Promote First User to Admin]
-    B -- No & Admins Exist --> D[Redirect to /access-denied]
-    B -- Yes --> E[Access ERP Dashboard]
-    
-    E --> F[Hardware Catalog & Devices]
-    E --> G[Customer Operations]
-    E --> H[Monthly Billing Engine]
-    
-    F --> F1[Seed Catalog Types & Brands] --> F2[Register Infrastructure Device]
-    G --> G1[Bulk Import Excel Customers] --> G2[Soft-Delete / Manage Profiles]
-    H --> H1[Generate Monthly Bill Batch] --> H2[Record Payment: Paid/Due/Advance] --> H3[Download PDF / Print Invoice]
+Execute the 17-scenario automated acceptance test suite:
+```bash
+node scripts/verify-acceptance-tests.mjs
 ```
 
-1. **First Admin Bootstrap**:
-   - When launching the application for the first time, sign up using Clerk.
-   - If the MongoDB `Admin` collection is empty, the system automatically inserts your email as the primary Super Admin.
-   - Additional admins can subsequently be invited via `/admins`.
-
-2. **Device Onboarding**:
-   - Navigate to `/catalog` to view or seed default device types and manufacturer brands (Ubiquiti, MikroTik, Cisco, etc.).
-   - Navigate to `/devices` and click **Add Device**.
-   - Select Device Type, Brand, and Model. The system automatically assigns the next available serial number (e.g., `ANT-0005`).
-
-3. **Customer Directory & Bulk Import**:
-   - Open `/customers`.
-   - Download the Excel template using the **Download Template** button.
-   - Fill in customer details and click **Import Excel** to upload batch customer records into MongoDB.
-
-4. **Monthly Invoice Generation & Payment Tracking**:
-   - Open `/billing` at the start of a new month.
-   - Click **Generate Monthly Bills**, select the billing month/year, and confirm.
-   - The engine iterates through active customers and creates unpaid bill records with unique invoice numbers.
-   - When a payment is collected, click **Mark Paid** to update status and record payment methods or partial balances.
-   - Click **Download PDF** or **Print** to send customer invoices.
-
----
-
-## 📜 NPM Scripts Reference
-
-| Command | Action / Description |
-| :--- | :--- |
-| `npm run dev` | Starts the Next.js development server with Turbopack enabled (`localhost:3000`) |
-| `npm run build` | Compiles and builds the production application (runs type checks & ESLint) |
-| `npm run start` | Launches the built production server |
-| `npm run lint` | Runs Next.js ESLint checks to identify formatting and syntax issues |
-| `npx tsc --noEmit` | Executes static TypeScript type checking across the entire project |
-
----
-
-## 🛡️ Security & Authorization Model
-
-- **Authentication Guard**: Powered by Clerk SDK middleware (`middleware.ts`), ensuring unauthenticated requests to protected ERP pages automatically redirect to `/sign-in`.
-- **Database Access Authorization**: Protected root layout verifies the authenticated user's primary email against the MongoDB `Admin` collection before rendering ERP pages.
-- **Server Action Protection**: All database mutation actions (`lib/actions/*`) execute strictly on the server and check user session validity prior to DB execution.
-- **Data Protection**: Customer records use soft deletion (`isDeleted: true`), ensuring financial billing history and reporting data integrity remain intact.
-
----
-
-## 📄 License & Author
-
-Distributed under the **MIT License**. See `LICENSE` for more information.
-
-Developed and maintained by **[ninazmul](https://github.com/ninazmul)** (<nazmulsaw@gmail.com>).
-
----
-
-<div align="center">
-  <sub>Built with ❤️ for modern Internet Service Providers & Network Operators.</sub>
-</div>
+All 17 domain criteria are verified:
+- Academic entity creation & batch code formatting
+- Instructor scoping & batch security guards
+- Admission fee mathematics & referral attribution
+- Multi-installment payment recording & atomic receipt numbering
+- Single idempotent commission calculation per payment
+- Cumulative commission aggregation & batch settlements
+- Fixed basic salary employee onboarding
+- Idempotent monthly payroll generation
+- Partial salary disbursements with remaining dues
+- Independent operational expense tracking
+- Multi-account cashflow ledger reconciliation
+- Executive reserve calculation (`Net Cash - Liabilities`)
+- Financial reversal audit-trail preservation
+- PWA manifest and service worker configuration

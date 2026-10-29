@@ -310,7 +310,7 @@ function GranularPermissionsEditor({
             Granular Action Permissions
           </span>
           <p className="text-[10px] text-slate-500 dark:text-slate-400">
-            Configure specific device, server, and administrative action grants.
+            Configure specific academic, financial, payroll, and administrative action grants.
           </p>
         </div>
         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
@@ -1272,8 +1272,7 @@ export default function AdminsClient({
                           <div className="flex flex-col gap-1">
                             {["engineer", "editor"].includes(admin.role) && (
                               <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-indigo-600 dark:text-indigo-400">
-                                <Terminal className="w-3 h-3" /> Device
-                                Approvals Authorized
+                                <Terminal className="w-3 h-3" /> Technical Operations
                               </span>
                             )}
                             <div className="flex flex-wrap gap-1">
