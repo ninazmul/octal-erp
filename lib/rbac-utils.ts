@@ -1,0 +1,763 @@
+import {
+  AdminRole,
+  AppModule,
+  GranularPermissionKey,
+  GranularPermissions,
+  ModulePermissions,
+  PermissionLevel,
+} from "@/types";
+
+export const ALL_APP_MODULES: AppModule[] = [
+  "dashboard",
+  "academic",
+  "students",
+  "payments",
+  "commissions",
+  "staff",
+  "payroll",
+  "expenses",
+  "finance",
+  "reports",
+  "admins",
+  "activity_logs",
+  "settings",
+  // Legacy modules
+  "devices",
+  "customers",
+  "billing",
+  "catalog",
+];
+
+export const DEFAULT_ROLE_PERMISSIONS: Record<AdminRole, ModulePermissions> = {
+  super_admin: {
+    dashboard: "write",
+    academic: "write",
+    students: "write",
+    payments: "write",
+    commissions: "write",
+    staff: "write",
+    payroll: "write",
+    expenses: "write",
+    finance: "write",
+    reports: "write",
+    admins: "write",
+    activity_logs: "write",
+    settings: "write",
+    devices: "write",
+    customers: "write",
+    billing: "write",
+    catalog: "write",
+  },
+  admin: {
+    dashboard: "write",
+    academic: "write",
+    students: "write",
+    payments: "write",
+    commissions: "read",
+    staff: "write",
+    payroll: "read",
+    expenses: "write",
+    finance: "read",
+    reports: "write",
+    admins: "none",
+    activity_logs: "read",
+    settings: "read",
+    devices: "write",
+    customers: "write",
+    billing: "write",
+    catalog: "write",
+  },
+  instructor: {
+    dashboard: "read",
+    academic: "read",
+    students: "read",
+    payments: "none",
+    commissions: "read",
+    staff: "none",
+    payroll: "none",
+    expenses: "none",
+    finance: "none",
+    reports: "none",
+    admins: "none",
+    activity_logs: "none",
+    settings: "none",
+    devices: "none",
+    customers: "none",
+    billing: "none",
+    catalog: "none",
+  },
+  receptionist: {
+    dashboard: "read",
+    academic: "read",
+    students: "write",
+    payments: "write",
+    commissions: "none",
+    staff: "read",
+    payroll: "none",
+    expenses: "none",
+    finance: "none",
+    reports: "none",
+    admins: "none",
+    activity_logs: "none",
+    settings: "none",
+    devices: "none",
+    customers: "write",
+    billing: "write",
+    catalog: "none",
+  },
+  accountant: {
+    dashboard: "read",
+    academic: "read",
+    students: "read",
+    payments: "write",
+    commissions: "write",
+    staff: "read",
+    payroll: "write",
+    expenses: "write",
+    finance: "write",
+    reports: "write",
+    admins: "none",
+    activity_logs: "read",
+    settings: "read",
+    devices: "read",
+    customers: "read",
+    billing: "write",
+    catalog: "read",
+  },
+  staff: {
+    dashboard: "read",
+    academic: "read",
+    students: "read",
+    payments: "none",
+    commissions: "none",
+    staff: "read",
+    payroll: "none",
+    expenses: "none",
+    finance: "none",
+    reports: "none",
+    admins: "none",
+    activity_logs: "none",
+    settings: "none",
+    devices: "none",
+    customers: "none",
+    billing: "none",
+    catalog: "none",
+  },
+  engineer: {
+    dashboard: "write",
+    academic: "read",
+    students: "read",
+    payments: "none",
+    commissions: "none",
+    staff: "read",
+    payroll: "none",
+    expenses: "read",
+    finance: "none",
+    reports: "read",
+    admins: "none",
+    activity_logs: "none",
+    settings: "none",
+    devices: "write",
+    customers: "write",
+    billing: "write",
+    catalog: "write",
+  },
+  editor: {
+    dashboard: "none",
+    academic: "write",
+    students: "write",
+    payments: "read",
+    commissions: "none",
+    staff: "none",
+    payroll: "none",
+    expenses: "none",
+    finance: "none",
+    reports: "none",
+    admins: "none",
+    activity_logs: "none",
+    settings: "none",
+    devices: "write",
+    customers: "write",
+    billing: "write",
+    catalog: "none",
+  },
+  moderator: {
+    dashboard: "read",
+    academic: "read",
+    students: "write",
+    payments: "read",
+    commissions: "none",
+    staff: "none",
+    payroll: "none",
+    expenses: "none",
+    finance: "none",
+    reports: "none",
+    admins: "none",
+    activity_logs: "none",
+    settings: "none",
+    devices: "write",
+    customers: "write",
+    billing: "write",
+    catalog: "none",
+  },
+  viewer: {
+    dashboard: "read",
+    academic: "read",
+    students: "read",
+    payments: "none",
+    commissions: "none",
+    staff: "none",
+    payroll: "none",
+    expenses: "none",
+    finance: "none",
+    reports: "none",
+    admins: "none",
+    activity_logs: "none",
+    settings: "none",
+    devices: "read",
+    customers: "read",
+    billing: "read",
+    catalog: "read",
+  },
+  custom: {
+    dashboard: "read",
+    academic: "none",
+    students: "none",
+    payments: "none",
+    commissions: "none",
+    staff: "none",
+    payroll: "none",
+    expenses: "none",
+    finance: "none",
+    reports: "none",
+    admins: "none",
+    activity_logs: "none",
+    settings: "none",
+    devices: "none",
+    customers: "none",
+    billing: "none",
+    catalog: "none",
+  },
+};
+
+export const DEFAULT_GRANULAR_PERMISSIONS: Record<
+  AdminRole,
+  Record<GranularPermissionKey, boolean>
+> = {
+  super_admin: {
+    academic_manage: true,
+    student_admit: true,
+    student_view: true,
+    payment_record: true,
+    payment_verify: true,
+    commission_configure: true,
+    commission_settle: true,
+    staff_manage: true,
+    payroll_generate: true,
+    payroll_disburse: true,
+    payroll_view_confidential: true,
+    expense_record: true,
+    expense_approve: true,
+    account_manage: true,
+    report_view: true,
+    user_manage: true,
+    setting_manage: true,
+    device_add: true,
+    device_view: true,
+    device_edit: true,
+    device_delete: true,
+    device_approve: true,
+    device_archive: true,
+    server_view: true,
+    server_manage: true,
+    customer_view: true,
+  },
+  admin: {
+    academic_manage: true,
+    student_admit: true,
+    student_view: true,
+    payment_record: true,
+    payment_verify: true,
+    commission_configure: false,
+    commission_settle: false,
+    staff_manage: true,
+    payroll_generate: false,
+    payroll_disburse: false,
+    payroll_view_confidential: false,
+    expense_record: true,
+    expense_approve: false,
+    account_manage: false,
+    report_view: true,
+    user_manage: false,
+    setting_manage: false,
+    device_add: true,
+    device_view: true,
+    device_edit: true,
+    device_delete: false,
+    device_approve: false,
+    device_archive: false,
+    server_view: true,
+    server_manage: false,
+    customer_view: true,
+  },
+  instructor: {
+    academic_manage: false,
+    student_admit: false,
+    student_view: true, // scoped to assigned courses
+    payment_record: false,
+    payment_verify: false,
+    commission_configure: false,
+    commission_settle: false,
+    staff_manage: false,
+    payroll_generate: false,
+    payroll_disburse: false,
+    payroll_view_confidential: false,
+    expense_record: false,
+    expense_approve: false,
+    account_manage: false,
+    report_view: false,
+    user_manage: false,
+    setting_manage: false,
+    device_add: false,
+    device_view: false,
+    device_edit: false,
+    device_delete: false,
+    device_approve: false,
+    device_archive: false,
+    server_view: false,
+    server_manage: false,
+    customer_view: false,
+  },
+  receptionist: {
+    academic_manage: false,
+    student_admit: true,
+    student_view: true,
+    payment_record: true,
+    payment_verify: false,
+    commission_configure: false,
+    commission_settle: false,
+    staff_manage: false,
+    payroll_generate: false,
+    payroll_disburse: false,
+    payroll_view_confidential: false,
+    expense_record: false,
+    expense_approve: false,
+    account_manage: false,
+    report_view: false,
+    user_manage: false,
+    setting_manage: false,
+    device_add: false,
+    device_view: false,
+    device_edit: false,
+    device_delete: false,
+    device_approve: false,
+    device_archive: false,
+    server_view: false,
+    server_manage: false,
+    customer_view: true,
+  },
+  accountant: {
+    academic_manage: false,
+    student_admit: false,
+    student_view: true,
+    payment_record: true,
+    payment_verify: true,
+    commission_configure: false,
+    commission_settle: true,
+    staff_manage: false,
+    payroll_generate: true,
+    payroll_disburse: true,
+    payroll_view_confidential: false,
+    expense_record: true,
+    expense_approve: false,
+    account_manage: true,
+    report_view: true,
+    user_manage: false,
+    setting_manage: false,
+    device_add: false,
+    device_view: true,
+    device_edit: false,
+    device_delete: false,
+    device_approve: false,
+    device_archive: false,
+    server_view: false,
+    server_manage: false,
+    customer_view: true,
+  },
+  staff: {
+    academic_manage: false,
+    student_admit: false,
+    student_view: true,
+    payment_record: false,
+    payment_verify: false,
+    commission_configure: false,
+    commission_settle: false,
+    staff_manage: false,
+    payroll_generate: false,
+    payroll_disburse: false,
+    payroll_view_confidential: false,
+    expense_record: false,
+    expense_approve: false,
+    account_manage: false,
+    report_view: false,
+    user_manage: false,
+    setting_manage: false,
+    device_add: false,
+    device_view: false,
+    device_edit: false,
+    device_delete: false,
+    device_approve: false,
+    device_archive: false,
+    server_view: false,
+    server_manage: false,
+    customer_view: false,
+  },
+  engineer: {
+    academic_manage: false,
+    student_admit: false,
+    student_view: false,
+    payment_record: false,
+    payment_verify: false,
+    commission_configure: false,
+    commission_settle: false,
+    staff_manage: false,
+    payroll_generate: false,
+    payroll_disburse: false,
+    payroll_view_confidential: false,
+    expense_record: false,
+    expense_approve: false,
+    account_manage: false,
+    report_view: true,
+    user_manage: false,
+    setting_manage: false,
+    device_add: true,
+    device_view: true,
+    device_edit: true,
+    device_delete: true,
+    device_approve: true,
+    device_archive: true,
+    server_view: true,
+    server_manage: true,
+    customer_view: true,
+  },
+  editor: {
+    academic_manage: true,
+    student_admit: true,
+    student_view: true,
+    payment_record: false,
+    payment_verify: false,
+    commission_configure: false,
+    commission_settle: false,
+    staff_manage: false,
+    payroll_generate: false,
+    payroll_disburse: false,
+    payroll_view_confidential: false,
+    expense_record: false,
+    expense_approve: false,
+    account_manage: false,
+    report_view: false,
+    user_manage: false,
+    setting_manage: false,
+    device_add: true,
+    device_view: true,
+    device_edit: false,
+    device_delete: false,
+    device_approve: false,
+    device_archive: true,
+    server_view: false,
+    server_manage: false,
+    customer_view: true,
+  },
+  moderator: {
+    academic_manage: false,
+    student_admit: true,
+    student_view: true,
+    payment_record: false,
+    payment_verify: false,
+    commission_configure: false,
+    commission_settle: false,
+    staff_manage: false,
+    payroll_generate: false,
+    payroll_disburse: false,
+    payroll_view_confidential: false,
+    expense_record: false,
+    expense_approve: false,
+    account_manage: false,
+    report_view: false,
+    user_manage: false,
+    setting_manage: false,
+    device_add: true,
+    device_view: true,
+    device_edit: false,
+    device_delete: false,
+    device_approve: false,
+    device_archive: false,
+    server_view: false,
+    server_manage: false,
+    customer_view: true,
+  },
+  viewer: {
+    academic_manage: false,
+    student_admit: false,
+    student_view: true,
+    payment_record: false,
+    payment_verify: false,
+    commission_configure: false,
+    commission_settle: false,
+    staff_manage: false,
+    payroll_generate: false,
+    payroll_disburse: false,
+    payroll_view_confidential: false,
+    expense_record: false,
+    expense_approve: false,
+    account_manage: false,
+    report_view: false,
+    user_manage: false,
+    setting_manage: false,
+    device_add: false,
+    device_view: true,
+    device_edit: false,
+    device_delete: false,
+    device_approve: false,
+    device_archive: false,
+    server_view: false,
+    server_manage: false,
+    customer_view: true,
+  },
+  custom: {
+    academic_manage: false,
+    student_admit: false,
+    student_view: false,
+    payment_record: false,
+    payment_verify: false,
+    commission_configure: false,
+    commission_settle: false,
+    staff_manage: false,
+    payroll_generate: false,
+    payroll_disburse: false,
+    payroll_view_confidential: false,
+    expense_record: false,
+    expense_approve: false,
+    account_manage: false,
+    report_view: false,
+    user_manage: false,
+    setting_manage: false,
+    device_add: false,
+    device_view: false,
+    device_edit: false,
+    device_delete: false,
+    device_approve: false,
+    device_archive: false,
+    server_view: false,
+    server_manage: false,
+    customer_view: false,
+  },
+};
+
+export interface GranularPermissionMeta {
+  key: GranularPermissionKey;
+  label: string;
+  category: "Academic" | "Students & Payments" | "Finance & Payroll" | "Administration" | "Legacy";
+  description: string;
+}
+
+export const GRANULAR_PERMISSIONS_LIST: GranularPermissionMeta[] = [
+  {
+    key: "academic_manage",
+    label: "Manage Academic",
+    category: "Academic",
+    description: "Create and update subjects, courses, and batches",
+  },
+  {
+    key: "student_admit",
+    label: "Admit Students",
+    category: "Students & Payments",
+    description: "Enroll students, register admissions, and assign batches",
+  },
+  {
+    key: "student_view",
+    label: "View Students",
+    category: "Students & Payments",
+    description: "View student directory and enrollment profiles",
+  },
+  {
+    key: "payment_record",
+    label: "Record Payments",
+    category: "Students & Payments",
+    description: "Collect and log student tuition installments",
+  },
+  {
+    key: "payment_verify",
+    label: "Verify Payments",
+    category: "Students & Payments",
+    description: "Confirm and approve student payment collections",
+  },
+  {
+    key: "commission_configure",
+    label: "Configure Commissions",
+    category: "Finance & Payroll",
+    description: "Set commission rates and rules for instructors",
+  },
+  {
+    key: "commission_settle",
+    label: "Settle Commissions",
+    category: "Finance & Payroll",
+    description: "Prepare and approve batch settlements and payouts",
+  },
+  {
+    key: "staff_manage",
+    label: "Manage Staff",
+    category: "Administration",
+    description: "Manage employee directory, profiles, and contracts",
+  },
+  {
+    key: "payroll_generate",
+    label: "Generate Payroll",
+    category: "Finance & Payroll",
+    description: "Generate monthly salary obligations for employees",
+  },
+  {
+    key: "payroll_disburse",
+    label: "Disburse Payroll",
+    category: "Finance & Payroll",
+    description: "Record salary payments and mark obligations settled",
+  },
+  {
+    key: "payroll_view_confidential",
+    label: "View Confidential Salaries",
+    category: "Finance & Payroll",
+    description: "Access executive salary figures and compensation data",
+  },
+  {
+    key: "expense_record",
+    label: "Record Expenses",
+    category: "Finance & Payroll",
+    description: "Log operational expenses and invoices",
+  },
+  {
+    key: "expense_approve",
+    label: "Approve Expenses",
+    category: "Finance & Payroll",
+    description: "Approve expenses and authorize disbursements",
+  },
+  {
+    key: "account_manage",
+    label: "Manage Cash Accounts",
+    category: "Finance & Payroll",
+    description: "Create and reconcile cash and bank accounts",
+  },
+  {
+    key: "report_view",
+    label: "View Financial Reports",
+    category: "Finance & Payroll",
+    description: "Access all 14 operational and financial reports",
+  },
+  {
+    key: "user_manage",
+    label: "Manage ERP Users",
+    category: "Administration",
+    description: "Manage admin accounts, roles, and system logins",
+  },
+  {
+    key: "setting_manage",
+    label: "Manage System Settings",
+    category: "Administration",
+    description: "Adjust system parameters and organizational defaults",
+  },
+];
+
+/**
+ * Resolves full effective permissions for a user given their role and custom overrides.
+ */
+export function resolveEffectivePermissions(
+  role: AdminRole,
+  customPerms?: Partial<ModulePermissions> | Map<string, string>,
+): ModulePermissions {
+  if (role === "super_admin") {
+    return { ...DEFAULT_ROLE_PERMISSIONS.super_admin };
+  }
+
+  const base = {
+    ...(DEFAULT_ROLE_PERMISSIONS[role] || DEFAULT_ROLE_PERMISSIONS.custom),
+  };
+
+  if (customPerms) {
+    let customObj: Record<string, string> = {};
+    if (customPerms instanceof Map) {
+      customPerms.forEach((val, key) => {
+        customObj[key] = val;
+      });
+    } else {
+      customObj = customPerms as Record<string, string>;
+    }
+
+    for (const mod of ALL_APP_MODULES) {
+      const val = customObj[mod] as PermissionLevel | undefined;
+      if (val && ["none", "read", "write"].includes(val)) {
+        base[mod] = val;
+      }
+    }
+  }
+
+  // Staff administration is reserved for Super Admins.
+  base.admins = "none";
+
+  return base;
+}
+
+/**
+ * Resolves effective granular permissions for a user given their role and custom overrides.
+ */
+export function resolveEffectiveGranularPermissions(
+  role: AdminRole,
+  customGranular?: GranularPermissions | Map<string, boolean>,
+): Record<GranularPermissionKey, boolean> {
+  if (role === "super_admin") {
+    return { ...DEFAULT_GRANULAR_PERMISSIONS.super_admin };
+  }
+
+  const base: Record<GranularPermissionKey, boolean> = {
+    ...(DEFAULT_GRANULAR_PERMISSIONS[role] ||
+      DEFAULT_GRANULAR_PERMISSIONS.custom),
+  };
+
+  if (customGranular) {
+    let customObj: Record<string, boolean> = {};
+    if (customGranular instanceof Map) {
+      customGranular.forEach((val, key) => {
+        customObj[key] = Boolean(val);
+      });
+    } else {
+      customObj = customGranular as Record<string, boolean>;
+    }
+
+    for (const key of Object.keys(base) as GranularPermissionKey[]) {
+      if (typeof customObj[key] === "boolean") {
+        base[key] = customObj[key];
+      }
+    }
+  }
+
+  // Role and permission administration can never be delegated.
+  base.user_manage = false;
+
+  return base;
+}
+
+/**
+ * Checks if a user has sufficient permission level for a module.
+ * 'write' satisfies 'read' and 'write'.
+ * 'read' satisfies 'read'.
+ */
+export function hasPermissionLevel(
+  effectivePerms: ModulePermissions,
+  module: AppModule,
+  requiredLevel: PermissionLevel,
+): boolean {
+  const current = effectivePerms[module] || "none";
+  if (requiredLevel === "none") return true;
+  if (requiredLevel === "read")
+    return current === "read" || current === "write";
+  if (requiredLevel === "write") return current === "write";
+  return false;
+}
