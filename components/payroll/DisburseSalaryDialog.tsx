@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { IAccount } from "@/types";
+import { IAccount, PopulatedPayrollObligation } from "@/types";
 import { disburseSalaryPayment } from "@/lib/actions/payroll.actions";
 import {
   Dialog,
@@ -19,9 +19,9 @@ import toast from "react-hot-toast";
 interface DisburseSalaryDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  obligation: Record<string, unknown> | null;
+  obligation: PopulatedPayrollObligation | null;
   accounts: IAccount[];
-  onSuccess: (updated: Record<string, unknown>) => void;
+  onSuccess: (updated: PopulatedPayrollObligation) => void;
 }
 
 export default function DisburseSalaryDialog({
@@ -72,7 +72,7 @@ export default function DisburseSalaryDialog({
       toast.success(
         `Disbursed ৳${amount.toLocaleString()} salary payment to ${obligation.employee?.fullName}!`
       );
-      onSuccess(updated);
+      onSuccess(updated as unknown as PopulatedPayrollObligation);
       onOpenChange(false);
     } catch (error: unknown) {
       const err = error as Error;

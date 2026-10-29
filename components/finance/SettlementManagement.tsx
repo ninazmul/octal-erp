@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { IBatch, IEmployee, IAccount } from "@/types";
+import { IBatch, IEmployee, IAccount, PopulatedSettlement, IBatchSettlementStatement } from "@/types";
 import {
   getBatchSettlementStatement,
   createSettlement,
@@ -27,7 +27,7 @@ import Link from "next/link";
 import toast from "react-hot-toast";
 
 interface SettlementManagementProps {
-  initialSettlements: Record<string, unknown>[];
+  initialSettlements: PopulatedSettlement[];
   batches: IBatch[];
   instructors: IEmployee[];
   accounts: IAccount[];
@@ -41,14 +41,14 @@ export default function SettlementManagement({
   accounts,
   isSuperAdmin,
 }: SettlementManagementProps) {
-  const [settlements, setSettlements] = useState<Record<string, unknown>[]>(initialSettlements);
+  const [settlements, setSettlements] = useState<PopulatedSettlement[]>(initialSettlements);
   const [search, setSearch] = useState("");
 
   // Create settlement dialog state
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedBatchId, setSelectedBatchId] = useState("");
   const [selectedInstructorId, setSelectedInstructorId] = useState("");
-  const [statementData, setStatementData] = useState<Record<string, unknown> | null>(null);
+  const [statementData, setStatementData] = useState<IBatchSettlementStatement | null>(null);
   const [deductions, setDeductions] = useState<number>(0);
   const [notes, setNotes] = useState("");
   const [loadingStatement, setLoadingStatement] = useState(false);
@@ -56,7 +56,7 @@ export default function SettlementManagement({
 
   // Payout disbursement dialog state
   const [isPayoutOpen, setIsPayoutOpen] = useState(false);
-  const [activeSettlement, setActiveSettlement] = useState<Record<string, unknown> | null>(null);
+  const [activeSettlement, setActiveSettlement] = useState<PopulatedSettlement | null>(null);
   const [payoutAmount, setPayoutAmount] = useState<number>(0);
   const [paymentMethod, setPaymentMethod] = useState<
     "Cash" | "Bank Transfer" | "bKash" | "Nagad" | "Rocket" | "Card" | "Other"
@@ -121,9 +121,9 @@ export default function SettlementManagement({
     }
   };
 
-  const handleApprove = async (s: Record<string, unknown>) => {
+  const handleApprove = async (s: PopulatedSettlement) => {
     try {
-      await approveSettlement(s._id as string);
+      await approveSettlement(s._id);
       setSettlements((prev) =>
         prev.map((item) =>
           item._id === s._id ? { ...item, status: "Approved" } : item
@@ -136,7 +136,7 @@ export default function SettlementManagement({
     }
   };
 
-  const handleOpenPayout = (s: Record<string, unknown>) => {
+  const handleOpenPayout = (s: PopulatedSettlement) => {
     setActiveSettlement(s);
     setPayoutAmount(s.dueAmount);
     setPaymentMethod("Bank Transfer");

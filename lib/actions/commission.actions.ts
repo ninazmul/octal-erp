@@ -356,7 +356,7 @@ export async function approveSettlement(settlementId: string) {
     module: "commissions",
     resourceId: String(settlement._id),
     resourceName: settlement.settlementNo,
-    details: `Approved settlement ${settlement.settlementNo} of ৳${settlement.netPayable.toLocaleString()} for ${settlement.instructor.fullName}`,
+    details: `Approved settlement ${settlement.settlementNo} of ৳${settlement.netPayable.toLocaleString()}`,
   });
 
   revalidatePath("/finance/settlements");
@@ -399,6 +399,9 @@ export async function disburseCommissionPayout(data: {
     throw new Error("Settlement must be Approved by Super Admin before disbursing payout.");
   }
 
+  const instructorObj = settlement.instructor as unknown as { _id: string; fullName: string };
+  const batchObj = settlement.batch as unknown as { _id: string; batchName: string };
+
   if (amount > settlement.dueAmount) {
     throw new Error(
       `Disbursement amount (৳${amount.toLocaleString()}) exceeds the settlement due of ৳${settlement.dueAmount.toLocaleString()}.`
@@ -411,12 +414,12 @@ export async function disburseCommissionPayout(data: {
   // 1. Create Payout Record
   const payout = await Payout.create({
     payoutNo,
-    instructor: settlement.instructor._id,
+    instructor: instructorObj._id,
     settlement: settlement._id,
     batchBreakdown: [
       {
-        batchId: String(settlement.batch._id),
-        batchName: settlement.batch.batchName,
+        batchId: String(batchObj._id),
+        batchName: batchObj.batchName,
         amount,
       },
     ],
@@ -479,7 +482,7 @@ export async function disburseCommissionPayout(data: {
       balanceAfter,
       sourceModule: "commissions",
       sourceReferenceId: payoutNo,
-      description: `Commission payout ${payoutNo} to ${settlement.instructor.fullName} for batch ${settlement.batch.batchName} (${data.paymentMethod})`,
+      description: `Commission payout ${payoutNo} to ${instructorObj.fullName} for batch ${batchObj.batchName} (${data.paymentMethod})`,
       transactionDate: payoutDate,
       recordedBy: {
         email: actor.email,
@@ -495,7 +498,7 @@ export async function disburseCommissionPayout(data: {
     module: "commissions",
     resourceId: String(payout._id),
     resourceName: payoutNo,
-    details: `Disbursed ৳${amount.toLocaleString()} commission payout (${payoutNo}) to ${settlement.instructor.fullName} for batch ${settlement.batch.batchName}. Remaining settlement balance: ৳${settlement.dueAmount.toLocaleString()}`,
+    details: `Disbursed ৳${amount.toLocaleString()} commission payout (${payoutNo}) to ${instructorObj.fullName} for batch ${batchObj.batchName}. Remaining settlement balance: ৳${settlement.dueAmount.toLocaleString()}`,
   });
 
   revalidatePath("/finance/settlements");

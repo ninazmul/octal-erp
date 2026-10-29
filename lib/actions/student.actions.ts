@@ -437,7 +437,7 @@ export async function updateEnrollment(
 
   if (data.referrerType !== undefined) enrollment.referrerType = data.referrerType;
   if (data.referrerId !== undefined) {
-    enrollment.referrer = data.referrerId ? (data.referrerId as unknown as mongoose.Types.ObjectId) : null;
+    enrollment.referrer = data.referrerId ? (data.referrerId as unknown as mongoose.Types.ObjectId) : undefined;
   }
   if (data.commissionRate !== undefined) {
     enrollment.commissionRate = Math.max(0, Math.min(100, Number(data.commissionRate)));

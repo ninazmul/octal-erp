@@ -9,6 +9,7 @@ import Enrollment from "@/lib/database/models/enrollment.model";
 import CommissionEntry from "@/lib/database/models/commissionEntry.model";
 import { requirePermission, logActivityAndNotify } from "@/lib/auth-guard";
 import { revalidatePath } from "next/cache";
+import mongoose from "mongoose";
 
 // ==========================================
 // SUBJECT ACTIONS
@@ -219,11 +220,13 @@ export async function updateCourse(
   }
 
   if (data.title !== undefined) course.title = data.title.trim();
-  if (data.subjectId !== undefined) course.subject = data.subjectId;
+  if (data.subjectId !== undefined)
+    course.subject = data.subjectId as unknown as mongoose.Types.ObjectId;
   if (data.description !== undefined) course.description = data.description.trim();
   if (data.durationMonths !== undefined) course.durationMonths = data.durationMonths;
   if (data.defaultFee !== undefined) course.defaultFee = data.defaultFee;
-  if (data.instructors !== undefined) course.instructors = data.instructors;
+  if (data.instructors !== undefined)
+    course.instructors = (data.instructors || []) as unknown as mongoose.Types.ObjectId[];
   if (data.defaultCommissionRate !== undefined)
     course.defaultCommissionRate = data.defaultCommissionRate;
   if (data.isActive !== undefined) course.isActive = data.isActive;
@@ -442,7 +445,8 @@ export async function updateBatch(
   if (!batch) throw new Error("Batch not found");
 
   if (data.batchName !== undefined) batch.batchName = data.batchName.trim();
-  if (data.instructors !== undefined) batch.instructors = data.instructors;
+  if (data.instructors !== undefined)
+    batch.instructors = (data.instructors || []) as unknown as mongoose.Types.ObjectId[];
   if (data.startDate !== undefined) batch.startDate = new Date(data.startDate);
   if (data.endDate !== undefined)
     batch.endDate = data.endDate ? new Date(data.endDate) : undefined;

@@ -2,13 +2,6 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import {
   Settings,
@@ -20,7 +13,6 @@ import {
   Percent,
   Briefcase,
   ShieldAlert,
-  GraduationCap,
 } from "lucide-react";
 import { usePermissions } from "@/components/providers/PermissionContext";
 

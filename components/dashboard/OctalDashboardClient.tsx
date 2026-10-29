@@ -119,7 +119,7 @@ export default function OctalDashboardClient({
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {instructorStats.assignedBatches.map((batch: Record<string, unknown>) => (
+            {instructorStats.assignedBatches.map((batch) => (
               <div
                 key={batch._id}
                 className="p-4 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 flex items-center justify-between"
@@ -173,30 +173,36 @@ export default function OctalDashboardClient({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
-                {instructorStats.recentCommissions.map((comm: Record<string, unknown>) => (
-                  <tr key={comm._id}>
-                    <td className="py-2.5 px-3 font-semibold text-slate-800 dark:text-slate-200">
-                      {comm.batch?.batchName || "Batch"}
-                    </td>
-                    <td className="py-2.5 px-3 font-mono">
-                      ৳{comm.collectedAmount?.toLocaleString()}
-                    </td>
-                    <td className="py-2.5 px-3 font-mono font-bold text-indigo-600">
-                      {comm.commissionRate}%
-                    </td>
-                    <td className="py-2.5 px-3 font-mono font-bold text-slate-900 dark:text-white">
-                      ৳{comm.commissionEarned?.toLocaleString()}
-                    </td>
-                    <td className="py-2.5 px-3 font-mono text-emerald-600">
-                      ৳{comm.paidAmount?.toLocaleString() || "0"}
-                    </td>
-                    <td className="py-2.5 px-3">
-                      <Badge variant="outline" className="text-[10px] capitalize">
-                        {comm.status.replace("_", " ")}
-                      </Badge>
-                    </td>
-                  </tr>
-                ))}
+                {instructorStats.recentCommissions.map((comm) => {
+                  const batchName =
+                    typeof comm.batch === "object" && comm.batch !== null
+                      ? (comm.batch as { batchName?: string }).batchName || "Batch"
+                      : "Batch";
+                  return (
+                    <tr key={comm._id}>
+                      <td className="py-2.5 px-3 font-semibold text-slate-800 dark:text-slate-200">
+                        {batchName}
+                      </td>
+                      <td className="py-2.5 px-3 font-mono">
+                        ৳{comm.collectedAmount?.toLocaleString()}
+                      </td>
+                      <td className="py-2.5 px-3 font-mono font-bold text-indigo-600">
+                        {comm.commissionRate}%
+                      </td>
+                      <td className="py-2.5 px-3 font-mono font-bold text-slate-900 dark:text-white">
+                        ৳{comm.commissionEarned?.toLocaleString()}
+                      </td>
+                      <td className="py-2.5 px-3 font-mono text-emerald-600">
+                        ৳{comm.paidAmount?.toLocaleString() || "0"}
+                      </td>
+                      <td className="py-2.5 px-3">
+                        <Badge variant="outline" className="text-[10px] capitalize">
+                          {comm.status.replace("_", " ")}
+                        </Badge>
+                      </td>
+                    </tr>
+                  );
+                })}
 
                 {instructorStats.recentCommissions.length === 0 && (
                   <tr>

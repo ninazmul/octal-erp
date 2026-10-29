@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { IEnrollment, IStudent, IBatch, ICourse, IAccount } from "@/types";
+import { IEnrollment, IStudent, IBatch, ICourse, IAccount, PopulatedPayment } from "@/types";
 import { recordPayment } from "@/lib/actions/payment.actions";
 import {
   Dialog,
@@ -28,7 +28,7 @@ interface CollectPaymentDialogProps {
   >;
   accounts: IAccount[];
   preselectedEnrollmentId?: string;
-  onPaymentSuccess?: (payment: Record<string, unknown>) => void;
+  onPaymentSuccess?: (payment: PopulatedPayment) => void;
 }
 
 export default function CollectPaymentDialog({
@@ -93,7 +93,7 @@ export default function CollectPaymentDialog({
       toast.success(`Payment recorded successfully! Receipt: ${payment.receiptNo}`);
       onOpenChange(false);
       if (onPaymentSuccess) {
-        onPaymentSuccess(payment);
+        onPaymentSuccess(payment as unknown as PopulatedPayment);
       }
     } catch (error: unknown) {
       const err = error as Error;

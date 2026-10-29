@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { IAccount } from "@/types";
+import { IAccount, IExpense } from "@/types";
 import { payExpense } from "@/lib/actions/expense.actions";
 import CreateExpenseDialog from "./CreateExpenseDialog";
 import { Input } from "@/components/ui/input";
@@ -24,20 +24,20 @@ import {
 import toast from "react-hot-toast";
 
 interface ExpenseManagementProps {
-  initialExpenses: Record<string, unknown>[];
-  total: number;
-  totalIncurred: number;
-  totalPaid: number;
-  totalDue: number;
+  initialExpenses: IExpense[];
+  total?: number;
+  totalIncurred?: number;
+  totalPaid?: number;
+  totalDue?: number;
   accounts: IAccount[];
-  isAuthorized: boolean;
+  isAuthorized?: boolean;
 }
 
 export default function ExpenseManagement({
   initialExpenses,
   accounts,
 }: ExpenseManagementProps) {
-  const [expenses, setExpenses] = useState<Record<string, unknown>[]>(initialExpenses);
+  const [expenses, setExpenses] = useState<IExpense[]>(initialExpenses);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -46,7 +46,7 @@ export default function ExpenseManagement({
 
   // Pay modal
   const [isPayOpen, setIsPayOpen] = useState(false);
-  const [selectedExpense, setSelectedExpense] = useState<Record<string, unknown> | null>(null);
+  const [selectedExpense, setSelectedExpense] = useState<IExpense | null>(null);
   const [payAmount, setPayAmount] = useState<number>(0);
   const [paymentMethod, setPaymentMethod] = useState("Cash");
   const [transactionRef, setTransactionRef] = useState("");
@@ -74,7 +74,7 @@ export default function ExpenseManagement({
   const totalPaid = expenses.reduce((sum, e) => sum + (e.paidAmount || 0), 0);
   const totalDue = expenses.reduce((sum, e) => sum + (e.dueAmount || 0), 0);
 
-  const handleOpenPay = (exp: Record<string, unknown>) => {
+  const handleOpenPay = (exp: IExpense) => {
     setSelectedExpense(exp);
     setPayAmount(exp.dueAmount);
     setPaymentMethod("Cash");

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { IAccount } from "@/types";
+import { IAccount, PopulatedPayrollObligation } from "@/types";
 import { generateMonthlyPayroll } from "@/lib/actions/payroll.actions";
 import DisburseSalaryDialog from "./DisburseSalaryDialog";
 import { Input } from "@/components/ui/input";
@@ -18,11 +18,11 @@ import {
 import toast from "react-hot-toast";
 
 interface PayrollManagementProps {
-  initialObligations: Record<string, unknown>[];
+  initialObligations: PopulatedPayrollObligation[];
   currentPeriod: string;
-  totalObligations: number;
-  totalPaid: number;
-  totalDue: number;
+  totalObligations?: number;
+  totalPaid?: number;
+  totalDue?: number;
   accounts: IAccount[];
   isSuperAdmin: boolean;
 }
@@ -33,28 +33,29 @@ export default function PayrollManagement({
   accounts,
   isSuperAdmin,
 }: PayrollManagementProps) {
-  const [obligations, setObligations] = useState<Record<string, unknown>[]>(initialObligations);
+  const [obligations, setObligations] = useState<PopulatedPayrollObligation[]>(initialObligations);
   const [period, setPeriod] = useState(currentPeriod);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [generating, setGenerating] = useState(false);
 
   // Disbursement modal
-  const [activeObligation, setActiveObligation] = useState<Record<string, unknown> | null>(null);
+  const [activeObligation, setActiveObligation] = useState<PopulatedPayrollObligation | null>(null);
   const [isDisburseOpen, setIsDisburseOpen] = useState(false);
 
   const filtered = obligations.filter((o) => {
+    const emp = typeof o.employee === "object" ? o.employee : null;
     const matchesSearch =
-      o.employee?.fullName?.toLowerCase().includes(search.toLowerCase()) ||
-      o.employee?.employeeId?.toLowerCase().includes(search.toLowerCase()) ||
-      o.employee?.department?.toLowerCase().includes(search.toLowerCase()) ||
+      Boolean(emp?.fullName?.toLowerCase().includes(search.toLowerCase())) ||
+      Boolean(emp?.employeeId?.toLowerCase().includes(search.toLowerCase())) ||
+      Boolean(emp?.department?.toLowerCase().includes(search.toLowerCase())) ||
       o.payrollId?.toLowerCase().includes(search.toLowerCase());
 
     const matchesStatus =
       statusFilter === "all" ||
       o.status.toLowerCase() === statusFilter.toLowerCase();
 
-    return matchesSearch && matchesStatus;
+    return Boolean(matchesSearch && matchesStatus);
   });
 
   const totalGross = obligations.reduce(
@@ -91,12 +92,12 @@ export default function PayrollManagement({
     }
   };
 
-  const handleOpenDisburse = (obl: Record<string, unknown>) => {
+  const handleOpenDisburse = (obl: PopulatedPayrollObligation) => {
     setActiveObligation(obl);
     setIsDisburseOpen(true);
   };
 
-  const handleDisbursementSuccess = (updated: Record<string, unknown>) => {
+  const handleDisbursementSuccess = (updated: PopulatedPayrollObligation) => {
     setObligations((prev) =>
       prev.map((item) => (item._id === updated._id ? updated : item))
     );

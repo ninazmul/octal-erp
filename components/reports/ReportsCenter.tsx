@@ -40,9 +40,12 @@ const REPORT_DEFINITIONS = [
   { id: "cashflow_summary", name: "14. Cashflow & Account Balance Summary", icon: Building },
 ];
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ReportItem = any;
+
 interface ReportsCenterProps {
   initialReportId?: string;
-  initialData?: unknown;
+  initialData?: ReportItem;
 }
 
 export default function ReportsCenter({
@@ -50,7 +53,7 @@ export default function ReportsCenter({
   initialData = [],
 }: ReportsCenterProps) {
   const [activeReportId, setActiveReportId] = useState(initialReportId);
-  const [data, setData] = useState<unknown>(initialData);
+  const [data, setData] = useState<ReportItem>(initialData);
   const [search, setSearch] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -89,7 +92,7 @@ export default function ReportsCenter({
         (k) => typeof data[0][k] !== "object"
       );
       csvContent += keys.join(",") + "\r\n";
-      data.forEach((row: Record<string, unknown>) => {
+      data.forEach((row: ReportItem) => {
         const line = keys.map((k) => `"${String(row[k] ?? "")}"`).join(",");
         csvContent += line + "\r\n";
       });
@@ -259,7 +262,7 @@ export default function ReportsCenter({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
-                    {data.map((enr: Record<string, unknown>) => (
+                    {data.map((enr: ReportItem) => (
                       <tr key={enr._id}>
                         <td className="py-2.5 px-3 font-semibold text-slate-900 dark:text-white">
                           {enr.student?.fullName}
@@ -309,7 +312,7 @@ export default function ReportsCenter({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
-                    {data.map((b: Record<string, unknown>) => (
+                    {data.map((b: ReportItem) => (
                       <tr key={b._id}>
                         <td className="py-2.5 px-3 font-bold text-slate-900 dark:text-white">
                           {b.batchName} ({b.batchCode})
@@ -353,7 +356,7 @@ export default function ReportsCenter({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
-                    {data.map((item: Record<string, unknown>) => (
+                    {data.map((item: ReportItem) => (
                       <tr key={item.instructor?._id}>
                         <td className="py-2.5 px-3 font-bold text-slate-900 dark:text-white">
                           {item.instructor?.fullName}
@@ -393,7 +396,7 @@ export default function ReportsCenter({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
-                    {Object.entries(data).map(([dept, val]: [string, unknown]) => (
+                    {Object.entries(data).map(([dept, val]: [string, ReportItem]) => (
                       <tr key={dept}>
                         <td className="py-2.5 px-3 font-bold text-slate-900 dark:text-white">
                           {dept}
@@ -429,7 +432,7 @@ export default function ReportsCenter({
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
-                      {data.map((row: Record<string, unknown>, i: number) => (
+                      {data.map((row: ReportItem, i: number) => (
                         <tr key={row._id || i}>
                           {Object.keys(row)
                             .filter((k) => typeof row[k] !== "object")

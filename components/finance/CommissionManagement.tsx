@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { IEmployee, ICourse } from "@/types";
+import { IEmployee, ICourse, PopulatedCommissionEntry, PopulatedCommissionRule } from "@/types";
 import { saveCommissionRule } from "@/lib/actions/commission.actions";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -25,9 +25,9 @@ import Link from "next/link";
 import toast from "react-hot-toast";
 
 interface CommissionManagementProps {
-  initialEntries: Record<string, unknown>[];
+  initialEntries: PopulatedCommissionEntry[];
   total: number;
-  rules: Record<string, unknown>[];
+  rules: PopulatedCommissionRule[];
   instructors: IEmployee[];
   courses: ICourse[];
   isSuperAdmin: boolean;
@@ -41,8 +41,8 @@ export default function CommissionManagement({
   isSuperAdmin,
 }: CommissionManagementProps) {
   const [activeTab, setActiveTab] = useState<"entries" | "rules">("entries");
-  const [entries] = useState<Record<string, unknown>[]>(initialEntries);
-  const [rules, setRules] = useState<Record<string, unknown>[]>(initialRules);
+  const [entries] = useState<PopulatedCommissionEntry[]>(initialEntries);
+  const [rules, setRules] = useState<PopulatedCommissionRule[]>(initialRules);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
@@ -397,7 +397,7 @@ export default function CommissionManagement({
                           Actual Collections
                         </td>
                         <td className="py-3 px-3 text-slate-400">
-                          {new Date(r.effectiveFrom || r.createdAt).toLocaleDateString()}
+                          {new Date(r.effectiveFrom || r.createdAt || Date.now()).toLocaleDateString()}
                         </td>
                         <td className="py-3 px-3">
                           <Badge

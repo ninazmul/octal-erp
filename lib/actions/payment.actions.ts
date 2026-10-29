@@ -160,6 +160,9 @@ export async function recordPayment(data: {
 
   if (!enrollment) throw new Error("Enrollment record not found");
 
+  const studentObj = enrollment.student as unknown as { _id: string; fullName: string; studentId: string };
+  const batchObj = enrollment.batch as unknown as { _id: string; batchName: string; batchCode: string };
+
   if (amount > enrollment.remainingDue) {
     throw new Error(
       `Payment amount (৳${amount.toLocaleString()}) exceeds the student's remaining due of ৳${enrollment.remainingDue.toLocaleString()}.`
@@ -174,8 +177,8 @@ export async function recordPayment(data: {
   const payment = await Payment.create({
     receiptNo,
     enrollment: enrollment._id,
-    student: enrollment.student._id,
-    batch: enrollment.batch._id,
+    student: studentObj._id,
+    batch: batchObj._id,
     amount,
     paymentMethod: data.paymentMethod,
     transactionRef: data.transactionRef?.trim() || "",
@@ -212,7 +215,7 @@ export async function recordPayment(data: {
       await CommissionEntry.create({
         payment: payment._id,
         enrollment: enrollment._id,
-        batch: enrollment.batch._id,
+        batch: batchObj._id,
         referrer: enrollment.referrer,
         collectedAmount: amount,
         commissionRate: enrollment.commissionRate,
@@ -249,7 +252,7 @@ export async function recordPayment(data: {
         balanceAfter,
         sourceModule: "payments",
         sourceReferenceId: receiptNo,
-        description: `Student payment ${receiptNo} from ${enrollment.student.fullName} for ${enrollment.batch.batchName} (${data.paymentMethod})`,
+        description: `Student payment ${receiptNo} from ${studentObj.fullName} for ${batchObj.batchName} (${data.paymentMethod})`,
         transactionDate: paymentDate,
         recordedBy: {
           email: actor.email,
@@ -266,7 +269,7 @@ export async function recordPayment(data: {
     module: "payments",
     resourceId: String(payment._id),
     resourceName: receiptNo,
-    details: `Collected ৳${amount.toLocaleString()} (${receiptNo}) from ${enrollment.student.fullName} for batch ${enrollment.batch.batchName}. Status: ${paymentStatus}. Remaining due: ৳${enrollment.remainingDue.toLocaleString()}`,
+    details: `Collected ৳${amount.toLocaleString()} (${receiptNo}) from ${studentObj.fullName} for batch ${batchObj.batchName}. Status: ${paymentStatus}. Remaining due: ৳${enrollment.remainingDue.toLocaleString()}`,
   });
 
   revalidatePath("/payments");
@@ -357,7 +360,7 @@ export async function verifyPayment(paymentId: string) {
       balanceAfter: targetAccount.currentBalance,
       sourceModule: "payments",
       sourceReferenceId: payment.receiptNo,
-      description: `Verified payment ${payment.receiptNo} from ${payment.student.fullName}`,
+      description: `Verified payment ${payment.receiptNo} of ৳${payment.amount.toLocaleString()}`,
       transactionDate: new Date(),
       recordedBy: {
         email: actor.email,
@@ -373,7 +376,7 @@ export async function verifyPayment(paymentId: string) {
     module: "payments",
     resourceId: String(payment._id),
     resourceName: payment.receiptNo,
-    details: `Verified payment ${payment.receiptNo} of ৳${payment.amount.toLocaleString()} for student ${payment.student.fullName}`,
+    details: `Verified payment ${payment.receiptNo} of ৳${payment.amount.toLocaleString()}`,
   });
 
   revalidatePath("/payments");

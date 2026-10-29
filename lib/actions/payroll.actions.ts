@@ -212,6 +212,8 @@ export async function disburseSalaryPayment(data: {
   );
   if (!payroll) throw new Error("Payroll obligation not found");
 
+  const empObj = payroll.employee as unknown as { fullName: string; employeeId: string };
+
   if (amount > payroll.dueAmount) {
     throw new Error(
       `Disbursement amount (৳${amount.toLocaleString()}) exceeds the employee's remaining salary due of ৳${payroll.dueAmount.toLocaleString()}.`
@@ -269,7 +271,7 @@ export async function disburseSalaryPayment(data: {
       balanceAfter: targetAccount.currentBalance,
       sourceModule: "payroll",
       sourceReferenceId: payroll.payrollId,
-      description: `Salary disbursement ${payroll.payrollId} to ${payroll.employee.fullName} (${payroll.employee.employeeId}) for ${payroll.period} via ${data.paymentMethod}`,
+      description: `Salary disbursement ${payroll.payrollId} to ${empObj.fullName} (${empObj.employeeId}) for ${payroll.period} via ${data.paymentMethod}`,
       transactionDate: paymentDate,
       recordedBy: {
         email: actor.email,
@@ -285,7 +287,7 @@ export async function disburseSalaryPayment(data: {
     module: "payroll",
     resourceId: String(payroll._id),
     resourceName: payroll.payrollId,
-    details: `Disbursed ৳${amount.toLocaleString()} salary payment to ${payroll.employee.fullName} for period ${payroll.period}. Remaining due: ৳${payroll.dueAmount.toLocaleString()}`,
+    details: `Disbursed ৳${amount.toLocaleString()} salary payment to ${empObj.fullName} for period ${payroll.period}. Remaining due: ৳${payroll.dueAmount.toLocaleString()}`,
   });
 
   revalidatePath("/payroll");

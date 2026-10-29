@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ExpenseCategory, IAccount } from "@/types";
+import { ExpenseCategory, IAccount, IExpense } from "@/types";
 import { createExpense } from "@/lib/actions/expense.actions";
 import {
   Dialog,
@@ -20,7 +20,7 @@ interface CreateExpenseDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   accounts: IAccount[];
-  onSuccess: (exp: Record<string, unknown>) => void;
+  onSuccess: (exp: IExpense) => void;
 }
 
 const EXPENSE_CATEGORIES: ExpenseCategory[] = [
@@ -79,8 +79,7 @@ export default function CreateExpenseDialog({
         isPaidImmediately,
         paymentMethod,
         accountId: isPaidImmediately ? accountId : undefined,
-        isRecurring,
-        recurrenceFrequency: isRecurring ? recurrenceFrequency : undefined,
+        isRecurring: false,
       });
 
       toast.success(`Expense ${created.expenseNo} recorded successfully!`);

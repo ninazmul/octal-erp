@@ -30,12 +30,7 @@ export type AppModule =
   | "reports"
   | "admins"
   | "activity_logs"
-  | "settings"
-  // Legacy modules retained for backwards compatibility
-  | "devices"
-  | "customers"
-  | "billing"
-  | "catalog";
+  | "settings";
 
 export type ModulePermissions = Record<AppModule, PermissionLevel>;
 
@@ -56,17 +51,7 @@ export type GranularPermissionKey =
   | "account_manage"
   | "report_view"
   | "user_manage"
-  | "setting_manage"
-  // Legacy keys
-  | "device_add"
-  | "device_view"
-  | "device_edit"
-  | "device_delete"
-  | "device_approve"
-  | "device_archive"
-  | "server_view"
-  | "server_manage"
-  | "customer_view";
+  | "setting_manage";
 
 export type GranularPermissions = Partial<
   Record<GranularPermissionKey, boolean>
@@ -244,6 +229,15 @@ export interface IPayment {
   updatedAt?: Date | string;
 }
 
+export type PopulatedPayment = IPayment & {
+  student?: IStudent;
+  enrollment?: IEnrollment & {
+    course?: ICourse;
+    referrer?: IEmployee;
+  };
+  batch?: IBatch;
+};
+
 // ==========================================
 // INSTRUCTOR COMMISSION & SETTLEMENT TYPES
 // ==========================================
@@ -287,6 +281,21 @@ export interface ICommissionEntry {
   updatedAt?: Date | string;
 }
 
+export type PopulatedCommissionEntry = ICommissionEntry & {
+  payment?: IPayment;
+  referrer?: IEmployee;
+  batch?: IBatch;
+  enrollment?: IEnrollment & {
+    student?: IStudent;
+    course?: ICourse;
+  };
+};
+
+export type PopulatedCommissionRule = ICommissionRule & {
+  referrer?: IEmployee;
+  course?: ICourse;
+};
+
 export type SettlementStatus = "Draft" | "Submitted" | "Approved" | "Disbursed";
 
 export interface ISettlement {
@@ -313,6 +322,22 @@ export interface ISettlement {
   notes?: string;
   createdAt?: Date | string;
   updatedAt?: Date | string;
+}
+
+export type PopulatedSettlement = ISettlement & {
+  batch?: IBatch;
+  instructor?: IEmployee;
+};
+
+export interface IBatchSettlementStatement {
+  batch: IBatch;
+  instructor: IEmployee;
+  eligibleEntries: PopulatedCommissionEntry[];
+  eligibleCollectionsCount: number;
+  totalEligibleCollections: number;
+  grossCommission: number;
+  alreadyPaid: number;
+  netPayable: number;
 }
 
 export interface IPayout {
@@ -425,6 +450,10 @@ export interface IPayrollObligation {
   createdAt?: Date | string;
   updatedAt?: Date | string;
 }
+
+export type PopulatedPayrollObligation = IPayrollObligation & {
+  employee: IEmployee;
+};
 
 // ==========================================
 // EXPENSE & FINANCIAL LEDGER TYPES
@@ -618,8 +647,4 @@ export interface GetActivityLogsParams {
   limit?: number;
 }
 
-// Legacy aliases for existing modules
-export type DeviceStatus = "Pending" | "Online" | "Storage" | "Frozen" | "Maintenance" | "Lost";
-export type CustomerStatus = "Active" | "Inactive" | "Suspended";
-export type BillingStatus = "Pending" | "Paid" | "Partial" | "Overdue" | "Cancelled";
 export type PaymentMethod = OctalPaymentMethod;

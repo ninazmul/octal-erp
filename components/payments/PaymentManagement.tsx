@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { IAccount } from "@/types";
+import { IAccount, PopulatedPayment } from "@/types";
 import {
   verifyPayment,
   reversePayment,
@@ -21,9 +21,10 @@ import {
 import toast from "react-hot-toast";
 
 interface PaymentManagementProps {
-  initialPayments: Record<string, unknown>[];
+  initialPayments: PopulatedPayment[];
   total: number;
-  enrollmentsWithDues: Record<string, unknown>[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  enrollmentsWithDues: any[];
   accounts: IAccount[];
   preselectedEnrollmentId?: string;
   preselectedStudentId?: string;
@@ -37,7 +38,7 @@ export default function PaymentManagement({
   preselectedEnrollmentId,
   preselectedStudentId,
 }: PaymentManagementProps) {
-  const [payments, setPayments] = useState<Record<string, unknown>[]>(initialPayments);
+  const [payments, setPayments] = useState<PopulatedPayment[]>(initialPayments);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [methodFilter, setMethodFilter] = useState("all");
@@ -45,14 +46,15 @@ export default function PaymentManagement({
   const [isCollectOpen, setIsCollectOpen] = useState(
     Boolean(preselectedEnrollmentId || preselectedStudentId)
   );
-  const [selectedReceiptPayment, setSelectedReceiptPayment] = useState<Record<string, unknown> | null>(null);
+  const [selectedReceiptPayment, setSelectedReceiptPayment] = useState<PopulatedPayment | null>(null);
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
 
   const filtered = payments.filter((p) => {
+    const studentObj = typeof p.student === "object" ? p.student : null;
     const matchesSearch =
       p.receiptNo.toLowerCase().includes(search.toLowerCase()) ||
-      p.student?.fullName?.toLowerCase().includes(search.toLowerCase()) ||
-      p.student?.studentId?.toLowerCase().includes(search.toLowerCase()) ||
+      Boolean(studentObj?.fullName?.toLowerCase().includes(search.toLowerCase())) ||
+      Boolean(studentObj?.studentId?.toLowerCase().includes(search.toLowerCase())) ||
       (p.transactionRef && p.transactionRef.toLowerCase().includes(search.toLowerCase()));
 
     const matchesStatus =
@@ -61,7 +63,7 @@ export default function PaymentManagement({
       methodFilter === "all" ||
       p.paymentMethod.toLowerCase() === methodFilter.toLowerCase();
 
-    return matchesSearch && matchesStatus && matchesMethod;
+    return Boolean(matchesSearch && matchesStatus && matchesMethod);
   });
 
   const totalConfirmedRevenue = payments
@@ -76,12 +78,12 @@ export default function PaymentManagement({
     .filter((p) => p.status === "confirmed" && p.paymentMethod !== "Cash")
     .reduce((sum, p) => sum + (p.amount || 0), 0);
 
-  const handleOpenReceipt = (pmt: Record<string, unknown>) => {
+  const handleOpenReceipt = (pmt: PopulatedPayment) => {
     setSelectedReceiptPayment(pmt);
     setIsReceiptOpen(true);
   };
 
-  const handleVerify = async (pmt: Record<string, unknown>) => {
+  const handleVerify = async (pmt: PopulatedPayment) => {
     try {
       await verifyPayment(pmt._id);
       setPayments((prev) =>
@@ -94,7 +96,7 @@ export default function PaymentManagement({
     }
   };
 
-  const handleReverse = async (pmt: Record<string, unknown>) => {
+  const handleReverse = async (pmt: PopulatedPayment) => {
     const reason = prompt(`Enter reason for reversing payment ${pmt.receiptNo}:`);
     if (!reason || !reason.trim()) return;
 
@@ -110,7 +112,7 @@ export default function PaymentManagement({
     }
   };
 
-  const handlePaymentSuccess = (newPayment: Record<string, unknown>) => {
+  const handlePaymentSuccess = (newPayment: PopulatedPayment) => {
     setPayments((prev) => [newPayment, ...prev]);
     setSelectedReceiptPayment(newPayment);
     setIsReceiptOpen(true);
@@ -259,15 +261,15 @@ export default function PaymentManagement({
 
                   <td className="py-3 px-4">
                     <div className="font-semibold text-slate-900 dark:text-white">
-                      {pmt.student?.fullName || "Student"}
+                      {(typeof pmt.student === "object" && pmt.student?.fullName) || "Student"}
                     </div>
                     <span className="font-mono text-[10px] text-slate-400">
-                      {pmt.student?.studentId}
+                      {typeof pmt.student === "object" ? pmt.student?.studentId : ""}
                     </span>
                   </td>
 
                   <td className="py-3 px-4 text-slate-700 dark:text-slate-300">
-                    {pmt.batch?.batchName}
+                    {typeof pmt.batch === "object" ? pmt.batch?.batchName : "Batch"}
                   </td>
 
                   <td className="py-3 px-4 font-mono font-bold text-emerald-600 dark:text-emerald-400 text-sm">

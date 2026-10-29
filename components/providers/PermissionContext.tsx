@@ -20,19 +20,27 @@ interface PermissionContextValue {
   isAccountant: boolean;
   isReceptionist: boolean;
   isEngineer: boolean;
+  isStaff: boolean;
   permissions: ModulePermissions;
   granularPermissions: Record<GranularPermissionKey, boolean>;
   hasPermission: (module: AppModule, requiredLevel: PermissionLevel) => boolean;
   canRead: (module: AppModule) => boolean;
   canWrite: (module: AppModule) => boolean;
   can: (action: GranularPermissionKey) => boolean;
-  canApproveDevice: boolean;
-  canApprovePendingDevice: boolean;
-  canRestoreFrozenDevice: boolean;
-  canDeleteDevice: boolean;
-  canAddDevice: boolean;
-  canEditDevice: boolean;
-  canArchiveDevice: boolean;
+  canManageAcademic: boolean;
+  canAdmitStudents: boolean;
+  canRecordPayments: boolean;
+  canVerifyPayments: boolean;
+  canConfigureCommissions: boolean;
+  canSettleCommissions: boolean;
+  canManageStaff: boolean;
+  canGeneratePayroll: boolean;
+  canDisbursePayroll: boolean;
+  canViewConfidentialSalaries: boolean;
+  canRecordExpenses: boolean;
+  canApproveExpenses: boolean;
+  canManageAccounts: boolean;
+  canViewReports: boolean;
 }
 
 const PermissionContext = createContext<PermissionContextValue | undefined>(
@@ -53,10 +61,6 @@ const defaultPermissions: ModulePermissions = {
   admins: "none",
   activity_logs: "none",
   settings: "none",
-  devices: "none",
-  customers: "none",
-  billing: "none",
-  catalog: "none",
 };
 
 export function PermissionProvider({
@@ -66,38 +70,72 @@ export function PermissionProvider({
   admin: IAdminUser | null;
   children: React.ReactNode;
 }) {
-  const role: AdminRole = admin?.role || "viewer";
+  const role: AdminRole = admin?.role || "staff";
   const isSuperAdmin = role === "super_admin";
   const isAdmin = role === "admin" || role === "super_admin";
   const isInstructor = role === "instructor";
   const isAccountant = role === "accountant";
   const isReceptionist = role === "receptionist";
   const isEngineer = role === "engineer";
+  const isStaff = role === "staff";
 
-  const permissions: ModulePermissions = useMemo(
-    () => ({
-      ...defaultPermissions,
-      ...(admin?.permissions || {}),
-    }),
-    [admin?.permissions]
-  );
+  const permissions: ModulePermissions = useMemo(() => {
+    if (!admin) return defaultPermissions;
+    if (isSuperAdmin) {
+      return {
+        dashboard: "write",
+        academic: "write",
+        students: "write",
+        payments: "write",
+        commissions: "write",
+        staff: "write",
+        payroll: "write",
+        expenses: "write",
+        finance: "write",
+        reports: "write",
+        admins: "write",
+        activity_logs: "write",
+        settings: "write",
+      };
+    }
+    const adminPerms = admin.permissions || {};
+    return {
+      dashboard: adminPerms.dashboard || "read",
+      academic: adminPerms.academic || "none",
+      students: adminPerms.students || "none",
+      payments: adminPerms.payments || "none",
+      commissions: adminPerms.commissions || "none",
+      staff: adminPerms.staff || "none",
+      payroll: adminPerms.payroll || "none",
+      expenses: adminPerms.expenses || "none",
+      finance: adminPerms.finance || "none",
+      reports: adminPerms.reports || "none",
+      admins: "none",
+      activity_logs: adminPerms.activity_logs || "none",
+      settings: "none",
+    };
+  }, [admin, isSuperAdmin]);
 
-  const granularPermissions: Record<GranularPermissionKey, boolean> = useMemo(
-    () => resolveEffectiveGranularPermissions(role, admin?.granularPermissions),
-    [role, admin?.granularPermissions]
-  );
+  const granularPermissions: Record<GranularPermissionKey, boolean> = useMemo(() => {
+    if (!admin) {
+      return resolveEffectiveGranularPermissions("custom");
+    }
+    return resolveEffectiveGranularPermissions(
+      role,
+      admin.granularPermissions
+    );
+  }, [admin, role]);
 
   const hasPermission = useCallback(
     (module: AppModule, requiredLevel: PermissionLevel): boolean => {
       if (isSuperAdmin) return true;
+      const current = permissions[module] || "none";
       if (requiredLevel === "none") return true;
-
-      const currentLevel = permissions[module] || "none";
       if (requiredLevel === "read") {
-        return currentLevel === "read" || currentLevel === "write";
+        return current === "read" || current === "write";
       }
       if (requiredLevel === "write") {
-        return currentLevel === "write";
+        return current === "write";
       }
       return false;
     },
@@ -117,19 +155,25 @@ export function PermissionProvider({
   const can = useCallback(
     (action: GranularPermissionKey): boolean => {
       if (isSuperAdmin) return true;
-      if (action === "device_approve" && isEngineer) return true;
       return Boolean(granularPermissions[action]);
     },
-    [isSuperAdmin, isEngineer, granularPermissions]
+    [isSuperAdmin, granularPermissions]
   );
 
-  const canApproveDevice = isSuperAdmin || isEngineer || can("device_approve");
-  const canApprovePendingDevice = isSuperAdmin || isEngineer;
-  const canRestoreFrozenDevice = role === "editor";
-  const canDeleteDevice = isSuperAdmin || can("device_delete");
-  const canAddDevice = isSuperAdmin || can("device_add");
-  const canEditDevice = isSuperAdmin || can("device_edit");
-  const canArchiveDevice = isSuperAdmin || can("device_archive");
+  const canManageAcademic = isSuperAdmin || can("academic_manage");
+  const canAdmitStudents = isSuperAdmin || can("student_admit");
+  const canRecordPayments = isSuperAdmin || can("payment_record");
+  const canVerifyPayments = isSuperAdmin || can("payment_verify");
+  const canConfigureCommissions = isSuperAdmin || can("commission_configure");
+  const canSettleCommissions = isSuperAdmin || can("commission_settle");
+  const canManageStaff = isSuperAdmin || can("staff_manage");
+  const canGeneratePayroll = isSuperAdmin || can("payroll_generate");
+  const canDisbursePayroll = isSuperAdmin || can("payroll_disburse");
+  const canViewConfidentialSalaries = isSuperAdmin || isAccountant || can("payroll_view_confidential");
+  const canRecordExpenses = isSuperAdmin || can("expense_record");
+  const canApproveExpenses = isSuperAdmin || can("expense_approve");
+  const canManageAccounts = isSuperAdmin || can("account_manage");
+  const canViewReports = isSuperAdmin || can("report_view");
 
   const value = useMemo(
     () => ({
@@ -141,19 +185,27 @@ export function PermissionProvider({
       isAccountant,
       isReceptionist,
       isEngineer,
+      isStaff,
       permissions,
       granularPermissions,
       hasPermission,
       canRead,
       canWrite,
       can,
-      canApproveDevice,
-      canApprovePendingDevice,
-      canRestoreFrozenDevice,
-      canDeleteDevice,
-      canAddDevice,
-      canEditDevice,
-      canArchiveDevice,
+      canManageAcademic,
+      canAdmitStudents,
+      canRecordPayments,
+      canVerifyPayments,
+      canConfigureCommissions,
+      canSettleCommissions,
+      canManageStaff,
+      canGeneratePayroll,
+      canDisbursePayroll,
+      canViewConfidentialSalaries,
+      canRecordExpenses,
+      canApproveExpenses,
+      canManageAccounts,
+      canViewReports,
     }),
     [
       admin,
@@ -164,19 +216,27 @@ export function PermissionProvider({
       isAccountant,
       isReceptionist,
       isEngineer,
+      isStaff,
       permissions,
       granularPermissions,
       hasPermission,
       canRead,
       canWrite,
       can,
-      canApproveDevice,
-      canApprovePendingDevice,
-      canRestoreFrozenDevice,
-      canDeleteDevice,
-      canAddDevice,
-      canEditDevice,
-      canArchiveDevice,
+      canManageAcademic,
+      canAdmitStudents,
+      canRecordPayments,
+      canVerifyPayments,
+      canConfigureCommissions,
+      canSettleCommissions,
+      canManageStaff,
+      canGeneratePayroll,
+      canDisbursePayroll,
+      canViewConfidentialSalaries,
+      canRecordExpenses,
+      canApproveExpenses,
+      canManageAccounts,
+      canViewReports,
     ]
   );
 

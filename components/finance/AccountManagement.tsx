@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { IAccount } from "@/types";
+import { IAccount, ILedgerEntry } from "@/types";
 import { createAccount } from "@/lib/actions/account.actions";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -23,7 +23,7 @@ import toast from "react-hot-toast";
 
 interface AccountManagementProps {
   initialAccounts: IAccount[];
-  initialLedgerEntries: Record<string, unknown>[];
+  initialLedgerEntries: ILedgerEntry[];
   isSuperAdmin: boolean;
 }
 
@@ -33,7 +33,7 @@ export default function AccountManagement({
   isSuperAdmin,
 }: AccountManagementProps) {
   const [accounts, setAccounts] = useState<IAccount[]>(initialAccounts);
-  const [ledgerEntries] = useState<Record<string, unknown>[]>(initialLedgerEntries);
+  const [ledgerEntries] = useState<ILedgerEntry[]>(initialLedgerEntries);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   // Form states
@@ -200,7 +200,7 @@ export default function AccountManagement({
                     {led.entryNo}
                   </td>
                   <td className="py-3 px-4 font-medium text-slate-800 dark:text-slate-200">
-                    {led.account?.accountName || "Account"}
+                    {(typeof led.account === "object" && led.account?.accountName) || "Account"}
                   </td>
                   <td className="py-3 px-4">
                     <span
