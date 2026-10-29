@@ -76,7 +76,6 @@ const LedgerSchema: Schema = new Schema(
   }
 );
 
-LedgerSchema.index({ entryNo: 1 });
 LedgerSchema.index({ account: 1 });
 LedgerSchema.index({ transactionDate: -1 });
 LedgerSchema.index({ sourceModule: 1 });

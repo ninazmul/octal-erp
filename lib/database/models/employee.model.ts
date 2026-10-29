@@ -130,8 +130,6 @@ const EmployeeSchema: Schema = new Schema(
   }
 );
 
-EmployeeSchema.index({ employeeId: 1 });
-EmployeeSchema.index({ email: 1 });
 EmployeeSchema.index({ department: 1 });
 EmployeeSchema.index({ isInstructor: 1 });
 EmployeeSchema.index({ status: 1 });

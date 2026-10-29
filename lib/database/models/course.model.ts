@@ -72,7 +72,6 @@ const CourseSchema: Schema = new Schema(
   }
 );
 
-CourseSchema.index({ code: 1 });
 CourseSchema.index({ subject: 1 });
 CourseSchema.index({ instructors: 1 });
 

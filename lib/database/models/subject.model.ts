@@ -38,7 +38,6 @@ const SubjectSchema: Schema = new Schema(
   }
 );
 
-SubjectSchema.index({ code: 1 });
 SubjectSchema.index({ name: 1 });
 
 const Subject: Model<ISubjectDocument> =

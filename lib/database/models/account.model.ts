@@ -67,7 +67,6 @@ const AccountSchema: Schema = new Schema(
   }
 );
 
-AccountSchema.index({ accountName: 1 });
 AccountSchema.index({ type: 1 });
 
 const Account: Model<IAccountDocument> =

@@ -97,7 +97,6 @@ const PaymentSchema: Schema = new Schema(
   }
 );
 
-PaymentSchema.index({ receiptNo: 1 });
 PaymentSchema.index({ enrollment: 1 });
 PaymentSchema.index({ student: 1 });
 PaymentSchema.index({ batch: 1 });

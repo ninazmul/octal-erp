@@ -169,7 +169,6 @@ const ExpenseSchema: Schema = new Schema(
   }
 );
 
-ExpenseSchema.index({ expenseNo: 1 });
 ExpenseSchema.index({ category: 1 });
 ExpenseSchema.index({ status: 1 });
 ExpenseSchema.index({ expenseDate: -1 });

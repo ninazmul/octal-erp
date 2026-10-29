@@ -91,7 +91,6 @@ const PayoutSchema: Schema = new Schema(
   }
 );
 
-PayoutSchema.index({ payoutNo: 1 });
 PayoutSchema.index({ instructor: 1 });
 PayoutSchema.index({ settlement: 1 });
 PayoutSchema.index({ payoutDate: -1 });

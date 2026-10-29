@@ -96,7 +96,6 @@ const SettlementSchema: Schema = new Schema(
   }
 );
 
-SettlementSchema.index({ settlementNo: 1 });
 SettlementSchema.index({ batch: 1 });
 SettlementSchema.index({ instructor: 1 });
 SettlementSchema.index({ status: 1 });

@@ -85,7 +85,6 @@ const BatchSchema: Schema = new Schema(
   }
 );
 
-BatchSchema.index({ batchCode: 1 });
 BatchSchema.index({ course: 1 });
 BatchSchema.index({ subject: 1 });
 BatchSchema.index({ instructors: 1 });

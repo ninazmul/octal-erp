@@ -76,7 +76,6 @@ const StudentSchema: Schema = new Schema(
   }
 );
 
-StudentSchema.index({ studentId: 1 });
 StudentSchema.index({ fullName: "text", phone: "text", email: "text" });
 
 const Student: Model<IStudentDocument> =
