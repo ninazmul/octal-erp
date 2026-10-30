@@ -342,7 +342,7 @@ export default function SettlementManagement({
 
       {/* Prepare Settlement Dialog */}
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-lg max-h-[calc(100dvh-1.5rem)] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Prepare Batch Settlement Statement</DialogTitle>
           </DialogHeader>

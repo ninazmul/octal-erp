@@ -446,7 +446,7 @@ export default function BatchManagement({
 
       {/* Create / Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-lg max-h-[calc(100dvh-1.5rem)] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {editingBatch ? "Edit Batch" : "Create New Batch"}

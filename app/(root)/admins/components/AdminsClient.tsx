@@ -855,7 +855,7 @@ export default function AdminsClient({
                       Add New Staff Administrator
                     </SheetTitle>
                   </SheetHeader>
-                  <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+                  <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 sm:px-5 py-4 space-y-4">
                     <AddAdminFormFields
                       newEmail={newEmail}
                       setNewEmail={setNewEmail}
@@ -870,7 +870,7 @@ export default function AdminsClient({
                       isSuperAdmin={isSuperAdmin}
                     />
                   </div>
-                  <div className="px-5 py-4 border-t border-slate-100 dark:border-slate-800 shrink-0 bg-white dark:bg-slate-900">
+                    <div className="px-4 sm:px-5 py-3 sm:py-4 border-t border-slate-100 dark:border-slate-800 shrink-0 bg-white dark:bg-slate-900 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
                     <Button
                       type="button"
                       onClick={
@@ -896,7 +896,7 @@ export default function AdminsClient({
             {/* ── Desktop only: centered Dialog (JS-gated) ── */}
             {!isMobile && (
               <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-                <DialogContent className="max-w-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-0 overflow-hidden flex flex-col max-h-[90dvh]">
+                <DialogContent className="max-w-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl sm:rounded-3xl p-0 overflow-hidden flex flex-col max-h-[calc(100dvh-1.5rem)]">
                   <DialogHeader className="px-6 pt-6 pb-4 border-b border-slate-100 dark:border-slate-800 shrink-0">
                     <DialogTitle className="text-lg font-bold text-slate-900 dark:text-slate-100">
                       Add New Staff Administrator
@@ -906,7 +906,7 @@ export default function AdminsClient({
                     onSubmit={handleAddSubmit}
                     className="flex flex-col flex-1 min-h-0"
                   >
-                    <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+                    <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 sm:px-6 py-4 space-y-4">
                       <AddAdminFormFields
                         newEmail={newEmail}
                         setNewEmail={setNewEmail}
@@ -921,7 +921,7 @@ export default function AdminsClient({
                         isSuperAdmin={isSuperAdmin}
                       />
                     </div>
-                    <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 shrink-0">
+                    <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-slate-100 dark:border-slate-800 shrink-0 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
                       <Button
                         type="submit"
                         className="w-full bg-sky-600 hover:bg-sky-700 rounded-xl text-white font-semibold text-xs"
@@ -1349,7 +1349,7 @@ export default function AdminsClient({
           open={!!editingAdmin}
           onOpenChange={() => setEditingAdmin(null)}
         >
-          <DialogContent className="max-w-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6">
+          <DialogContent className="max-w-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl sm:rounded-3xl p-4 sm:p-6">
             <DialogHeader>
               <DialogTitle className="text-lg font-bold text-slate-900 dark:text-slate-100">
                 Modify Role & Permissions
@@ -1417,7 +1417,7 @@ export default function AdminsClient({
                 if (!roleDetail) return null;
                 return (
                   <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 space-y-2 text-xs">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
                       <span className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
                         <Info className="w-3.5 h-3.5 text-sky-500" />
                         {roleDetail.label} Capabilities:

@@ -57,9 +57,9 @@ export default function SettingsClient() {
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-5xl mx-auto">
+    <div className="p-3 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 max-w-5xl mx-auto min-w-0">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-sm">
         <div className="flex items-center gap-3.5">
           <div className="p-3 rounded-2xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 border border-indigo-200/50 dark:border-indigo-800/50">
             <Settings className="w-6 h-6" />
@@ -77,7 +77,7 @@ export default function SettingsClient() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* PWA Installation Card */}
-        <div className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-6 flex flex-col justify-between">
+        <div className="rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-4 sm:p-6 flex flex-col justify-between min-w-0">
           <div>
             <div className="p-3 w-fit rounded-2xl bg-violet-50 dark:bg-violet-950/50 text-violet-600 dark:text-violet-400 mb-3">
               <Smartphone className="w-5 h-5" />
@@ -107,7 +107,7 @@ export default function SettingsClient() {
         </div>
 
         {/* Academic Settings Card */}
-        <div className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-6 flex flex-col justify-between">
+        <div className="rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-4 sm:p-6 flex flex-col justify-between min-w-0">
           <div>
             <div className="p-3 w-fit rounded-2xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 mb-3">
               <BookOpen className="w-5 h-5" />
@@ -119,7 +119,7 @@ export default function SettingsClient() {
               Configure training subjects (Web Dev, Graphic Design, Marketing), course pricing structures, default duration and batch schedules.
             </p>
           </div>
-          <div className="pt-4 flex gap-2">
+          <div className="pt-4 flex flex-col sm:flex-row gap-2">
             <Link href="/academic/courses" className="flex-1">
               <Button className="w-full rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs justify-between">
                 <span>Manage Courses</span>
@@ -127,7 +127,7 @@ export default function SettingsClient() {
               </Button>
             </Link>
             <Link href="/academic/subjects">
-              <Button variant="outline" className="rounded-xl border-slate-200 dark:border-slate-800 text-xs font-semibold">
+              <Button variant="outline" className="w-full sm:w-auto rounded-xl border-slate-200 dark:border-slate-800 text-xs font-semibold">
                 Subjects
               </Button>
             </Link>
@@ -135,7 +135,7 @@ export default function SettingsClient() {
         </div>
 
         {/* Financial & Commissions Card */}
-        <div className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-6 flex flex-col justify-between">
+        <div className="rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-4 sm:p-6 flex flex-col justify-between min-w-0">
           <div>
             <div className="p-3 w-fit rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 mb-3">
               <Percent className="w-5 h-5" />
@@ -147,7 +147,7 @@ export default function SettingsClient() {
               Configure default instructor commission percentages, batch settlement reconciliation rules, and multi-channel cash/bank accounts.
             </p>
           </div>
-          <div className="pt-4 flex gap-2">
+          <div className="pt-4 flex flex-col sm:flex-row gap-2">
             <Link href="/finance/commissions" className="flex-1">
               <Button className="w-full rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs justify-between">
                 <span>Commission Rules</span>
@@ -155,7 +155,7 @@ export default function SettingsClient() {
               </Button>
             </Link>
             <Link href="/finance/accounts">
-              <Button variant="outline" className="rounded-xl border-slate-200 dark:border-slate-800 text-xs font-semibold">
+              <Button variant="outline" className="w-full sm:w-auto rounded-xl border-slate-200 dark:border-slate-800 text-xs font-semibold">
                 Accounts
               </Button>
             </Link>
@@ -163,7 +163,7 @@ export default function SettingsClient() {
         </div>
 
         {/* Staff & Payroll Card */}
-        <div className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-6 flex flex-col justify-between">
+        <div className="rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-4 sm:p-6 flex flex-col justify-between min-w-0">
           <div>
             <div className="p-3 w-fit rounded-2xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 mb-3">
               <Briefcase className="w-5 h-5" />
@@ -217,7 +217,7 @@ export default function SettingsClient() {
         </div>
 
         {/* System Information Card */}
-        <div className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-6 md:col-span-2 space-y-4">
+        <div className="rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-4 sm:p-6 md:col-span-2 space-y-4 min-w-0">
           <div className="flex items-center gap-3">
             <div className="p-3 w-fit rounded-2xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400">
               <Sliders className="w-5 h-5" />
@@ -232,7 +232,7 @@ export default function SettingsClient() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs pt-2">
+          <div className="grid grid-cols-1 min-[420px]:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 text-xs pt-2">
             <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 space-y-2">
               <span className="text-slate-400 block font-medium">Application</span>
               <div className="flex items-center gap-2">
