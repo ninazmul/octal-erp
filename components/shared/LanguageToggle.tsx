@@ -7,7 +7,7 @@ import { useLanguage } from "@/components/providers/LanguageProvider";
 export function LanguageToggle() {
   const { language, setLanguage } = useLanguage();
   const nextLanguage = language === "en" ? "bn" : "en";
-  const label = language === "en" ? "বাংলা" : "EN";
+  const label = language === "en" ? "EN" : "বাং";
 
   return (
     <Button
@@ -15,12 +15,14 @@ export function LanguageToggle() {
       variant="outline"
       onClick={() => setLanguage(nextLanguage)}
       data-no-translate="true"
-      className="h-9 min-w-9 px-2 rounded-xl border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/60 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all gap-1.5"
+      className="relative h-10 w-10 shrink-0 rounded-xl border-0 bg-transparent p-0 text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
       title={language === "en" ? "Switch to Bengali" : "Switch to English"}
       aria-label={language === "en" ? "Switch language to Bengali" : "Switch language to English"}
     >
-      <Languages className="h-4 w-4" />
-      <span className="text-[11px] font-bold">{label}</span>
+      <Languages className="absolute left-1 top-0.5 h-5 w-5 stroke-[2.2]" />
+      <span className="absolute bottom-0 right-0 rounded-full bg-emerald-600 px-1.5 py-0.5 text-[10px] font-bold leading-4 text-white shadow-sm">
+        {label}
+      </span>
     </Button>
   );
 }
