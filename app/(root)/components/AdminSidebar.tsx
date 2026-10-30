@@ -12,6 +12,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarHeader,
+  SidebarFooter,
   useSidebar,
 } from "@/components/ui/sidebar";
 
@@ -39,6 +40,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { usePermissions } from "@/components/providers/PermissionContext";
 import { AppModule } from "@/types";
+import { LanguageToggle } from "@/components/shared/LanguageToggle";
 
 interface SidebarItem {
   title: string;
@@ -356,6 +358,15 @@ const AppSidebar = () => {
           </SidebarGroup>
         ))}
       </SidebarContent>
+
+      <SidebarFooter className="border-t border-slate-100 px-3 py-2 dark:border-slate-800 group-data-[collapsible=icon]:px-1">
+        <div className="flex items-center justify-between rounded-xl px-1.5 py-0.5 group-data-[collapsible=icon]:justify-center">
+          <span className="text-xs font-medium text-slate-500 dark:text-slate-400 group-data-[collapsible=icon]:hidden">
+            Language
+          </span>
+          <LanguageToggle />
+        </div>
+      </SidebarFooter>
     </Sidebar>
   );
 };

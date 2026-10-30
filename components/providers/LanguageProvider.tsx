@@ -30,6 +30,7 @@ const translations: Record<string, string> = {
   "Manage Admins": "অ্যাডমিন ব্যবস্থাপনা",
   "Activity Logs": "কার্যক্রমের লগ",
   "Settings": "সেটিংস",
+  "Language": "ভাষা",
   "Academic & Operations": "একাডেমিক ও পরিচালনা",
   "Quick Search...": "দ্রুত অনুসন্ধান...",
   "Welcome back": "স্বাগতম",

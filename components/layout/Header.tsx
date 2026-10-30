@@ -10,7 +10,6 @@ import { NotificationDropdown } from "@/components/layout/NotificationDropdown";
 import { UserButton } from "@clerk/nextjs";
 import { Search, Command } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { LanguageToggle } from "@/components/shared/LanguageToggle";
 
 export function Header() {
   const [searchOpen, setSearchOpen] = useState(false);
@@ -68,9 +67,8 @@ export function Header() {
           </Button>
 
           <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
-            {/* Notifications, language, and theme controls */}
+            {/* Notification and theme controls */}
             <NotificationDropdown />
-            <LanguageToggle />
             <ThemeToggle />
           </div>
 
