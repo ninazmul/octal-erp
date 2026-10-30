@@ -13,11 +13,30 @@ import {
   Percent,
   Briefcase,
   ShieldAlert,
+  Download,
+  Smartphone,
 } from "lucide-react";
 import { usePermissions } from "@/components/providers/PermissionContext";
+import { useEffect, useState } from "react";
+import { getPWAInstallState, promptPWAInstall, subscribeToPWAInstall } from "@/components/shared/PWAInstallManager";
 
 export default function SettingsClient() {
   const { isSuperAdmin } = usePermissions();
+  const [installState, setInstallState] = useState({ canInstall: false, installed: false });
+  const [isIOS, setIsIOS] = useState(false);
+
+  useEffect(() => {
+    const sync = () => setInstallState(getPWAInstallState());
+    sync();
+    const unsubscribe = subscribeToPWAInstall(sync);
+    setIsIOS(/iPad|iPhone|iPod/.test(navigator.userAgent) && !("MSStream" in window));
+    return unsubscribe;
+  }, []);
+
+  const handleInstall = async () => {
+    await promptPWAInstall();
+    setInstallState(getPWAInstallState());
+  };
 
   if (!isSuperAdmin) {
     return (
@@ -57,6 +76,36 @@ export default function SettingsClient() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* PWA Installation Card */}
+        <div className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-6 flex flex-col justify-between">
+          <div>
+            <div className="p-3 w-fit rounded-2xl bg-violet-50 dark:bg-violet-950/50 text-violet-600 dark:text-violet-400 mb-3">
+              <Smartphone className="w-5 h-5" />
+            </div>
+            <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">Install on your phone</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+              Add Octal ERP to your home screen for quick access and an app-like experience.
+            </p>
+            {installState.installed ? (
+              <p className="mt-3 text-xs font-semibold text-emerald-600 dark:text-emerald-400">Octal ERP is installed on this device.</p>
+            ) : !installState.canInstall && isIOS ? (
+              <p className="mt-3 text-xs text-slate-600 dark:text-slate-300">In Safari, tap Share, then choose “Add to Home Screen.”</p>
+            ) : !installState.canInstall ? (
+              <p className="mt-3 text-xs text-slate-600 dark:text-slate-300">Open your browser menu and choose “Install app” or “Add to Home screen.”</p>
+            ) : null}
+          </div>
+          <div className="pt-4">
+            <Button
+              onClick={handleInstall}
+              disabled={!installState.canInstall || installState.installed}
+              className="w-full rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-semibold text-xs justify-between disabled:opacity-60"
+            >
+              <span>{installState.installed ? "Already Installed" : installState.canInstall ? "Install Octal ERP" : "Use Browser Menu"}</span>
+              {installState.canInstall && !installState.installed ? <Download className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+            </Button>
+          </div>
+        </div>
+
         {/* Academic Settings Card */}
         <div className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-6 flex flex-col justify-between">
           <div>

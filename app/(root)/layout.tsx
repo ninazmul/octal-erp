@@ -8,6 +8,7 @@ import { redirect } from "next/navigation";
 import { getCurrentAdminProfile } from "@/lib/auth-guard";
 import { PermissionProvider } from "@/components/providers/PermissionContext";
 import OfflineIndicator from "@/components/shared/OfflineIndicator";
+import PWAInstallManager from "@/components/shared/PWAInstallManager";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +34,7 @@ export default async function AdminLayout({
         <Toaster position="top-right" />
         <main className="flex-1 min-h-dvh mx-auto overflow-y-auto bg-slate-50/60 dark:bg-[#060913] transition-colors">
           <OfflineIndicator />
+          <PWAInstallManager />
           <Header />
           <div className="w-full">{children}</div>
         </main>
