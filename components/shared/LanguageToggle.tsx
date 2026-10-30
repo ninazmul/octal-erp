@@ -20,7 +20,7 @@ export function LanguageToggle() {
       aria-label={language === "en" ? "Switch language to Bengali" : "Switch language to English"}
     >
       <Languages className="absolute left-1 top-0.5 h-5 w-5 stroke-[2.2]" />
-      <span className="absolute bottom-0 right-0 rounded-full bg-emerald-600 px-1.5 py-0.5 text-[10px] font-bold leading-4 text-white shadow-sm">
+      <span className="absolute bottom-0 right-0 rounded-full bg-indigo-600 px-1.5 py-0.5 text-[10px] font-bold leading-4 text-white shadow-sm">
         {label}
       </span>
     </Button>
