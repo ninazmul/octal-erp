@@ -51,7 +51,7 @@ export function Header() {
         </div>
 
         {/* Center/Right: Search, notifications, theme, and profile */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           {/* Quick Search Button */}
           <Button
             variant="outline"
@@ -67,14 +67,12 @@ export function Header() {
             </kbd>
           </Button>
 
-          {/* Notifications Bell */}
-          <NotificationDropdown />
-
-          {/* Language Switcher */}
-          <LanguageToggle />
-
-          {/* Theme Switcher */}
-          <ThemeToggle />
+          <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
+            {/* Notifications, language, and theme controls */}
+            <NotificationDropdown />
+            <LanguageToggle />
+            <ThemeToggle />
+          </div>
 
           {/* User Profile */}
           <div className="pl-1 border-l border-slate-200 dark:border-slate-800 flex items-center">
