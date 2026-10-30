@@ -98,6 +98,10 @@ body {
   min-height: 100vh;
 }
 
+html[data-locale="bn"] body {
+  font-family: "Noto Sans Bengali", "Nirmala UI", "Bangla Sangam MN", var(--font-inter), sans-serif;
+}
+
 /* Custom crisp scrollbar for data tables & views */
 ::-webkit-scrollbar {
   width: 6px;

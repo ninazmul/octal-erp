@@ -10,6 +10,7 @@ import { NotificationDropdown } from "@/components/layout/NotificationDropdown";
 import { UserButton } from "@clerk/nextjs";
 import { Search, Command } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { LanguageToggle } from "@/components/shared/LanguageToggle";
 
 export function Header() {
   const [searchOpen, setSearchOpen] = useState(false);
@@ -68,6 +69,9 @@ export function Header() {
 
           {/* Notifications Bell */}
           <NotificationDropdown />
+
+          {/* Language Switcher */}
+          <LanguageToggle />
 
           {/* Theme Switcher */}
           <ThemeToggle />
