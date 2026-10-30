@@ -179,6 +179,66 @@ export async function generateMonthlyPayroll(period: string) {
   };
 }
 
+export async function updatePayrollObligation(
+  payrollId: string,
+  data: { basicSalary: number; allowances: number; deductions: number; bonuses: number; notes?: string }
+) {
+  const actor = await requireSuperAdmin();
+  await connectToDatabase();
+  const payroll = await Payroll.findById(payrollId);
+  if (!payroll) throw new Error("Payroll obligation not found.");
+  if (payroll.paidAmount > 0 || payroll.status === "Cancelled") {
+    throw new Error("Paid or cancelled payroll obligations cannot be edited.");
+  }
+  const amounts = [data.basicSalary, data.allowances, data.deductions, data.bonuses].map(Number);
+  if (amounts.some((amount) => !Number.isFinite(amount) || amount < 0)) {
+    throw new Error("Payroll amounts must be valid non-negative numbers.");
+  }
+  [payroll.basicSalary, payroll.allowances, payroll.deductions, payroll.bonuses] = amounts;
+  payroll.grossPayable = Math.max(0, payroll.basicSalary + payroll.allowances + payroll.bonuses - payroll.deductions);
+  payroll.dueAmount = payroll.grossPayable;
+  payroll.status = "Pending";
+  if (data.notes !== undefined) payroll.notes = data.notes.trim();
+  await payroll.save();
+  await logActivityAndNotify({
+    actor,
+    action: "UPDATE_PAYROLL_OBLIGATION",
+    module: "payroll",
+    resourceId: String(payroll._id),
+    resourceName: payroll.payrollId,
+    details: `Updated unpaid payroll obligation ${payroll.payrollId}.`,
+  });
+  revalidatePath("/payroll");
+  revalidatePath("/reports");
+  return JSON.parse(JSON.stringify(payroll));
+}
+
+export async function cancelPayrollObligation(payrollId: string) {
+  const actor = await requireSuperAdmin();
+  await connectToDatabase();
+  const payroll = await Payroll.findById(payrollId);
+  if (!payroll) throw new Error("Payroll obligation not found.");
+  if (payroll.paidAmount > 0) {
+    throw new Error("A payroll obligation with payments cannot be deleted. Reverse the payment through an auditable correction.");
+  }
+  if (payroll.status !== "Cancelled") {
+    payroll.status = "Cancelled";
+    payroll.dueAmount = 0;
+    await payroll.save();
+    await logActivityAndNotify({
+      actor,
+      action: "CANCEL_PAYROLL_OBLIGATION",
+      module: "payroll",
+      resourceId: String(payroll._id),
+      resourceName: payroll.payrollId,
+      details: `Cancelled unpaid payroll obligation ${payroll.payrollId}.`,
+    });
+  }
+  revalidatePath("/payroll");
+  revalidatePath("/reports");
+  return JSON.parse(JSON.stringify(payroll));
+}
+
 // ==========================================
 // DISBURSE SALARY PAYMENT (FULL / PARTIAL)
 // ==========================================

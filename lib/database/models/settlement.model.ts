@@ -13,7 +13,7 @@ export interface ISettlementDocument extends Document {
   netPayable: number;
   paidAmount: number;
   dueAmount: number;
-  status: "Draft" | "Submitted" | "Approved" | "Disbursed";
+  status: "Draft" | "Submitted" | "Approved" | "Disbursed" | "Cancelled";
   approvedBy?: {
     email: string;
     name?: string;
@@ -76,7 +76,7 @@ const SettlementSchema: Schema = new Schema(
     },
     status: {
       type: String,
-      enum: ["Draft", "Submitted", "Approved", "Disbursed"],
+      enum: ["Draft", "Submitted", "Approved", "Disbursed", "Cancelled"],
       default: "Draft",
     },
     approvedBy: {

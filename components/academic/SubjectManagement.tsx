@@ -17,7 +17,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Edit2, CheckCircle2, XCircle, GraduationCap } from "lucide-react";
+import { DeleteConfirmDialog } from "@/components/shared/DeleteConfirmDialog";
+import { Plus, Search, Edit2, CheckCircle2, XCircle, GraduationCap, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
 
 interface SubjectManagementProps {
@@ -36,6 +37,8 @@ export default function SubjectManagement({
   const [description, setDescription] = useState("");
   const [isActive, setIsActive] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [deletingSubject, setDeletingSubject] = useState<ISubject | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const filteredSubjects = subjects.filter(
     (s) =>
@@ -114,6 +117,21 @@ export default function SubjectManagement({
     } catch (error: unknown) {
       const err = error as Error;
       toast.error(err.message || "Failed to change status.");
+    }
+  };
+
+  const handleDeactivate = async () => {
+    if (!deletingSubject) return;
+    setDeleting(true);
+    try {
+      const updated = await updateSubject(deletingSubject._id, { isActive: false });
+      setSubjects((previous) => previous.map((subject) => subject._id === updated._id ? updated : subject));
+      setDeletingSubject(null);
+      toast.success("Subject deactivated. Existing courses retain their subject history.");
+    } catch (error) {
+      toast.error((error as Error).message || "Could not remove subject.");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -198,14 +216,12 @@ export default function SubjectManagement({
               <span className="text-[11px] text-slate-400">
                 Created: {new Date(subject.createdAt || Date.now()).toLocaleDateString()}
               </span>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleOpenEdit(subject)}
-                className="h-8 px-2 text-xs text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400"
-              >
-                <Edit2 className="w-3.5 h-3.5 mr-1" /> Edit
-              </Button>
+              <div className="flex items-center gap-1">
+                <Button variant="ghost" size="sm" onClick={() => handleOpenEdit(subject)} className="h-8 px-2 text-xs text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400">
+                  <Edit2 className="w-3.5 h-3.5 mr-1" /> Edit
+                </Button>
+                {subject.isActive && <Button variant="ghost" size="sm" onClick={() => setDeletingSubject(subject)} className="h-8 px-2 text-xs text-rose-600" aria-label={`Delete ${subject.name}`}><Trash2 className="w-3.5 h-3.5" /></Button>}
+              </div>
             </div>
           </div>
         ))}
@@ -306,6 +322,14 @@ export default function SubjectManagement({
           </form>
         </DialogContent>
       </Dialog>
+      <DeleteConfirmDialog
+        open={Boolean(deletingSubject)}
+        onOpenChange={(open) => !open && setDeletingSubject(null)}
+        title="Delete subject?"
+        description={`Deactivate ${deletingSubject?.name || "this subject"}? Existing course records will keep their subject history.`}
+        onConfirm={handleDeactivate}
+        isLoading={deleting}
+      />
     </div>
   );
 }

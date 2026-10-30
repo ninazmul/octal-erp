@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { IEmployee, EmployeeDepartment } from "@/types";
 import EmployeeFormDialog from "./EmployeeFormDialog";
+import { updateEmployee } from "@/lib/actions/staff.actions";
+import { DeleteConfirmDialog } from "@/components/shared/DeleteConfirmDialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,9 +15,11 @@ import {
   Phone,
   Mail,
   Edit2,
+  UserX,
   Users,
 } from "lucide-react";
 import Link from "next/link";
+import toast from "react-hot-toast";
 
 interface StaffDirectoryProps {
   initialEmployees: IEmployee[];
@@ -31,6 +35,8 @@ export default function StaffDirectory({
   const [selectedDepartment, setSelectedDepartment] = useState("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<IEmployee | null>(null);
+  const [terminatingEmployee, setTerminatingEmployee] = useState<IEmployee | null>(null);
+  const [isTerminating, setIsTerminating] = useState(false);
 
   const departments: Array<EmployeeDepartment | "all"> = [
     "all",
@@ -81,6 +87,21 @@ export default function StaffDirectory({
       }
       return [emp, ...prev];
     });
+  };
+
+  const handleTerminate = async () => {
+    if (!terminatingEmployee) return;
+    setIsTerminating(true);
+    try {
+      const updated = await updateEmployee(terminatingEmployee._id, { status: "Terminated" });
+      handleSuccess(updated);
+      setTerminatingEmployee(null);
+      toast.success("Employee marked as terminated. Payroll history was preserved.");
+    } catch (error) {
+      toast.error((error as Error).message || "Could not update employee status.");
+    } finally {
+      setIsTerminating(false);
+    }
   };
 
   return (
@@ -257,14 +278,21 @@ export default function StaffDirectory({
               </span>
 
               {isSuperAdmin && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleOpenEdit(emp)}
-                  className="h-8 px-2 text-slate-600 dark:text-slate-300 hover:text-indigo-600 text-xs gap-1"
-                >
-                  <Edit2 className="w-3.5 h-3.5" /> Edit Profile & Salary
-                </Button>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleOpenEdit(emp)}
+                    className="h-8 px-2 text-slate-600 dark:text-slate-300 hover:text-indigo-600 text-xs gap-1"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" /> Edit Profile & Salary
+                  </Button>
+                  {emp.status !== "Terminated" && (
+                    <Button variant="ghost" size="sm" onClick={() => setTerminatingEmployee(emp)} className="h-8 px-2 text-rose-600 hover:text-rose-700 text-xs gap-1">
+                      <UserX className="w-3.5 h-3.5" /> Remove
+                    </Button>
+                  )}
+                </div>
               )}
             </div>
           </div>
@@ -289,6 +317,14 @@ export default function StaffDirectory({
         onOpenChange={setIsDialogOpen}
         employee={editingEmployee}
         onSuccess={handleSuccess}
+      />
+      <DeleteConfirmDialog
+        open={Boolean(terminatingEmployee)}
+        onOpenChange={(open) => !open && setTerminatingEmployee(null)}
+        title="Remove employee?"
+        description={`Mark ${terminatingEmployee?.fullName || "this employee"} as terminated? Their payroll and audit history will be kept.`}
+        onConfirm={handleTerminate}
+        isLoading={isTerminating}
       />
     </div>
   );

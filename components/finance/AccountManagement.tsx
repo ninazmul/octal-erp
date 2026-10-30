@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { IAccount, ILedgerEntry } from "@/types";
-import { createAccount } from "@/lib/actions/account.actions";
+import { createAccount, deactivateAccount, updateAccount } from "@/lib/actions/account.actions";
+import { DeleteConfirmDialog } from "@/components/shared/DeleteConfirmDialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +19,8 @@ import {
   Plus,
   ArrowDownLeft,
   ArrowUpRight,
+  Edit2,
+  Trash2,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -35,6 +38,8 @@ export default function AccountManagement({
   const [accounts, setAccounts] = useState<IAccount[]>(initialAccounts);
   const [ledgerEntries] = useState<ILedgerEntry[]>(initialLedgerEntries);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingAccount, setEditingAccount] = useState<IAccount | null>(null);
+  const [deactivatingAccount, setDeactivatingAccount] = useState<IAccount | null>(null);
 
   // Form states
   const [accountName, setAccountName] = useState("");
@@ -45,6 +50,17 @@ export default function AccountManagement({
   const [isDefault, setIsDefault] = useState(false);
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  const openEdit = (account: IAccount) => {
+    setEditingAccount(account);
+    setAccountName(account.accountName);
+    setAccountNumber(account.accountNumber || "");
+    setType(account.type);
+    setBankName(account.bankName || "");
+    setIsDefault(account.isDefault);
+    setNotes(account.notes || "");
+    setIsDialogOpen(true);
+  };
 
   const totalCashBalance = accounts.reduce(
     (sum, a) => sum + (a.currentBalance || 0),
@@ -60,22 +76,35 @@ export default function AccountManagement({
 
     setSubmitting(true);
     try {
-      const created = await createAccount({
-        accountName,
-        accountNumber,
-        type,
-        bankName,
-        openingBalance,
-        isDefault,
-        notes,
-      });
+      const saved = editingAccount
+        ? await updateAccount(editingAccount._id, { accountName, accountNumber, type, bankName, isDefault, notes })
+        : await createAccount({ accountName, accountNumber, type, bankName, openingBalance, isDefault, notes });
 
-      setAccounts((prev) => [...prev, created]);
-      toast.success(`Account "${created.accountName}" created!`);
+      setAccounts((previous) => {
+        const exists = previous.some((account) => account._id === saved._id);
+        return exists ? previous.map((account) => account._id === saved._id ? saved : account) : [...previous, saved];
+      });
+      toast.success(editingAccount ? `Account "${saved.accountName}" updated.` : `Account "${saved.accountName}" created!`);
+      setEditingAccount(null);
       setIsDialogOpen(false);
     } catch (error: unknown) {
       const err = error as Error;
       toast.error(err.message || "Failed to create account.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDeactivate = async () => {
+    if (!deactivatingAccount) return;
+    setSubmitting(true);
+    try {
+      const updated = await deactivateAccount(deactivatingAccount._id);
+      setAccounts((previous) => previous.map((account) => account._id === updated._id ? updated : account));
+      setDeactivatingAccount(null);
+      toast.success("Account deactivated.");
+    } catch (error) {
+      toast.error((error as Error).message || "Could not remove account.");
     } finally {
       setSubmitting(false);
     }
@@ -98,7 +127,17 @@ export default function AccountManagement({
         <div className="flex items-center gap-3">
           {isSuperAdmin && (
             <Button
-              onClick={() => setIsDialogOpen(true)}
+              onClick={() => {
+                setEditingAccount(null);
+                setAccountName("");
+                setAccountNumber("");
+                setType("Bank");
+                setBankName("");
+                setOpeningBalance(0);
+                setIsDefault(false);
+                setNotes("");
+                setIsDialogOpen(true);
+              }}
               className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs sm:text-sm gap-2 shadow-sm"
             >
               <Plus className="w-4 h-4" /> Add Account
@@ -157,7 +196,12 @@ export default function AccountManagement({
 
             <div className="pt-3 mt-3 border-t border-slate-100 dark:border-slate-800 text-[11px] text-slate-400 flex items-center justify-between">
               <span>Opening: ৳{acc.openingBalance?.toLocaleString()}</span>
-              <span>Reconciled</span>
+              {isSuperAdmin ? (
+                <div className="flex items-center gap-1">
+                  <Button size="sm" variant="ghost" onClick={() => openEdit(acc)} className="h-8 px-2 text-[11px] gap-1"><Edit2 className="w-3 h-3" /> Edit</Button>
+                  {acc.isActive && <Button size="sm" variant="ghost" onClick={() => setDeactivatingAccount(acc)} className="h-8 px-2 text-[11px] text-rose-600"><Trash2 className="w-3.5 h-3.5" /></Button>}
+                </div>
+              ) : <span>{acc.isActive ? "Reconciled" : "Inactive"}</span>}
             </div>
           </div>
         ))}
@@ -271,10 +315,10 @@ export default function AccountManagement({
       </div>
 
       {/* Create Account Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if (!open) setEditingAccount(null); }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Add New Cash or Bank Account</DialogTitle>
+            <DialogTitle>{editingAccount ? "Edit Account Details" : "Add New Cash or Bank Account"}</DialogTitle>
           </DialogHeader>
 
           <form onSubmit={handleCreate} className="space-y-4 pt-2">
@@ -326,7 +370,7 @@ export default function AccountManagement({
               </div>
             )}
 
-            <div>
+            {!editingAccount && <div>
               <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
                 Opening Balance (৳) *
               </label>
@@ -338,7 +382,7 @@ export default function AccountManagement({
                 required
                 className="font-mono"
               />
-            </div>
+            </div>}
 
             <div className="flex items-center gap-2 pt-1">
               <input
@@ -381,12 +425,20 @@ export default function AccountManagement({
                 disabled={submitting}
                 className="bg-indigo-600 hover:bg-indigo-700 text-white"
               >
-                {submitting ? "Creating..." : "Create Account"}
+                {submitting ? "Saving..." : editingAccount ? "Save Changes" : "Create Account"}
               </Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
+      <DeleteConfirmDialog
+        open={Boolean(deactivatingAccount)}
+        onOpenChange={(open) => !open && setDeactivatingAccount(null)}
+        title="Remove account?"
+        description={`Deactivate ${deactivatingAccount?.accountName || "this account"}? Accounts with a balance or journal history cannot be removed.`}
+        onConfirm={handleDeactivate}
+        isLoading={submitting}
+      />
     </div>
   );
 }

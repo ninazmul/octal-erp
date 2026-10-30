@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { IAccount, IExpense } from "@/types";
-import { payExpense } from "@/lib/actions/expense.actions";
+import { cancelExpense, payExpense } from "@/lib/actions/expense.actions";
 import CreateExpenseDialog from "./CreateExpenseDialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -20,8 +20,12 @@ import {
   Search,
   Banknote,
   CheckCircle2,
+  Edit2,
+  Trash2,
 } from "lucide-react";
 import toast from "react-hot-toast";
+import { usePermissions } from "@/components/providers/PermissionContext";
+import { DeleteConfirmDialog } from "@/components/shared/DeleteConfirmDialog";
 
 interface ExpenseManagementProps {
   initialExpenses: IExpense[];
@@ -43,6 +47,10 @@ export default function ExpenseManagement({
   const [statusFilter, setStatusFilter] = useState("all");
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<IExpense | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<IExpense | null>(null);
+  const [busy, setBusy] = useState(false);
+  const { canWrite } = usePermissions();
 
   // Pay modal
   const [isPayOpen, setIsPayOpen] = useState(false);
@@ -70,7 +78,7 @@ export default function ExpenseManagement({
     return matchesSearch && matchesCategory && matchesStatus;
   });
 
-  const totalIncurred = expenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+  const totalIncurred = expenses.reduce((sum, e) => sum + (e.status === "Cancelled" ? 0 : (e.amount || 0)), 0);
   const totalPaid = expenses.reduce((sum, e) => sum + (e.paidAmount || 0), 0);
   const totalDue = expenses.reduce((sum, e) => sum + (e.dueAmount || 0), 0);
 
@@ -108,6 +116,21 @@ export default function ExpenseManagement({
       toast.error(err.message || "Failed to record payment.");
     } finally {
       setPaying(false);
+    }
+  };
+
+  const handleCancelExpense = async () => {
+    if (!cancelTarget) return;
+    setBusy(true);
+    try {
+      const updated = await cancelExpense(cancelTarget._id);
+      setExpenses((previous) => previous.map((expense) => expense._id === updated._id ? updated : expense));
+      setCancelTarget(null);
+      toast.success("Unpaid expense cancelled. Its audit record was preserved.");
+    } catch (error) {
+      toast.error((error as Error).message || "Could not cancel expense.");
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -298,7 +321,18 @@ export default function ExpenseManagement({
                   </td>
 
                   <td className="py-3 px-4 text-right">
-                    {exp.dueAmount > 0 ? (
+                    <div className="flex items-center justify-end gap-1">
+                    {canWrite("expenses") && exp.paidAmount === 0 && exp.status !== "Cancelled" && (
+                      <>
+                        <Button size="sm" variant="outline" onClick={() => { setEditingExpense(exp); setIsCreateOpen(true); }} className="h-8 px-2 text-[11px] gap-1">
+                          <Edit2 className="w-3 h-3" /> Edit
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => setCancelTarget(exp)} className="h-8 px-2 text-[11px] text-rose-600 hover:text-rose-700" aria-label={`Delete ${exp.expenseNo}`}>
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </>
+                    )}
+                    {exp.dueAmount > 0 && exp.status !== "Cancelled" ? (
                       <Button
                         size="sm"
                         onClick={() => handleOpenPay(exp)}
@@ -306,11 +340,14 @@ export default function ExpenseManagement({
                       >
                         <Banknote className="w-3 h-3" /> Pay Due
                       </Button>
+                    ) : exp.status === "Cancelled" ? (
+                      <span className="text-[11px] text-slate-400">Cancelled</span>
                     ) : (
                       <span className="text-[11px] text-emerald-600 font-semibold flex items-center justify-end gap-1">
                         <CheckCircle2 className="w-3.5 h-3.5" /> Settled
                       </span>
                     )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -336,9 +373,24 @@ export default function ExpenseManagement({
       {/* Create Dialog */}
       <CreateExpenseDialog
         open={isCreateOpen}
-        onOpenChange={setIsCreateOpen}
+        onOpenChange={(open) => {
+          setIsCreateOpen(open);
+          if (!open) setEditingExpense(null);
+        }}
         accounts={accounts}
-        onSuccess={(created) => setExpenses((prev) => [created, ...prev])}
+        expense={editingExpense}
+        onSuccess={(saved) => setExpenses((previous) => {
+          const exists = previous.some((expense) => expense._id === saved._id);
+          return exists ? previous.map((expense) => expense._id === saved._id ? saved : expense) : [saved, ...previous];
+        })}
+      />
+      <DeleteConfirmDialog
+        open={Boolean(cancelTarget)}
+        onOpenChange={(open) => !open && setCancelTarget(null)}
+        title="Delete unpaid expense?"
+        description={`Cancel ${cancelTarget?.expenseNo || "this expense"}? Only unpaid expenses can be removed; the record will remain in the audit history.`}
+        onConfirm={handleCancelExpense}
+        isLoading={busy}
       />
 
       {/* Pay Modal */}

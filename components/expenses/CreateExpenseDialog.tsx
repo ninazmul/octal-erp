@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ExpenseCategory, IAccount, IExpense } from "@/types";
-import { createExpense } from "@/lib/actions/expense.actions";
+import { createExpense, updateExpense } from "@/lib/actions/expense.actions";
 import {
   Dialog,
   DialogContent,
@@ -20,6 +20,7 @@ interface CreateExpenseDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   accounts: IAccount[];
+  expense?: IExpense | null;
   onSuccess: (exp: IExpense) => void;
 }
 
@@ -41,6 +42,7 @@ export default function CreateExpenseDialog({
   open,
   onOpenChange,
   accounts,
+  expense = null,
   onSuccess,
 }: CreateExpenseDialogProps) {
   const [category, setCategory] = useState<ExpenseCategory>("Rent");
@@ -59,6 +61,29 @@ export default function CreateExpenseDialog({
   );
   const [submitting, setSubmitting] = useState(false);
 
+  useEffect(() => {
+    if (!open) return;
+    if (!expense) {
+      setCategory("Rent");
+      setTitle("");
+      setAmount(0);
+      setRecipientName("");
+      setExpenseDate(new Date().toISOString().slice(0, 10));
+      setDueDate("");
+      setDescription("");
+      setIsPaidImmediately(false);
+      return;
+    }
+    setCategory(expense.category);
+    setTitle(expense.title);
+    setAmount(expense.amount);
+    setRecipientName(expense.recipientName || "");
+    setExpenseDate(new Date(expense.expenseDate).toISOString().slice(0, 10));
+    setDueDate(expense.dueDate ? new Date(expense.dueDate).toISOString().slice(0, 10) : "");
+    setDescription(expense.description || "");
+    setIsPaidImmediately(false);
+  }, [open, expense]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !amount || amount <= 0) {
@@ -68,22 +93,32 @@ export default function CreateExpenseDialog({
 
     setSubmitting(true);
     try {
-      const created = await createExpense({
-        category,
-        title,
-        amount,
-        recipientName: recipientName || undefined,
-        expenseDate,
-        dueDate: dueDate || undefined,
-        description: description || undefined,
-        isPaidImmediately,
-        paymentMethod,
-        accountId: isPaidImmediately ? accountId : undefined,
-        isRecurring: false,
-      });
+      const result = expense
+        ? await updateExpense(expense._id, {
+            category,
+            title,
+            amount,
+            recipientName: recipientName || undefined,
+            expenseDate,
+            dueDate: dueDate || undefined,
+            description: description || undefined,
+          })
+        : await createExpense({
+            category,
+            title,
+            amount,
+            recipientName: recipientName || undefined,
+            expenseDate,
+            dueDate: dueDate || undefined,
+            description: description || undefined,
+            isPaidImmediately,
+            paymentMethod,
+            accountId: isPaidImmediately ? accountId : undefined,
+            isRecurring: false,
+          });
 
-      toast.success(`Expense ${created.expenseNo} recorded successfully!`);
-      onSuccess(created);
+      toast.success(expense ? `Expense ${result.expenseNo} updated.` : `Expense ${result.expenseNo} recorded successfully!`);
+      onSuccess(result);
       onOpenChange(false);
     } catch (error: unknown) {
       const err = error as Error;
@@ -99,7 +134,7 @@ export default function CreateExpenseDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CreditCard className="w-5 h-5 text-indigo-600" />
-            Record Operational Expense / Obligation
+            {expense ? "Edit Unpaid Expense" : "Record Operational Expense / Obligation"}
           </DialogTitle>
         </DialogHeader>
 
@@ -198,7 +233,7 @@ export default function CreateExpenseDialog({
             </div>
 
             {/* Payment status options */}
-            <div className="sm:col-span-2 p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-100 dark:border-slate-800 space-y-3">
+            {!expense && <div className="sm:col-span-2 p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-100 dark:border-slate-800 space-y-3">
               <div className="flex items-center gap-2">
                 <input
                   type="checkbox"
@@ -254,7 +289,7 @@ export default function CreateExpenseDialog({
                   </div>
                 </div>
               )}
-            </div>
+            </div>}
           </div>
 
           <DialogFooter className="pt-4">
@@ -271,7 +306,7 @@ export default function CreateExpenseDialog({
               disabled={submitting || !title.trim() || !amount}
               className="bg-indigo-600 hover:bg-indigo-700 text-white"
             >
-              {submitting ? "Saving..." : "Record Expense"}
+              {submitting ? "Saving..." : expense ? "Save Expense Changes" : "Record Expense"}
             </Button>
           </DialogFooter>
         </form>

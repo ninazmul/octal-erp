@@ -112,6 +112,25 @@ export async function saveCommissionRule(data: {
   return JSON.parse(JSON.stringify(rule));
 }
 
+export async function deactivateCommissionRule(ruleId: string) {
+  const actor = await requireSuperAdmin();
+  await connectToDatabase();
+  const rule = await CommissionRule.findById(ruleId);
+  if (!rule) throw new Error("Commission rule not found.");
+  rule.isActive = false;
+  await rule.save();
+  await logActivityAndNotify({
+    actor,
+    action: "DEACTIVATE_COMMISSION_RULE",
+    module: "commissions",
+    resourceId: String(rule._id),
+    resourceName: String(rule.referrer),
+    details: "Deactivated a commission rule. Existing commission entries remain unchanged.",
+  });
+  revalidatePath("/finance/commissions");
+  return JSON.parse(JSON.stringify(rule));
+}
+
 // ==========================================
 // GET COMMISSION ENTRIES
 // ==========================================
@@ -369,6 +388,46 @@ export async function approveSettlement(settlementId: string) {
     details: `Approved settlement ${settlement.settlementNo} of ৳${settlement.netPayable.toLocaleString()}`,
   });
 
+  revalidatePath("/finance/settlements");
+  return JSON.parse(JSON.stringify(settlement));
+}
+
+export async function updateDraftSettlement(settlementId: string, data: { deductions: number; notes?: string }) {
+  const actor = await requirePermission("commissions", "write");
+  await connectToDatabase();
+  const settlement = await Settlement.findById(settlementId);
+  if (!settlement) throw new Error("Settlement not found");
+  if (settlement.status !== "Draft" || settlement.paidAmount > 0) {
+    throw new Error("Only unpaid draft settlements can be edited.");
+  }
+  const deductions = Math.max(0, Number(data.deductions) || 0);
+  if (deductions > settlement.grossCommission) throw new Error("Deductions cannot exceed gross commission.");
+  settlement.deductions = deductions;
+  settlement.netPayable = Math.max(0, settlement.grossCommission - deductions);
+  settlement.dueAmount = settlement.netPayable;
+  if (data.notes !== undefined) settlement.notes = data.notes.trim();
+  await settlement.save();
+  await logActivityAndNotify({ actor, action: "UPDATE_SETTLEMENT", module: "commissions", resourceId: String(settlement._id), resourceName: settlement.settlementNo, details: `Updated draft settlement ${settlement.settlementNo}.` });
+  revalidatePath("/finance/settlements");
+  return JSON.parse(JSON.stringify(settlement));
+}
+
+export async function cancelDraftSettlement(settlementId: string) {
+  const actor = await requirePermission("commissions", "write");
+  await connectToDatabase();
+  const settlement = await Settlement.findById(settlementId);
+  if (!settlement) throw new Error("Settlement not found");
+  if (settlement.status !== "Draft" || settlement.paidAmount > 0) {
+    throw new Error("Only unpaid draft settlements can be cancelled.");
+  }
+  await CommissionEntry.updateMany(
+    { settlementId: settlement._id, status: "awaiting_settlement" },
+    { $set: { settlementId: null, status: "earned" } }
+  );
+  settlement.status = "Cancelled";
+  settlement.dueAmount = 0;
+  await settlement.save();
+  await logActivityAndNotify({ actor, action: "CANCEL_SETTLEMENT", module: "commissions", resourceId: String(settlement._id), resourceName: settlement.settlementNo, details: `Cancelled draft settlement ${settlement.settlementNo}; commission entries were released for a future settlement.` });
   revalidatePath("/finance/settlements");
   return JSON.parse(JSON.stringify(settlement));
 }

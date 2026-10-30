@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import { IAccount, PopulatedPayrollObligation } from "@/types";
-import { generateMonthlyPayroll } from "@/lib/actions/payroll.actions";
+import { cancelPayrollObligation, generateMonthlyPayroll, updatePayrollObligation } from "@/lib/actions/payroll.actions";
 import DisburseSalaryDialog from "./DisburseSalaryDialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { DeleteConfirmDialog } from "@/components/shared/DeleteConfirmDialog";
 import {
   Wallet,
   Search,
@@ -14,6 +16,8 @@ import {
   Calendar,
   CheckCircle2,
   Sparkles,
+  Edit2,
+  Trash2,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -42,6 +46,10 @@ export default function PayrollManagement({
   // Disbursement modal
   const [activeObligation, setActiveObligation] = useState<PopulatedPayrollObligation | null>(null);
   const [isDisburseOpen, setIsDisburseOpen] = useState(false);
+  const [editingObligation, setEditingObligation] = useState<PopulatedPayrollObligation | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<PopulatedPayrollObligation | null>(null);
+  const [savingAction, setSavingAction] = useState(false);
+  const [editAmounts, setEditAmounts] = useState({ basicSalary: 0, allowances: 0, deductions: 0, bonuses: 0, notes: "" });
 
   const filtered = obligations.filter((o) => {
     const emp = typeof o.employee === "object" ? o.employee : null;
@@ -101,6 +109,48 @@ export default function PayrollManagement({
     setObligations((prev) =>
       prev.map((item) => (item._id === updated._id ? updated : item))
     );
+  };
+
+  const openEdit = (obligation: PopulatedPayrollObligation) => {
+    setEditingObligation(obligation);
+    setEditAmounts({
+      basicSalary: obligation.basicSalary || 0,
+      allowances: obligation.allowances || 0,
+      deductions: obligation.deductions || 0,
+      bonuses: obligation.bonuses || 0,
+      notes: obligation.notes || "",
+    });
+  };
+
+  const saveObligation = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!editingObligation) return;
+    setSavingAction(true);
+    try {
+      const updated = await updatePayrollObligation(editingObligation._id, editAmounts);
+      setObligations((previous) => previous.map((item) => item._id === updated._id ? { ...item, ...updated } : item));
+      setEditingObligation(null);
+      toast.success("Payroll obligation updated.");
+    } catch (error) {
+      toast.error((error as Error).message || "Could not update payroll.");
+    } finally {
+      setSavingAction(false);
+    }
+  };
+
+  const cancelObligation = async () => {
+    if (!cancelTarget) return;
+    setSavingAction(true);
+    try {
+      const updated = await cancelPayrollObligation(cancelTarget._id);
+      setObligations((previous) => previous.map((item) => item._id === updated._id ? { ...item, ...updated } : item));
+      setCancelTarget(null);
+      toast.success("Payroll obligation cancelled. The record was preserved.");
+    } catch (error) {
+      toast.error((error as Error).message || "Could not cancel payroll.");
+    } finally {
+      setSavingAction(false);
+    }
   };
 
   return (
@@ -300,12 +350,15 @@ export default function PayrollManagement({
                     </td>
 
                     <td className="py-3 px-4 text-right">
-                      {isSuperAdmin && obl.dueAmount > 0 && (
-                        <Button
-                          size="sm"
-                          onClick={() => handleOpenDisburse(obl)}
-                          className="h-7 px-2 text-[11px] bg-emerald-600 hover:bg-emerald-700 text-white gap-1"
-                        >
+                      <div className="flex items-center justify-end gap-1">
+                      {isSuperAdmin && obl.paidAmount === 0 && obl.status !== "Cancelled" && (
+                        <>
+                          <Button size="sm" variant="outline" onClick={() => openEdit(obl)} className="h-8 px-2 text-[11px] gap-1"><Edit2 className="w-3 h-3" /> Edit</Button>
+                          <Button size="sm" variant="ghost" onClick={() => setCancelTarget(obl)} className="h-8 px-2 text-[11px] text-rose-600" aria-label={`Delete ${obl.payrollId}`}><Trash2 className="w-3.5 h-3.5" /></Button>
+                        </>
+                      )}
+                      {isSuperAdmin && obl.dueAmount > 0 && obl.status !== "Cancelled" && (
+                        <Button size="sm" onClick={() => handleOpenDisburse(obl)} className="h-8 px-2 text-[11px] bg-emerald-600 hover:bg-emerald-700 text-white gap-1">
                           <Banknote className="w-3 h-3" /> Disburse
                         </Button>
                       )}
@@ -314,6 +367,8 @@ export default function PayrollManagement({
                           <CheckCircle2 className="w-3.5 h-3.5" /> Settled
                         </span>
                       )}
+                      {obl.status === "Cancelled" && <span className="text-[11px] text-slate-400">Cancelled</span>}
+                      </div>
                     </td>
                   </tr>
                 );
@@ -347,6 +402,40 @@ export default function PayrollManagement({
           onSuccess={handleDisbursementSuccess}
         />
       )}
+      <Dialog open={Boolean(editingObligation)} onOpenChange={(open) => !open && setEditingObligation(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader><DialogTitle>Edit Unpaid Payroll</DialogTitle></DialogHeader>
+          <form onSubmit={saveObligation} className="space-y-3">
+            {([
+              ["basicSalary", "Basic Salary"],
+              ["allowances", "Allowances"],
+              ["deductions", "Deductions"],
+              ["bonuses", "Bonuses"],
+            ] as const).map(([key, label]) => (
+              <label key={key} className="block space-y-1 text-xs font-medium text-slate-600 dark:text-slate-300">
+                <span>{label}</span>
+                <Input type="number" min="0" step="0.01" value={editAmounts[key]} onChange={(event) => setEditAmounts((previous) => ({ ...previous, [key]: Number(event.target.value) }))} />
+              </label>
+            ))}
+            <label className="block space-y-1 text-xs font-medium text-slate-600 dark:text-slate-300">
+              <span>Notes</span>
+              <Input value={editAmounts.notes} onChange={(event) => setEditAmounts((previous) => ({ ...previous, notes: event.target.value }))} />
+            </label>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setEditingObligation(null)} disabled={savingAction}>Cancel</Button>
+              <Button type="submit" disabled={savingAction} className="bg-indigo-600 text-white">{savingAction ? "Saving…" : "Save Changes"}</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+      <DeleteConfirmDialog
+        open={Boolean(cancelTarget)}
+        onOpenChange={(open) => !open && setCancelTarget(null)}
+        title="Delete unpaid payroll?"
+        description={`Cancel ${cancelTarget?.payrollId || "this obligation"}? Only unpaid obligations can be removed; its record will remain for audit.`}
+        onConfirm={cancelObligation}
+        isLoading={savingAction}
+      />
     </div>
   );
 }

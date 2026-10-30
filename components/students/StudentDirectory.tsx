@@ -2,9 +2,13 @@
 
 import { useState } from "react";
 import { IStudent } from "@/types";
+import { updateStudent } from "@/lib/actions/student.actions";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { usePermissions } from "@/components/providers/PermissionContext";
+import { DeleteConfirmDialog } from "@/components/shared/DeleteConfirmDialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import {
   Users,
   Search,
@@ -13,8 +17,11 @@ import {
   Phone,
   Mail,
   Receipt,
+  Edit2,
+  Archive,
 } from "lucide-react";
 import Link from "next/link";
+import toast from "react-hot-toast";
 
 interface StudentDirectoryProps {
   initialStudents: IStudent[];
@@ -25,9 +32,58 @@ export default function StudentDirectory({
   initialStudents,
   total,
 }: StudentDirectoryProps) {
-  const [students] = useState<IStudent[]>(initialStudents);
+  const [students, setStudents] = useState<IStudent[]>(initialStudents);
+  const { canWrite } = usePermissions();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [editingStudent, setEditingStudent] = useState<IStudent | null>(null);
+  const [archivingStudent, setArchivingStudent] = useState<IStudent | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [editFields, setEditFields] = useState({ fullName: "", phone: "", email: "", guardianName: "", guardianPhone: "", address: "", notes: "" });
+
+  const openEdit = (student: IStudent) => {
+    setEditingStudent(student);
+    setEditFields({
+      fullName: student.fullName,
+      phone: student.phone,
+      email: student.email || "",
+      guardianName: student.guardianName || "",
+      guardianPhone: student.guardianPhone || "",
+      address: student.address || "",
+      notes: student.notes || "",
+    });
+  };
+
+  const saveStudent = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!editingStudent || !editFields.fullName.trim() || !editFields.phone.trim()) return;
+    setSaving(true);
+    try {
+      const updated = await updateStudent(editingStudent._id, editFields);
+      setStudents((previous) => previous.map((student) => student._id === updated._id ? { ...student, ...updated } : student));
+      setEditingStudent(null);
+      toast.success("Student profile updated.");
+    } catch (error) {
+      toast.error((error as Error).message || "Could not update student.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const archiveStudent = async () => {
+    if (!archivingStudent) return;
+    setSaving(true);
+    try {
+      const updated = await updateStudent(archivingStudent._id, { status: "Archived" });
+      setStudents((previous) => previous.map((student) => student._id === updated._id ? { ...student, ...updated } : student));
+      setArchivingStudent(null);
+      toast.success("Student archived. Enrollment and payment history was preserved.");
+    } catch (error) {
+      toast.error((error as Error).message || "Could not archive student.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const filtered = students.filter((s) => {
     const matchesSearch =
@@ -231,6 +287,18 @@ export default function StudentDirectory({
 
                     <td className="py-3 px-4 text-right">
                       <div className="flex items-center justify-end gap-1.5">
+                        {canWrite("students") && (
+                          <>
+                            <Button size="sm" variant="outline" onClick={() => openEdit(student)} className="h-8 px-2 text-[11px] gap-1">
+                              <Edit2 className="w-3 h-3" /> Edit
+                            </Button>
+                            {student.status !== "Archived" && (
+                              <Button size="sm" variant="ghost" onClick={() => setArchivingStudent(student)} className="h-8 px-2 text-[11px] text-rose-600 hover:text-rose-700 gap-1" aria-label={`Archive ${student.fullName}`}>
+                                <Archive className="w-3.5 h-3.5" /> Archive
+                              </Button>
+                            )}
+                          </>
+                        )}
                         <Link href={`/payments?studentId=${student._id}`}>
                           <Button
                             size="sm"
@@ -273,6 +341,45 @@ export default function StudentDirectory({
           </table>
         </div>
       </div>
+
+      <Dialog open={Boolean(editingStudent)} onOpenChange={(open) => !open && setEditingStudent(null)}>
+        <DialogContent className="sm:max-w-xl">
+          <DialogHeader><DialogTitle>Edit Student Profile</DialogTitle></DialogHeader>
+          <form onSubmit={saveStudent} className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {([
+                ["fullName", "Full Name", true],
+                ["phone", "Phone", true],
+                ["email", "Email", false],
+                ["guardianName", "Guardian Name", false],
+                ["guardianPhone", "Guardian Phone", false],
+                ["address", "Address", false],
+              ] as const).map(([key, label, required]) => (
+                <label key={key} className="space-y-1 text-xs font-medium text-slate-600 dark:text-slate-300">
+                  <span>{label}{required ? " *" : ""}</span>
+                  <Input value={editFields[key]} required={required} onChange={(event) => setEditFields((previous) => ({ ...previous, [key]: event.target.value }))} />
+                </label>
+              ))}
+            </div>
+            <label className="block space-y-1 text-xs font-medium text-slate-600 dark:text-slate-300">
+              <span>Notes</span>
+              <textarea value={editFields.notes} onChange={(event) => setEditFields((previous) => ({ ...previous, notes: event.target.value }))} className="min-h-20 w-full rounded-xl border border-slate-200 bg-white p-3 text-sm dark:border-slate-700 dark:bg-slate-950" />
+            </label>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setEditingStudent(null)} disabled={saving}>Cancel</Button>
+              <Button type="submit" disabled={saving} className="bg-indigo-600 text-white">{saving ? "Saving…" : "Save Changes"}</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+      <DeleteConfirmDialog
+        open={Boolean(archivingStudent)}
+        onOpenChange={(open) => !open && setArchivingStudent(null)}
+        title="Archive student?"
+        description={`Archive ${archivingStudent?.fullName || "this student"}? Their enrollment and payment history will remain available.`}
+        onConfirm={archiveStudent}
+        isLoading={saving}
+      />
     </div>
   );
 }

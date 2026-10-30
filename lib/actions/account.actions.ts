@@ -76,6 +76,67 @@ export async function createAccount(data: {
   return JSON.parse(JSON.stringify(account));
 }
 
+export async function updateAccount(
+  accountId: string,
+  data: {
+    accountName?: string;
+    accountNumber?: string;
+    type?: "Cash" | "Bank" | "MFS";
+    bankName?: string;
+    isDefault?: boolean;
+    notes?: string;
+  }
+) {
+  const actor = await requireSuperAdmin();
+  await connectToDatabase();
+  const account = await Account.findById(accountId);
+  if (!account) throw new Error("Account not found.");
+
+  if (data.isDefault) await Account.updateMany({ _id: { $ne: account._id } }, { $set: { isDefault: false } });
+  if (data.accountName !== undefined) account.accountName = data.accountName.trim();
+  if (data.accountNumber !== undefined) account.accountNumber = data.accountNumber.trim();
+  if (data.type !== undefined) account.type = data.type;
+  if (data.bankName !== undefined) account.bankName = data.bankName.trim();
+  if (data.isDefault !== undefined) account.isDefault = data.isDefault;
+  if (data.notes !== undefined) account.notes = data.notes.trim();
+  await account.save();
+
+  await logActivityAndNotify({
+    actor,
+    action: "UPDATE_ACCOUNT",
+    module: "finance",
+    resourceId: String(account._id),
+    resourceName: account.accountName,
+    details: `Updated account details for ${account.accountName}.`,
+  });
+  revalidatePath("/finance/accounts");
+  return JSON.parse(JSON.stringify(account));
+}
+
+export async function deactivateAccount(accountId: string) {
+  const actor = await requireSuperAdmin();
+  await connectToDatabase();
+  const account = await Account.findById(accountId);
+  if (!account) throw new Error("Account not found.");
+  if (account.isDefault) throw new Error("Set another account as default before removing this account.");
+  if (account.currentBalance !== 0) throw new Error("An account with a non-zero balance cannot be removed.");
+  const hasLedgerEntries = await Ledger.exists({ account: account._id });
+  if (hasLedgerEntries) throw new Error("An account with ledger history cannot be removed. It can remain inactive for audit purposes.");
+
+  account.isActive = false;
+  await account.save();
+  await logActivityAndNotify({
+    actor,
+    action: "DEACTIVATE_ACCOUNT",
+    module: "finance",
+    resourceId: String(account._id),
+    resourceName: account.accountName,
+    details: `Deactivated account ${account.accountName}.`,
+  });
+  revalidatePath("/finance/accounts");
+  return JSON.parse(JSON.stringify(account));
+}
+
 export async function getLedgerEntries(params?: {
   accountId?: string;
   sourceModule?: string;

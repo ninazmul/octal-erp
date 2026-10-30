@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { DeleteConfirmDialog } from "@/components/shared/DeleteConfirmDialog";
 import {
   Plus,
   Search,
@@ -25,6 +26,7 @@ import {
   Clock,
   Banknote,
   Users,
+  Trash2,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -56,6 +58,8 @@ export default function CourseManagement({
   const [selectedInstructors, setSelectedInstructors] = useState<string[]>([]);
   const [isActive, setIsActive] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [deletingCourse, setDeletingCourse] = useState<ICourse | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const filteredCourses = courses.filter((c) => {
     const matchesSearch =
@@ -164,6 +168,21 @@ export default function CourseManagement({
     } catch (error: unknown) {
       const err = error as Error;
       toast.error(err.message || "Failed to change status.");
+    }
+  };
+
+  const handleDeactivate = async () => {
+    if (!deletingCourse) return;
+    setDeleting(true);
+    try {
+      const updated = await updateCourse(deletingCourse._id, { isActive: false });
+      setCourses((previous) => previous.map((course) => course._id === updated._id ? updated : course));
+      setDeletingCourse(null);
+      toast.success("Course deactivated. Existing batches and student records were preserved.");
+    } catch (error) {
+      toast.error((error as Error).message || "Could not remove course.");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -294,14 +313,12 @@ export default function CourseManagement({
                 <span className="text-[11px] text-slate-400">
                   Multiple batches supported
                 </span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleOpenEdit(course)}
-                  className="h-8 px-2 text-xs text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400"
-                >
-                  <Edit2 className="w-3.5 h-3.5 mr-1" /> Edit
-                </Button>
+                <div className="flex items-center gap-1">
+                  <Button variant="ghost" size="sm" onClick={() => handleOpenEdit(course)} className="h-8 px-2 text-xs text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400">
+                    <Edit2 className="w-3.5 h-3.5 mr-1" /> Edit
+                  </Button>
+                  {course.isActive && <Button variant="ghost" size="sm" onClick={() => setDeletingCourse(course)} className="h-8 px-2 text-xs text-rose-600" aria-label={`Delete ${course.title}`}><Trash2 className="w-3.5 h-3.5" /></Button>}
+                </div>
               </div>
             </div>
           );
@@ -501,6 +518,14 @@ export default function CourseManagement({
           </form>
         </DialogContent>
       </Dialog>
+      <DeleteConfirmDialog
+        open={Boolean(deletingCourse)}
+        onOpenChange={(open) => !open && setDeletingCourse(null)}
+        title="Delete course?"
+        description={`Deactivate ${deletingCourse?.title || "this course"}? Batch and student enrollment history will remain intact.`}
+        onConfirm={handleDeactivate}
+        isLoading={deleting}
+      />
     </div>
   );
 }

@@ -7,6 +7,8 @@ import {
   createSettlement,
   approveSettlement,
   disburseCommissionPayout,
+  updateDraftSettlement,
+  cancelDraftSettlement,
 } from "@/lib/actions/commission.actions";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -22,9 +24,12 @@ import {
   FileCheck,
   Plus,
   Banknote,
+  Edit2,
+  Trash2,
 } from "lucide-react";
 import Link from "next/link";
 import toast from "react-hot-toast";
+import { DeleteConfirmDialog } from "@/components/shared/DeleteConfirmDialog";
 
 interface SettlementManagementProps {
   initialSettlements: PopulatedSettlement[];
@@ -53,6 +58,9 @@ export default function SettlementManagement({
   const [notes, setNotes] = useState("");
   const [loadingStatement, setLoadingStatement] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [editingSettlement, setEditingSettlement] = useState<PopulatedSettlement | null>(null);
+  const [cancellingSettlement, setCancellingSettlement] = useState<PopulatedSettlement | null>(null);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   // Payout disbursement dialog state
   const [isPayoutOpen, setIsPayoutOpen] = useState(false);
@@ -68,10 +76,21 @@ export default function SettlementManagement({
   const [disbursing, setDisbursing] = useState(false);
 
   const handleOpenCreate = () => {
+    setEditingSettlement(null);
     setSelectedBatchId(batches[0]?._id || "");
     setSelectedInstructorId(instructors[0]?._id || "");
     setDeductions(0);
     setNotes("");
+    setStatementData(null);
+    setIsCreateOpen(true);
+  };
+
+  const handleOpenEdit = (settlement: PopulatedSettlement) => {
+    setEditingSettlement(settlement);
+    setSelectedBatchId(String(settlement.batch?._id || settlement.batch));
+    setSelectedInstructorId(String(settlement.instructor?._id || settlement.instructor));
+    setDeductions(settlement.deductions);
+    setNotes(settlement.notes || "");
     setStatementData(null);
     setIsCreateOpen(true);
   };
@@ -103,6 +122,14 @@ export default function SettlementManagement({
 
     setSubmitting(true);
     try {
+      if (editingSettlement) {
+        const updated = await updateDraftSettlement(editingSettlement._id, { deductions, notes });
+        setSettlements((prev) => prev.map((item) => item._id === updated._id ? { ...item, ...updated, batch: item.batch, instructor: item.instructor } : item));
+        toast.success(`Settlement ${editingSettlement.settlementNo} updated.`);
+        setIsCreateOpen(false);
+        setEditingSettlement(null);
+        return;
+      }
       const created = await createSettlement({
         batchId: selectedBatchId,
         instructorId: selectedInstructorId,
@@ -118,6 +145,21 @@ export default function SettlementManagement({
       toast.error(err.message || "Failed to create settlement.");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleCancelSettlement = async () => {
+    if (!cancellingSettlement) return;
+    setIsCancelling(true);
+    try {
+      const updated = await cancelDraftSettlement(cancellingSettlement._id);
+      setSettlements((prev) => prev.map((item) => item._id === updated._id ? { ...item, status: "Cancelled", dueAmount: 0 } : item));
+      toast.success(`Settlement ${cancellingSettlement.settlementNo} cancelled.`);
+      setCancellingSettlement(null);
+    } catch (error: unknown) {
+      toast.error((error as Error).message || "Failed to cancel settlement.");
+    } finally {
+      setIsCancelling(false);
     }
   };
 
@@ -290,7 +332,7 @@ export default function SettlementManagement({
                           ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20"
                           : s.status === "Approved"
                           ? "bg-sky-500/10 text-sky-700 dark:text-sky-400 border-sky-500/20"
-                          : "bg-amber-500/10 text-amber-700 border-amber-500/20"
+                          : s.status === "Cancelled" ? "bg-slate-500/10 text-slate-600 border-slate-500/20" : "bg-amber-500/10 text-amber-700 border-amber-500/20"
                       }`}
                     >
                       {s.status}
@@ -298,6 +340,10 @@ export default function SettlementManagement({
                   </td>
                   <td className="py-3 px-4 text-right">
                     <div className="flex items-center justify-end gap-1.5">
+                      {s.status === "Draft" && isSuperAdmin && <>
+                        <Button size="sm" variant="outline" onClick={() => handleOpenEdit(s)} className="h-7 px-2 text-[11px] gap-1"><Edit2 className="w-3 h-3" /> Edit</Button>
+                        <Button size="sm" variant="outline" onClick={() => setCancellingSettlement(s)} className="h-7 px-2 text-[11px] gap-1 text-rose-600"><Trash2 className="w-3 h-3" /> Delete</Button>
+                      </>}
                       {s.status === "Draft" && isSuperAdmin && (
                         <Button
                           size="sm"
@@ -344,11 +390,11 @@ export default function SettlementManagement({
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
         <DialogContent className="sm:max-w-lg max-h-[calc(100dvh-1.5rem)] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Prepare Batch Settlement Statement</DialogTitle>
+          <DialogTitle>{editingSettlement ? "Edit Draft Settlement" : "Prepare Batch Settlement Statement"}</DialogTitle>
           </DialogHeader>
 
           <form onSubmit={handleCreateSettlement} className="space-y-4 pt-2">
-            <div>
+            {!editingSettlement && <><div>
               <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
                 Select Batch *
               </label>
@@ -386,7 +432,7 @@ export default function SettlementManagement({
                   </option>
                 ))}
               </select>
-            </div>
+            </div></>}
 
             <Button
               type="button"
@@ -461,15 +507,24 @@ export default function SettlementManagement({
               </Button>
               <Button
                 type="submit"
-                disabled={submitting || !statementData || statementData.netPayable <= 0}
+                disabled={submitting || (editingSettlement ? deductions > editingSettlement.grossCommission : !statementData || statementData.netPayable <= 0)}
                 className="bg-indigo-600 hover:bg-indigo-700 text-white"
               >
-                {submitting ? "Submitting..." : "Generate Statement"}
+                {submitting ? "Saving..." : editingSettlement ? "Save Changes" : "Generate Statement"}
               </Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
+
+      <DeleteConfirmDialog
+        open={!!cancellingSettlement}
+        onOpenChange={(open) => !open && setCancellingSettlement(null)}
+        title="Delete draft settlement?"
+        description="This will cancel the unpaid draft and release its commission entries for a future settlement. Approved or paid settlements cannot be deleted."
+        onConfirm={handleCancelSettlement}
+        isLoading={isCancelling}
+      />
 
       {/* Disburse Payout Dialog */}
       {activeSettlement && (

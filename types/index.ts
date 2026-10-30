@@ -296,7 +296,7 @@ export type PopulatedCommissionRule = ICommissionRule & {
   course?: ICourse;
 };
 
-export type SettlementStatus = "Draft" | "Submitted" | "Approved" | "Disbursed";
+export type SettlementStatus = "Draft" | "Submitted" | "Approved" | "Disbursed" | "Cancelled";
 
 export interface ISettlement {
   _id: string;

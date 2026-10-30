@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import { IEmployee, ICourse, PopulatedCommissionEntry, PopulatedCommissionRule } from "@/types";
-import { saveCommissionRule } from "@/lib/actions/commission.actions";
+import { deactivateCommissionRule, saveCommissionRule } from "@/lib/actions/commission.actions";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { DeleteConfirmDialog } from "@/components/shared/DeleteConfirmDialog";
 import {
   Dialog,
   DialogContent,
@@ -20,6 +21,8 @@ import {
   Settings,
   Banknote,
   ArrowRight,
+  Edit2,
+  Trash2,
 } from "lucide-react";
 import Link from "next/link";
 import toast from "react-hot-toast";
@@ -53,6 +56,9 @@ export default function CommissionManagement({
   const [percentage, setPercentage] = useState<number>(20);
   const [ruleNotes, setRuleNotes] = useState("");
   const [submittingRule, setSubmittingRule] = useState(false);
+  const [editingRule, setEditingRule] = useState<PopulatedCommissionRule | null>(null);
+  const [deletingRule, setDeletingRule] = useState<PopulatedCommissionRule | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const filteredEntries = entries.filter((e) => {
     const matchesSearch =
@@ -79,10 +85,20 @@ export default function CommissionManagement({
   );
 
   const handleOpenRuleDialog = () => {
+    setEditingRule(null);
     setSelectedInstructorId(instructors[0]?._id || "");
     setSelectedCourseId("global");
     setPercentage(20);
     setRuleNotes("");
+    setIsRuleDialogOpen(true);
+  };
+
+  const handleEditRule = (rule: PopulatedCommissionRule) => {
+    setEditingRule(rule);
+    setSelectedInstructorId(rule.referrer?._id || "");
+    setSelectedCourseId(rule.course?._id || "global");
+    setPercentage(rule.percentage);
+    setRuleNotes(rule.notes || "");
     setIsRuleDialogOpen(true);
   };
 
@@ -102,28 +118,48 @@ export default function CommissionManagement({
         notes: ruleNotes,
       });
 
-      // Update local rules list
+      const populatedSaved = {
+        ...saved,
+        referrer: instructors.find((instructor) => instructor._id === selectedInstructorId) || saved.referrer,
+        course: courses.find((course) => course._id === selectedCourseId) || null,
+      };
       setRules((prev) => {
         const idx = prev.findIndex(
           (r) =>
-            r.referrer?._id === saved.referrer &&
-            r.course?._id === saved.course
+            r.referrer?._id === selectedInstructorId &&
+            (r.course?._id || "global") === selectedCourseId
         );
         if (idx >= 0) {
           const updated = [...prev];
-          updated[idx] = saved;
+          updated[idx] = populatedSaved;
           return updated;
         }
-        return [saved, ...prev];
+        return [populatedSaved, ...prev];
       });
 
-      toast.success("Commission rule configured successfully!");
+      toast.success(editingRule ? "Commission rule updated." : "Commission rule configured successfully!");
+      setEditingRule(null);
       setIsRuleDialogOpen(false);
     } catch (error: unknown) {
       const err = error as Error;
       toast.error(err.message || "Failed to save rule.");
     } finally {
       setSubmittingRule(false);
+    }
+  };
+
+  const handleDeactivateRule = async () => {
+    if (!deletingRule) return;
+    setDeleting(true);
+    try {
+      await deactivateCommissionRule(deletingRule._id);
+      setRules((previous) => previous.map((rule) => rule._id === deletingRule._id ? { ...rule, isActive: false } : rule));
+      setDeletingRule(null);
+      toast.success("Commission rule deactivated. Existing entries were preserved.");
+    } catch (error) {
+      toast.error((error as Error).message || "Could not remove commission rule.");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -366,6 +402,7 @@ export default function CommissionManagement({
                       <th className="pb-3 px-3">Basis</th>
                       <th className="pb-3 px-3">Effective Date</th>
                       <th className="pb-3 px-3">Status</th>
+                      <th className="pb-3 px-3 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
@@ -402,17 +439,23 @@ export default function CommissionManagement({
                         <td className="py-3 px-3">
                           <Badge
                             variant="outline"
-                            className="text-[10px] bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20"
+                            className={`text-[10px] ${r.isActive ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20" : "bg-slate-500/10 text-slate-600 border-slate-500/20"}`}
                           >
-                            Active
+                            {r.isActive ? "Active" : "Inactive"}
                           </Badge>
+                        </td>
+                        <td className="py-3 px-3 text-right">
+                          {isSuperAdmin && <div className="flex justify-end gap-1">
+                            <Button size="sm" variant="outline" onClick={() => handleEditRule(r)} className="h-8 px-2 text-[11px] gap-1"><Edit2 className="w-3 h-3" /> Edit</Button>
+                            {r.isActive && <Button size="sm" variant="ghost" onClick={() => setDeletingRule(r)} className="h-8 px-2 text-rose-600" aria-label="Delete commission rule"><Trash2 className="w-3.5 h-3.5" /></Button>}
+                          </div>}
                         </td>
                       </tr>
                     ))}
 
                     {rules.length === 0 && (
                       <tr>
-                        <td colSpan={6} className="py-8 text-center text-slate-400">
+                        <td colSpan={7} className="py-8 text-center text-slate-400">
                           No custom rules configured yet. The system uses the course default rate (20%) when no rule is specified.
                         </td>
                       </tr>
@@ -429,7 +472,7 @@ export default function CommissionManagement({
       <Dialog open={isRuleDialogOpen} onOpenChange={setIsRuleDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Configure Commission Rule</DialogTitle>
+            <DialogTitle>{editingRule ? "Edit Commission Rule" : "Configure Commission Rule"}</DialogTitle>
           </DialogHeader>
 
           <form onSubmit={handleSaveRule} className="space-y-4 pt-2">
@@ -512,12 +555,20 @@ export default function CommissionManagement({
                 disabled={submittingRule}
                 className="bg-indigo-600 hover:bg-indigo-700 text-white"
               >
-                {submittingRule ? "Saving..." : "Save Commission Rule"}
+                {submittingRule ? "Saving..." : editingRule ? "Update Commission Rule" : "Save Commission Rule"}
               </Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
+      <DeleteConfirmDialog
+        open={Boolean(deletingRule)}
+        onOpenChange={(open) => !open && setDeletingRule(null)}
+        title="Delete commission rule?"
+        description="Deactivate this rule? Historical commission entries will remain unchanged, and the default rate will apply to future collections."
+        onConfirm={handleDeactivateRule}
+        isLoading={deleting}
+      />
     </div>
   );
 }

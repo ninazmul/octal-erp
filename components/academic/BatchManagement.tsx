@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { DeleteConfirmDialog } from "@/components/shared/DeleteConfirmDialog";
 import {
   Plus,
   Search,
@@ -27,6 +28,7 @@ import {
   CheckCircle2,
   Clock,
   ArrowRight,
+  Trash2,
 } from "lucide-react";
 import Link from "next/link";
 import toast from "react-hot-toast";
@@ -70,6 +72,8 @@ export default function BatchManagement({
   >("Open");
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [cancellingBatch, setCancellingBatch] = useState<IBatch | null>(null);
+  const [cancelling, setCancelling] = useState(false);
 
   // Handle course selection change: auto-fill subject and instructors from course
   const handleCourseChange = (selectedCourseId: string) => {
@@ -221,6 +225,21 @@ export default function BatchManagement({
     } catch (error: unknown) {
       const err = error as Error;
       toast.error(err.message || "Failed to close batch.");
+    }
+  };
+
+  const handleCancelBatch = async () => {
+    if (!cancellingBatch) return;
+    setCancelling(true);
+    try {
+      const updated = await updateBatch(cancellingBatch._id, { status: "Cancelled" });
+      setBatches((previous) => previous.map((batch) => batch._id === updated._id ? { ...batch, status: "Cancelled" } : batch));
+      setCancellingBatch(null);
+      toast.success("Batch cancelled. Enrollments and financial history were preserved.");
+    } catch (error) {
+      toast.error((error as Error).message || "Could not cancel batch.");
+    } finally {
+      setCancelling(false);
     }
   };
 
@@ -414,6 +433,11 @@ export default function BatchManagement({
                       className="h-8 text-xs text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/40"
                     >
                       <CheckCircle2 className="w-3 h-3 mr-1" /> Complete Academic
+                    </Button>
+                  )}
+                  {batch.status !== "Cancelled" && (
+                    <Button variant="ghost" size="sm" onClick={() => setCancellingBatch(batch)} className="h-8 text-xs text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30">
+                      <Trash2 className="w-3 h-3 mr-1" /> Delete
                     </Button>
                   )}
                 </div>
@@ -653,6 +677,14 @@ export default function BatchManagement({
           </form>
         </DialogContent>
       </Dialog>
+      <DeleteConfirmDialog
+        open={Boolean(cancellingBatch)}
+        onOpenChange={(open) => !open && setCancellingBatch(null)}
+        title="Delete batch?"
+        description={`Cancel ${cancellingBatch?.batchName || "this batch"}? Enrollments, payments, and commissions will remain in the system for audit.`}
+        onConfirm={handleCancelBatch}
+        isLoading={cancelling}
+      />
     </div>
   );
 }

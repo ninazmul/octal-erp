@@ -227,6 +227,83 @@ export async function createExpense(data: {
   return JSON.parse(JSON.stringify(expense));
 }
 
+export async function updateExpense(
+  expenseId: string,
+  data: {
+    category: string;
+    title: string;
+    amount: number;
+    expenseDate?: string | Date;
+    dueDate?: string | Date;
+    recipientName?: string;
+    description?: string;
+  }
+) {
+  const actor = await requirePermission("expenses", "write");
+  await connectToDatabase();
+
+  const expense = await Expense.findById(expenseId);
+  if (!expense) throw new Error("Expense not found.");
+  if (expense.paidAmount > 0 || expense.status === "Cancelled") {
+    throw new Error("Paid or cancelled expenses cannot be edited. Use an adjustment entry instead.");
+  }
+
+  const amount = Number(data.amount);
+  if (!Number.isFinite(amount) || amount <= 0) {
+    throw new Error("Expense amount must be greater than zero.");
+  }
+
+  expense.category = data.category as typeof expense.category;
+  expense.title = data.title.trim();
+  expense.amount = amount;
+  expense.dueAmount = amount;
+  expense.expenseDate = data.expenseDate ? new Date(data.expenseDate) : expense.expenseDate;
+  expense.dueDate = data.dueDate ? new Date(data.dueDate) : undefined;
+  expense.recipientName = data.recipientName?.trim() || "";
+  expense.description = data.description?.trim() || "";
+  expense.status = "Unpaid";
+  await expense.save();
+
+  await logActivityAndNotify({
+    actor,
+    action: "UPDATE_EXPENSE",
+    module: "expenses",
+    resourceId: String(expense._id),
+    resourceName: expense.expenseNo,
+    details: `Updated unpaid expense ${expense.expenseNo} (${expense.title})`,
+  });
+  revalidatePath("/expenses");
+  revalidatePath("/reports");
+  return JSON.parse(JSON.stringify(expense));
+}
+
+export async function cancelExpense(expenseId: string) {
+  const actor = await requirePermission("expenses", "write");
+  await connectToDatabase();
+
+  const expense = await Expense.findById(expenseId);
+  if (!expense) throw new Error("Expense not found.");
+  if (expense.paidAmount > 0) {
+    throw new Error("An expense with recorded payments cannot be deleted. Keep it for audit and accounting history.");
+  }
+  if (expense.status === "Cancelled") return JSON.parse(JSON.stringify(expense));
+
+  expense.status = "Cancelled";
+  expense.dueAmount = 0;
+  await expense.save();
+  await logActivityAndNotify({
+    actor,
+    action: "CANCEL_EXPENSE",
+    module: "expenses",
+    resourceId: String(expense._id),
+    resourceName: expense.expenseNo,
+    details: `Cancelled unpaid expense ${expense.expenseNo} (${expense.title})`,
+  });
+  revalidatePath("/expenses");
+  revalidatePath("/reports");
+  return JSON.parse(JSON.stringify(expense));
+}
+
 // ==========================================
 // PAY EXPENSE OBLIGATION (DISBURSEMENT)
 // ==========================================
