@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { IEmployee, ICourse, PopulatedCommissionEntry, PopulatedCommissionRule } from "@/types";
-import { deactivateCommissionRule, saveCommissionRule } from "@/lib/actions/commission.actions";
+import { deactivateCommissionRule, saveCommissionRule, updateCommissionEntry, voidCommissionEntry } from "@/lib/actions/commission.actions";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -44,7 +44,7 @@ export default function CommissionManagement({
   isSuperAdmin,
 }: CommissionManagementProps) {
   const [activeTab, setActiveTab] = useState<"entries" | "rules">("entries");
-  const [entries] = useState<PopulatedCommissionEntry[]>(initialEntries);
+  const [commissionEntries, setCommissionEntries] = useState<PopulatedCommissionEntry[]>(initialEntries);
   const [rules, setRules] = useState<PopulatedCommissionRule[]>(initialRules);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -59,8 +59,12 @@ export default function CommissionManagement({
   const [editingRule, setEditingRule] = useState<PopulatedCommissionRule | null>(null);
   const [deletingRule, setDeletingRule] = useState<PopulatedCommissionRule | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [editingEntry, setEditingEntry] = useState<PopulatedCommissionEntry | null>(null);
+  const [voidingEntry, setVoidingEntry] = useState<PopulatedCommissionEntry | null>(null);
+  const [entryCorrection, setEntryCorrection] = useState({ collectedAmount: 0, commissionRate: 0, reason: "" });
+  const [entryActionLoading, setEntryActionLoading] = useState(false);
 
-  const filteredEntries = entries.filter((e) => {
+  const filteredEntries = commissionEntries.filter((e) => {
     const matchesSearch =
       e.referrer?.fullName?.toLowerCase().includes(search.toLowerCase()) ||
       e.referrer?.employeeId?.toLowerCase().includes(search.toLowerCase()) ||
@@ -74,12 +78,12 @@ export default function CommissionManagement({
     return matchesSearch && matchesStatus;
   });
 
-  const totalEarned = entries.reduce(
-    (sum, e) => sum + (e.commissionEarned || 0),
+  const totalEarned = commissionEntries.reduce(
+    (sum, e) => sum + (e.status === "adjusted" ? 0 : (e.commissionEarned || 0)),
     0
   );
-  const totalPaid = entries.reduce((sum, e) => sum + (e.paidAmount || 0), 0);
-  const totalRemaining = entries.reduce(
+  const totalPaid = commissionEntries.reduce((sum, e) => sum + (e.paidAmount || 0), 0);
+  const totalRemaining = commissionEntries.reduce(
     (sum, e) => sum + (e.remainingCommission || 0),
     0
   );
@@ -112,6 +116,7 @@ export default function CommissionManagement({
     setSubmittingRule(true);
     try {
       const saved = await saveCommissionRule({
+        ruleId: editingRule?._id,
         referrerId: selectedInstructorId,
         courseId: selectedCourseId === "global" ? null : selectedCourseId,
         percentage,
@@ -124,7 +129,7 @@ export default function CommissionManagement({
         course: courses.find((course) => course._id === selectedCourseId) || null,
       };
       setRules((prev) => {
-        const idx = prev.findIndex(
+        const idx = editingRule ? prev.findIndex((rule) => rule._id === editingRule._id) : prev.findIndex(
           (r) =>
             r.referrer?._id === selectedInstructorId &&
             (r.course?._id || "global") === selectedCourseId
@@ -145,6 +150,37 @@ export default function CommissionManagement({
       toast.error(err.message || "Failed to save rule.");
     } finally {
       setSubmittingRule(false);
+    }
+  };
+
+  const handleSaveEntry = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!editingEntry) return;
+    setEntryActionLoading(true);
+    try {
+      const updated = await updateCommissionEntry(editingEntry._id, { commissionRate: entryCorrection.commissionRate, reason: entryCorrection.reason });
+      setCommissionEntries((current) => current.map((entry) => entry._id === updated._id ? { ...entry, ...updated, referrer: entry.referrer, batch: entry.batch, payment: entry.payment, enrollment: entry.enrollment } : entry));
+      setEditingEntry(null);
+      toast.success("Commission entry updated.");
+    } catch (error) {
+      toast.error((error as Error).message || "Could not update commission entry.");
+    } finally {
+      setEntryActionLoading(false);
+    }
+  };
+
+  const handleVoidEntry = async () => {
+    if (!voidingEntry) return;
+    setEntryActionLoading(true);
+    try {
+      const updated = await voidCommissionEntry(voidingEntry._id, entryCorrection.reason);
+      setCommissionEntries((current) => current.map((entry) => entry._id === updated._id ? { ...entry, status: "adjusted", remainingCommission: 0 } : entry));
+      setVoidingEntry(null);
+      toast.success("Commission entry removed from payable commissions.");
+    } catch (error) {
+      toast.error((error as Error).message || "Could not remove commission entry.");
+    } finally {
+      setEntryActionLoading(false);
     }
   };
 
@@ -247,7 +283,7 @@ export default function CommissionManagement({
                 : "border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
             }`}
           >
-            <Banknote className="w-4 h-4" /> Commission Entries ({entries.length})
+            <Banknote className="w-4 h-4" /> Commission Entries ({commissionEntries.length})
           </button>
           {isSuperAdmin && (
             <button
@@ -289,6 +325,7 @@ export default function CommissionManagement({
                   <option value="awaiting_settlement">Awaiting Settlement</option>
                   <option value="approved_payable">Approved</option>
                   <option value="fully_paid">Fully Paid</option>
+                  <option value="adjusted">Adjusted / Removed</option>
                 </select>
               </div>
 
@@ -306,6 +343,7 @@ export default function CommissionManagement({
                       <th className="pb-3 px-3">Paid</th>
                       <th className="pb-3 px-3">Remaining</th>
                       <th className="pb-3 px-3">Status</th>
+                      {isSuperAdmin && <th className="pb-3 px-3 text-right">Actions</th>}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
@@ -319,6 +357,14 @@ export default function CommissionManagement({
                             {e.referrer?.employeeId}
                           </span>
                         </td>
+                        {isSuperAdmin && <td className="py-3 px-3 text-right">
+                          {!e.settlementId && e.paidAmount === 0 && ["earned", "awaiting_settlement"].includes(e.status) ? (
+                            <div className="flex justify-end gap-1">
+                              <Button size="sm" variant="outline" className="h-7 px-2 text-[11px] gap-1" onClick={() => { setEditingEntry(e); setEntryCorrection({ collectedAmount: e.collectedAmount, commissionRate: e.commissionRate, reason: "" }); }}><Edit2 className="w-3 h-3" /> Edit</Button>
+                              <Button size="sm" variant="ghost" className="h-7 px-2 text-rose-600" aria-label="Remove commission entry" onClick={() => { setVoidingEntry(e); setEntryCorrection((current) => ({ ...current, reason: "" })); }}><Trash2 className="w-3.5 h-3.5" /></Button>
+                            </div>
+                          ) : <span className="text-[10px] text-slate-400">Locked by payout history</span>}
+                        </td>}
 
                         <td className="py-3 px-3">
                           <div className="font-medium text-slate-800 dark:text-slate-200">
@@ -366,7 +412,7 @@ export default function CommissionManagement({
 
                     {filteredEntries.length === 0 && (
                       <tr>
-                        <td colSpan={9} className="py-8 text-center text-slate-400">
+                        <td colSpan={isSuperAdmin ? 10 : 9} className="py-8 text-center text-slate-400">
                           No commission entries found.
                         </td>
                       </tr>
@@ -569,6 +615,26 @@ export default function CommissionManagement({
         onConfirm={handleDeactivateRule}
         isLoading={deleting}
       />
+
+      <Dialog open={!!editingEntry} onOpenChange={(open) => !open && setEditingEntry(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader><DialogTitle>Correct Commission Entry</DialogTitle></DialogHeader>
+          <form onSubmit={handleSaveEntry} className="space-y-4 pt-2">
+            <label className="block text-xs font-medium">Payment collection amount (৳)<Input type="number" value={entryCorrection.collectedAmount} readOnly /></label>
+            <label className="block text-xs font-medium">Commission rate (%)<Input type="number" min="0" max="100" step="0.01" value={entryCorrection.commissionRate} onChange={(e) => setEntryCorrection((v) => ({ ...v, commissionRate: Number(e.target.value) }))} /></label>
+            <label className="block text-xs font-medium">Correction reason *<Input required value={entryCorrection.reason} onChange={(e) => setEntryCorrection((v) => ({ ...v, reason: e.target.value }))} /></label>
+            <DialogFooter><Button type="button" variant="outline" onClick={() => setEditingEntry(null)}>Cancel</Button><Button type="submit" disabled={entryActionLoading || !entryCorrection.reason.trim()}>{entryActionLoading ? "Saving..." : "Save Correction"}</Button></DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={!!voidingEntry} onOpenChange={(open) => !open && setVoidingEntry(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader><DialogTitle>Remove Commission Entry</DialogTitle></DialogHeader>
+          <p className="text-sm text-slate-500">This marks the unpaid entry as adjusted and keeps its audit record. Paid or settlement-linked entries are locked.</p>
+          <label className="block text-xs font-medium">Reason for removal *<Input required value={entryCorrection.reason} onChange={(e) => setEntryCorrection((v) => ({ ...v, reason: e.target.value }))} /></label>
+          <DialogFooter><Button type="button" variant="outline" onClick={() => setVoidingEntry(null)}>Cancel</Button><Button type="button" variant="destructive" disabled={entryActionLoading || !entryCorrection.reason.trim()} onClick={handleVoidEntry}>{entryActionLoading ? "Removing..." : "Remove Entry"}</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -64,6 +64,7 @@ export async function getCommissionRules() {
 }
 
 export async function saveCommissionRule(data: {
+  ruleId?: string;
   referrerId: string;
   courseId?: string | null;
   percentage: number;
@@ -81,8 +82,13 @@ export async function saveCommissionRule(data: {
   if (data.courseId) query.course = data.courseId;
   else query.course = null;
 
-  let rule = await CommissionRule.findOne(query);
+  let rule = data.ruleId ? await CommissionRule.findById(data.ruleId) : await CommissionRule.findOne(query);
+  if (data.ruleId && !rule) throw new Error("Commission rule not found.");
+  const duplicate = await CommissionRule.findOne({ ...query, _id: { $ne: rule?._id } });
+  if (duplicate) throw new Error("A rule already exists for this instructor and course.");
   if (rule) {
+    rule.referrer = data.referrerId as unknown as typeof rule.referrer;
+    rule.course = data.courseId ? data.courseId as unknown as typeof rule.course : null;
     rule.percentage = percentage;
     if (data.notes !== undefined) rule.notes = data.notes.trim();
     rule.isActive = true;
@@ -110,6 +116,45 @@ export async function saveCommissionRule(data: {
 
   revalidatePath("/finance/commissions");
   return JSON.parse(JSON.stringify(rule));
+}
+
+export async function updateCommissionEntry(entryId: string, data: { commissionRate: number; reason: string }) {
+  const actor = await requireSuperAdmin();
+  await connectToDatabase();
+  const entry = await CommissionEntry.findById(entryId);
+  if (!entry) throw new Error("Commission entry not found.");
+  if (entry.settlementId || entry.paidAmount > 0 || !["earned", "awaiting_settlement"].includes(entry.status)) {
+    throw new Error("Only unpaid, unsettled commission entries can be edited.");
+  }
+  if (!data.reason?.trim()) throw new Error("A reason is required for commission corrections.");
+  const commissionRate = Number(data.commissionRate);
+  if (!Number.isFinite(commissionRate) || commissionRate < 0 || commissionRate > 100) throw new Error("Commission rate must be between 0 and 100.");
+  entry.commissionRate = commissionRate;
+  entry.commissionEarned = Math.round((entry.collectedAmount * commissionRate / 100) * 100) / 100;
+  entry.remainingCommission = entry.commissionEarned;
+  entry.status = "earned";
+  await entry.save();
+  await logActivityAndNotify({ actor, action: "UPDATE_COMMISSION_ENTRY", module: "commissions", resourceId: String(entry._id), resourceName: String(entry.payment), details: `Corrected commission entry. Reason: ${data.reason.trim()}. New rate ${commissionRate}%, earned ৳${entry.commissionEarned}.` });
+  revalidatePath("/finance/commissions");
+  revalidatePath("/finance/settlements");
+  return JSON.parse(JSON.stringify(entry));
+}
+
+export async function voidCommissionEntry(entryId: string, reason: string) {
+  const actor = await requireSuperAdmin();
+  await connectToDatabase();
+  const entry = await CommissionEntry.findById(entryId);
+  if (!entry) throw new Error("Commission entry not found.");
+  if (entry.settlementId || entry.paidAmount > 0 || !["earned", "awaiting_settlement"].includes(entry.status)) {
+    throw new Error("Only unpaid, unsettled commission entries can be removed.");
+  }
+  if (!reason?.trim()) throw new Error("A reason is required to remove a commission entry.");
+  entry.status = "adjusted";
+  entry.remainingCommission = 0;
+  await entry.save();
+  await logActivityAndNotify({ actor, action: "VOID_COMMISSION_ENTRY", module: "commissions", resourceId: String(entry._id), resourceName: String(entry.payment), details: `Voided commission entry. Reason: ${reason.trim()}.` });
+  revalidatePath("/finance/commissions");
+  return JSON.parse(JSON.stringify(entry));
 }
 
 export async function deactivateCommissionRule(ruleId: string) {
