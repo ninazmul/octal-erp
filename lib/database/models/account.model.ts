@@ -68,6 +68,8 @@ const AccountSchema: Schema = new Schema(
 );
 
 AccountSchema.index({ type: 1 });
+AccountSchema.index({ isActive: 1, isDefault: 1 });
+AccountSchema.index({ isDefault: -1, accountName: 1 });
 
 const Account: Model<IAccountDocument> =
   mongoose.models.Account || mongoose.model<IAccountDocument>("Account", AccountSchema);

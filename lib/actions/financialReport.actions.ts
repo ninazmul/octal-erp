@@ -26,74 +26,92 @@ import {
 // ==========================================
 
 export async function getFinancialDashboardStats(): Promise<OctalFinancialDashboardStats> {
-  await requirePermission("dashboard", "read");
+  const profile = await requirePermission("dashboard", "read");
+  if (profile.role === "instructor") {
+    throw new Error("Forbidden: Instructor accounts cannot access organization-wide financial totals.");
+  }
   await connectToDatabase();
 
-  // 1. Accounts & Cash Balance
-  const accounts = await Account.find({ isActive: true }).lean();
-  const openingBalance = accounts.reduce(
-    (sum, a) => sum + (a.openingBalance || 0),
-    0
-  );
-  const closingCashBalance = accounts.reduce(
-    (sum, a) => sum + (a.currentBalance || 0),
-    0
-  );
+  // Keep dashboard reads in MongoDB and transfer only one summary document per collection.
+  const [
+    accounts,
+    [paymentTotals],
+    [enrollmentTotals],
+    [commissionTotals],
+    [payoutTotals],
+    [payrollTotals],
+    [expenseTotals],
+    activeStudentsCount,
+    activeBatchesCount,
+    totalEmployeesCount,
+  ] = await Promise.all([
+    Account.find({ isActive: true }).select("openingBalance currentBalance").lean(),
+    Payment.aggregate([
+      { $match: { status: "confirmed" } },
+      { $group: { _id: null, total: { $sum: "$amount" } } },
+    ]),
+    Enrollment.aggregate([
+      { $match: { status: { $ne: "Dropped" } } },
+      { $group: { _id: null, total: { $sum: "$remainingDue" } } },
+    ]),
+    CommissionEntry.aggregate([
+      {
+        $group: {
+          _id: null,
+          earned: { $sum: "$commissionEarned" },
+          paid: { $sum: "$paidAmount" },
+          unpaid: {
+            $sum: {
+              $cond: [
+                { $ne: ["$status", "fully_paid"] },
+                { $ifNull: ["$remainingCommission", 0] },
+                0,
+              ],
+            },
+          },
+        },
+      },
+    ]),
+    Payout.aggregate([{ $group: { _id: null, total: { $sum: "$amount" } } }]),
+    Payroll.aggregate([
+      { $match: { status: { $ne: "Cancelled" } } },
+      {
+        $group: {
+          _id: null,
+          gross: { $sum: "$grossPayable" },
+          paid: { $sum: "$paidAmount" },
+          due: { $sum: "$dueAmount" },
+        },
+      },
+    ]),
+    Expense.aggregate([
+      { $match: { status: { $ne: "Cancelled" } } },
+      {
+        $group: {
+          _id: null,
+          amount: { $sum: "$amount" },
+          due: { $sum: "$dueAmount" },
+        },
+      },
+    ]),
+    Student.countDocuments({ status: "Active" }),
+    Batch.countDocuments({ status: { $in: ["Ongoing", "Upcoming"] } }),
+    Employee.countDocuments({ status: "Active" }),
+  ]);
 
-  // 2. Student Collections & Dues
-  const confirmedPayments = await Payment.find({ status: "confirmed" }).lean();
-  const totalStudentCollections = confirmedPayments.reduce(
-    (sum, p) => sum + (p.amount || 0),
-    0
-  );
-
-  const activeEnrollments = await Enrollment.find({
-    status: { $ne: "Dropped" },
-  }).lean();
-  const totalStudentDues = activeEnrollments.reduce(
-    (sum, e) => sum + (e.remainingDue || 0),
-    0
-  );
-
-  // 3. Instructor Commissions & Payouts
-  const commissionEntries = await CommissionEntry.find().lean();
-  const instructorCommissionsEarned = commissionEntries.reduce(
-    (sum, c) => sum + (c.commissionEarned || 0),
-    0
-  );
-  const instructorCommissionsPaid = commissionEntries.reduce(
-    (sum, c) => sum + (c.paidAmount || 0),
-    0
-  );
-  const approvedUnpaidCommissions = commissionEntries
-    .filter((c) => c.status !== "fully_paid")
-    .reduce((sum, c) => sum + (c.remainingCommission || 0), 0);
-
-  const payouts = await Payout.find().lean();
-  const actualPayouts = payouts.reduce((sum, p) => sum + (p.amount || 0), 0);
-
-  // 4. Payroll Obligations & Salaries
-  const payrolls = await Payroll.find({ status: { $ne: "Cancelled" } }).lean();
-  const totalSalaryObligations = payrolls.reduce(
-    (sum, p) => sum + (p.grossPayable || 0),
-    0
-  );
-  const salariesPaid = payrolls.reduce((sum, p) => sum + (p.paidAmount || 0), 0);
-  const outstandingSalaryBalances = payrolls.reduce(
-    (sum, p) => sum + (p.dueAmount || 0),
-    0
-  );
-
-  // 5. Operating Expenses
-  const expenses = await Expense.find({ status: { $ne: "Cancelled" } }).lean();
-  const totalOtherExpenses = expenses.reduce(
-    (sum, e) => sum + (e.amount || 0),
-    0
-  );
-  const unpaidExpenseObligations = expenses.reduce(
-    (sum, e) => sum + (e.dueAmount || 0),
-    0
-  );
+  const openingBalance = accounts.reduce((sum, account) => sum + (account.openingBalance || 0), 0);
+  const closingCashBalance = accounts.reduce((sum, account) => sum + (account.currentBalance || 0), 0);
+  const totalStudentCollections = paymentTotals?.total || 0;
+  const totalStudentDues = enrollmentTotals?.total || 0;
+  const instructorCommissionsEarned = commissionTotals?.earned || 0;
+  const instructorCommissionsPaid = commissionTotals?.paid || 0;
+  const approvedUnpaidCommissions = commissionTotals?.unpaid || 0;
+  const actualPayouts = payoutTotals?.total || 0;
+  const totalSalaryObligations = payrollTotals?.gross || 0;
+  const salariesPaid = payrollTotals?.paid || 0;
+  const outstandingSalaryBalances = payrollTotals?.due || 0;
+  const totalOtherExpenses = expenseTotals?.amount || 0;
+  const unpaidExpenseObligations = expenseTotals?.due || 0;
 
   // 6. Total Outstanding Liabilities & Indicative Reserves
   // Outstanding Liabilities = Unpaid Commissions + Outstanding Salaries + Unpaid Expenses
@@ -104,15 +122,6 @@ export async function getFinancialDashboardStats(): Promise<OctalFinancialDashbo
 
   const estimatedReserveAfterCommitments =
     closingCashBalance - totalOutstandingLiabilities;
-
-  // Counts
-  const activeStudentsCount = await Student.countDocuments({ status: "Active" });
-  const activeBatchesCount = await Batch.countDocuments({
-    status: { $in: ["Ongoing", "Upcoming"] },
-  });
-  const totalEmployeesCount = await Employee.countDocuments({
-    status: "Active",
-  });
 
   return {
     openingBalance,
@@ -143,9 +152,14 @@ export async function getFinancialDashboardStats(): Promise<OctalFinancialDashbo
 export async function getInstructorDashboardStats(
   instructorEmployeeId: string
 ): Promise<InstructorDashboardStats> {
+  const profile = await requirePermission("dashboard", "read");
+  if (profile.role !== "instructor" || profile.employeeId !== instructorEmployeeId) {
+    throw new Error("Forbidden: You can only view your own instructor dashboard.");
+  }
   await connectToDatabase();
 
   const employee = await Employee.findById(instructorEmployeeId).lean();
+  if (!employee) throw new Error("Instructor not found");
   const instructorName = employee?.fullName || "Instructor";
 
   // Batches where this instructor is assigned
@@ -157,47 +171,46 @@ export async function getInstructorDashboardStats(
 
   const assignedBatchIds = assignedBatches.map((b) => b._id);
 
-  const assignedEnrollments = await Enrollment.find({
-    batch: { $in: assignedBatchIds },
-  }).lean();
-  const assignedStudentsCount = assignedEnrollments.length;
+  const [assignedStudentsCount, referredStudentsCount, [referralCollections], [commissionTotals], commissions] =
+    await Promise.all([
+      Enrollment.countDocuments({ batch: { $in: assignedBatchIds } }),
+      Enrollment.countDocuments({ referrer: instructorEmployeeId }),
+      Payment.aggregate([
+        { $match: { status: "confirmed" } },
+        {
+          $lookup: {
+            from: Enrollment.collection.name,
+            localField: "enrollment",
+            foreignField: "_id",
+            as: "enrollmentDoc",
+          },
+        },
+        { $unwind: "$enrollmentDoc" },
+        { $match: { "enrollmentDoc.referrer": employee._id } },
+        { $group: { _id: null, total: { $sum: "$amount" } } },
+      ]),
+      CommissionEntry.aggregate([
+        { $match: { referrer: employee._id } },
+        {
+          $group: {
+            _id: null,
+            earned: { $sum: "$commissionEarned" },
+            paid: { $sum: "$paidAmount" },
+            remaining: { $sum: "$remainingCommission" },
+          },
+        },
+      ]),
+      CommissionEntry.find({ referrer: employee._id })
+        .populate("batch", "batchCode batchName")
+        .sort({ createdAt: -1 })
+        .limit(10)
+        .lean(),
+    ]);
 
-  // Referred students
-  const referredEnrollments = await Enrollment.find({
-    referrer: instructorEmployeeId,
-  }).lean();
-  const referredStudentsCount = referredEnrollments.length;
-
-  const referredEnrollmentIds = referredEnrollments.map((e) => e._id);
-  const referredPayments = await Payment.find({
-    enrollment: { $in: referredEnrollmentIds },
-    status: "confirmed",
-  }).lean();
-
-  const totalReferralCollections = referredPayments.reduce(
-    (sum, p) => sum + (p.amount || 0),
-    0
-  );
-
-  const commissions = await CommissionEntry.find({
-    referrer: instructorEmployeeId,
-  })
-    .populate("batch", "batchCode batchName")
-    .sort({ createdAt: -1 })
-    .lean();
-
-  const totalCommissionEarned = commissions.reduce(
-    (sum, c) => sum + (c.commissionEarned || 0),
-    0
-  );
-  const totalCommissionPaid = commissions.reduce(
-    (sum, c) => sum + (c.paidAmount || 0),
-    0
-  );
-  const pendingSettlementAmount = commissions.reduce(
-    (sum, c) => sum + (c.remainingCommission || 0),
-    0
-  );
+  const totalReferralCollections = referralCollections?.total || 0;
+  const totalCommissionEarned = commissionTotals?.earned || 0;
+  const totalCommissionPaid = commissionTotals?.paid || 0;
+  const pendingSettlementAmount = commissionTotals?.remaining || 0;
 
   return JSON.parse(
     JSON.stringify({
@@ -209,7 +222,7 @@ export async function getInstructorDashboardStats(
       totalCommissionEarned,
       totalCommissionPaid,
       pendingSettlementAmount,
-      recentCommissions: commissions.slice(0, 10),
+      recentCommissions: commissions,
       assignedBatches,
     })
   );
@@ -248,15 +261,23 @@ export async function getReportData(reportKey: string, params?: {
     // Report 2: Student Directory & Enrollment History
     case "student_directory": {
       const students = await Student.find().sort({ fullName: 1 }).lean();
-      const detailed = await Promise.all(
-        students.map(async (s) => {
-          const enrollments = await Enrollment.find({ student: s._id })
+      const enrollments = students.length
+        ? await Enrollment.find({ student: { $in: students.map((student) => student._id) } })
             .populate("course", "title code")
             .populate("batch", "batchName")
-            .lean();
-          return { ...s, enrollments };
-        })
-      );
+            .lean()
+        : [];
+      const enrollmentsByStudent = new Map<string, typeof enrollments>();
+      for (const enrollment of enrollments) {
+        const studentId = String(enrollment.student);
+        const group = enrollmentsByStudent.get(studentId) || [];
+        group.push(enrollment);
+        enrollmentsByStudent.set(studentId, group);
+      }
+      const detailed = students.map((student) => ({
+        ...student,
+        enrollments: enrollmentsByStudent.get(String(student._id)) || [],
+      }));
       return JSON.parse(JSON.stringify(detailed));
     }
 
@@ -266,16 +287,30 @@ export async function getReportData(reportKey: string, params?: {
         .populate("course", "title code defaultFee")
         .sort({ startDate: -1 })
         .lean();
-      const batchReports = await Promise.all(
-        batches.map(async (b) => {
-          const count = await Enrollment.countDocuments({ batch: b._id });
-          const enrollments = await Enrollment.find({ batch: b._id }).lean();
-          const agreed = enrollments.reduce((sum, e) => sum + (e.finalPayableAmount || 0), 0);
-          const collected = enrollments.reduce((sum, e) => sum + (e.totalCollectedAmount || 0), 0);
-          const due = enrollments.reduce((sum, e) => sum + (e.remainingDue || 0), 0);
-          return { ...b, enrolledCount: count, agreed, collected, due };
-        })
+      const batchSummaries = batches.length
+        ? await Enrollment.aggregate([
+            { $match: { batch: { $in: batches.map((batch) => batch._id) } } },
+            {
+              $group: {
+                _id: "$batch",
+                enrolledCount: { $sum: 1 },
+                agreed: { $sum: { $ifNull: ["$finalPayableAmount", 0] } },
+                collected: { $sum: { $ifNull: ["$totalCollectedAmount", 0] } },
+                due: { $sum: { $ifNull: ["$remainingDue", 0] } },
+              },
+            },
+          ])
+        : [];
+      const summaryByBatch = new Map(
+        batchSummaries.map((summary) => [String(summary._id), summary])
       );
+      const batchReports = batches.map((batch) => ({
+        ...batch,
+        enrolledCount: summaryByBatch.get(String(batch._id))?.enrolledCount || 0,
+        agreed: summaryByBatch.get(String(batch._id))?.agreed || 0,
+        collected: summaryByBatch.get(String(batch._id))?.collected || 0,
+        due: summaryByBatch.get(String(batch._id))?.due || 0,
+      }));
       return JSON.parse(JSON.stringify(batchReports));
     }
 
@@ -296,23 +331,45 @@ export async function getReportData(reportKey: string, params?: {
         $or: [{ isInstructor: true }, { department: "Academic" }],
       }).lean();
 
-      const performance = await Promise.all(
-        instructors.map(async (inst) => {
-          const referrals = await Enrollment.find({ referrer: inst._id }).lean();
-          const commissions = await CommissionEntry.find({ referrer: inst._id }).lean();
-          const totalEarned = commissions.reduce((sum, c) => sum + (c.commissionEarned || 0), 0);
-          const totalPaid = commissions.reduce((sum, c) => sum + (c.paidAmount || 0), 0);
-          const totalCollections = commissions.reduce((sum, c) => sum + (c.collectedAmount || 0), 0);
-          return {
-            instructor: inst,
-            referralsCount: referrals.length,
-            totalCollections,
-            totalEarned,
-            totalPaid,
-            remainingDue: Math.max(0, totalEarned - totalPaid),
-          };
-        })
+      const instructorIds = instructors.map((instructor) => instructor._id);
+      const [referralSummaries, commissionSummaries] = instructorIds.length
+        ? await Promise.all([
+            Enrollment.aggregate([
+              { $match: { referrer: { $in: instructorIds } } },
+              { $group: { _id: "$referrer", referralsCount: { $sum: 1 } } },
+            ]),
+            CommissionEntry.aggregate([
+              { $match: { referrer: { $in: instructorIds } } },
+              {
+                $group: {
+                  _id: "$referrer",
+                  totalCollections: { $sum: { $ifNull: ["$collectedAmount", 0] } },
+                  totalEarned: { $sum: { $ifNull: ["$commissionEarned", 0] } },
+                  totalPaid: { $sum: { $ifNull: ["$paidAmount", 0] } },
+                },
+              },
+            ]),
+          ])
+        : [[], []];
+      const referralsByInstructor = new Map(
+        referralSummaries.map((summary) => [String(summary._id), summary])
       );
+      const commissionsByInstructor = new Map(
+        commissionSummaries.map((summary) => [String(summary._id), summary])
+      );
+      const performance = instructors.map((instructor) => {
+        const commission = commissionsByInstructor.get(String(instructor._id));
+        const totalEarned = commission?.totalEarned || 0;
+        const totalPaid = commission?.totalPaid || 0;
+        return {
+          instructor,
+          referralsCount: referralsByInstructor.get(String(instructor._id))?.referralsCount || 0,
+          totalCollections: commission?.totalCollections || 0,
+          totalEarned,
+          totalPaid,
+          remainingDue: Math.max(0, totalEarned - totalPaid),
+        };
+      });
       return JSON.parse(JSON.stringify(performance));
     }
 

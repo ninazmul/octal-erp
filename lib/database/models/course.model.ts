@@ -74,6 +74,7 @@ const CourseSchema: Schema = new Schema(
 
 CourseSchema.index({ subject: 1 });
 CourseSchema.index({ instructors: 1 });
+CourseSchema.index({ title: 1 });
 
 const Course: Model<ICourseDocument> =
   mongoose.models.Course || mongoose.model<ICourseDocument>("Course", CourseSchema);

@@ -85,10 +85,11 @@ const BatchSchema: Schema = new Schema(
   }
 );
 
-BatchSchema.index({ course: 1 });
+BatchSchema.index({ course: 1, startDate: -1 });
 BatchSchema.index({ subject: 1 });
-BatchSchema.index({ instructors: 1 });
-BatchSchema.index({ status: 1 });
+BatchSchema.index({ instructors: 1, startDate: -1 });
+BatchSchema.index({ status: 1, startDate: -1 });
+BatchSchema.index({ financialStatus: 1, startDate: -1 });
 
 const Batch: Model<IBatchDocument> =
   mongoose.models.Batch || mongoose.model<IBatchDocument>("Batch", BatchSchema);

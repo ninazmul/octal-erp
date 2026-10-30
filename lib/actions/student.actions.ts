@@ -8,7 +8,7 @@ import Course from "@/lib/database/models/course.model";
 import Batch from "@/lib/database/models/batch.model";
 import CommissionRule from "@/lib/database/models/commissionRule.model";
 import Counter from "@/lib/database/models/counter.model";
-import { formatSL } from "@/lib/utils";
+import { escapeRegex, formatSL, normalizePagination } from "@/lib/utils";
 import {
   requirePermission,
   logActivityAndNotify,
@@ -56,35 +56,32 @@ export async function getStudents(params?: {
     query.status = params.status;
   }
 
-  if (params?.search) {
+  const searchTerm = params?.search?.trim();
+  if (searchTerm) {
+    const search = new RegExp(escapeRegex(searchTerm), "i");
     query.$or = [
-      { fullName: { $regex: params.search, $options: "i" } },
-      { studentId: { $regex: params.search, $options: "i" } },
-      { phone: { $regex: params.search, $options: "i" } },
-      { email: { $regex: params.search, $options: "i" } },
+      { fullName: search },
+      { studentId: search },
+      { phone: search },
+      { email: search },
     ];
   }
 
   // Instructor scoping: only see students enrolled in assigned courses/batches
-  if (profile.role === "instructor" && profile.employeeId) {
-    const instructorBatches = await Batch.find({
-      instructors: profile.employeeId,
-    })
-      .select("_id")
-      .lean();
-    const batchIds = instructorBatches.map((b) => b._id);
-
-    const enrollments = await Enrollment.find({
-      batch: { $in: batchIds },
-    })
-      .select("student")
-      .lean();
-    const studentIds = enrollments.map((e) => e.student);
-    query._id = { $in: studentIds };
+  if (profile.role === "instructor") {
+    if (!profile.employeeId) {
+      query._id = { $in: [] };
+    } else {
+      const instructorBatches = await Batch.find({ instructors: profile.employeeId })
+        .select("_id")
+        .lean();
+      const batchIds = instructorBatches.map((batch) => batch._id);
+      const studentIds = await Enrollment.distinct("student", { batch: { $in: batchIds } });
+      query._id = { $in: studentIds };
+    }
   }
 
-  const page = params?.page || 1;
-  const limit = params?.limit || 50;
+  const { page, limit } = normalizePagination(params?.page, params?.limit);
   const skip = (page - 1) * limit;
 
   const total = await Student.countDocuments(query);
@@ -95,32 +92,30 @@ export async function getStudents(params?: {
     .lean();
 
   // Aggregate enrollment summaries per student
-  const studentListWithStats = await Promise.all(
-    students.map(async (stu) => {
-      const enrollments = await Enrollment.find({ student: stu._id }).lean();
-      const totalEnrollmentsCount = enrollments.length;
-      const totalPayableSum = enrollments.reduce(
-        (sum, e) => sum + (e.finalPayableAmount || 0),
-        0
-      );
-      const totalPaidSum = enrollments.reduce(
-        (sum, e) => sum + (e.totalCollectedAmount || 0),
-        0
-      );
-      const totalDueSum = enrollments.reduce(
-        (sum, e) => sum + (e.remainingDue || 0),
-        0
-      );
-
-      return {
-        ...stu,
-        totalEnrollmentsCount,
-        totalPayableSum,
-        totalPaidSum,
-        totalDueSum,
-      };
-    })
+  const enrollmentSummaries = students.length
+    ? await Enrollment.aggregate([
+        { $match: { student: { $in: students.map((student) => student._id) } } },
+        {
+          $group: {
+            _id: "$student",
+            totalEnrollmentsCount: { $sum: 1 },
+            totalPayableSum: { $sum: { $ifNull: ["$finalPayableAmount", 0] } },
+            totalPaidSum: { $sum: { $ifNull: ["$totalCollectedAmount", 0] } },
+            totalDueSum: { $sum: { $ifNull: ["$remainingDue", 0] } },
+          },
+        },
+      ])
+    : [];
+  const summaryByStudent = new Map(
+    enrollmentSummaries.map((summary) => [String(summary._id), summary])
   );
+  const studentListWithStats = students.map((student) => ({
+    ...student,
+    totalEnrollmentsCount: summaryByStudent.get(String(student._id))?.totalEnrollmentsCount || 0,
+    totalPayableSum: summaryByStudent.get(String(student._id))?.totalPayableSum || 0,
+    totalPaidSum: summaryByStudent.get(String(student._id))?.totalPaidSum || 0,
+    totalDueSum: summaryByStudent.get(String(student._id))?.totalDueSum || 0,
+  }));
 
   return JSON.parse(
     JSON.stringify({
@@ -137,11 +132,25 @@ export async function getStudents(params?: {
 // ==========================================
 
 export async function getStudentById(id: string) {
-  await requirePermission("students", "read");
+  const profile = await requirePermission("students", "read");
   await connectToDatabase();
 
   const student = await Student.findById(id).lean();
   if (!student) throw new Error("Student not found");
+
+  if (profile.role === "instructor") {
+    if (!profile.employeeId) {
+      throw new Error("Forbidden: Instructor profile is not linked to an employee.");
+    }
+    const batches = await Batch.find({ instructors: profile.employeeId })
+      .select("_id")
+      .lean();
+    const hasAssignedEnrollment = await Enrollment.exists({
+      student: student._id,
+      batch: { $in: batches.map((batch) => batch._id) },
+    });
+    if (!hasAssignedEnrollment) throw new Error("Forbidden: You are not assigned to this student.");
+  }
 
   const enrollments = await Enrollment.find({ student: id })
     .populate("course", "title code durationMonths defaultFee")

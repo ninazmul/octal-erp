@@ -5,6 +5,29 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+export function normalizePagination(
+  page?: number,
+  limit?: number,
+  defaultLimit = 50,
+  maxLimit = 100
+) {
+  const requestedPage = Number(page);
+  const requestedLimit = Number(limit);
+  const safePage = Number.isFinite(requestedPage) ? Math.floor(requestedPage) : 1;
+  const safeLimit = Number.isFinite(requestedLimit)
+    ? Math.floor(requestedLimit)
+    : defaultLimit;
+
+  return {
+    page: Math.max(1, safePage),
+    limit: Math.min(maxLimit, Math.max(1, safeLimit || defaultLimit)),
+  };
+}
+
+export function escapeRegex(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 export const handleError = (error: unknown) => {
   console.error(error);
   throw new Error(typeof error === "string" ? error : JSON.stringify(error));

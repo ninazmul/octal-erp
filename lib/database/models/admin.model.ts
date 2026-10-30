@@ -68,6 +68,8 @@ const AdminSchema: Schema = new Schema(
   }
 );
 
+AdminSchema.index({ createdAt: -1 });
+
 const Admin = mongoose.models.Admin || mongoose.model<IAdmin>("Admin", AdminSchema);
 
 export default Admin;

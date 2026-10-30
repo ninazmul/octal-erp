@@ -17,6 +17,7 @@ import {
   logActivityAndNotify,
 } from "@/lib/auth-guard";
 import { revalidatePath } from "next/cache";
+import { normalizePagination } from "@/lib/utils";
 
 async function getNextSettlementNo(): Promise<string> {
   const counter = await Counter.findByIdAndUpdate(
@@ -141,8 +142,7 @@ export async function getCommissionEntries(params?: {
     query.referrer = params.instructorId;
   }
 
-  const page = params?.page || 1;
-  const limit = params?.limit || 50;
+  const { page, limit } = normalizePagination(params?.page, params?.limit);
   const skip = (page - 1) * limit;
 
   const total = await CommissionEntry.countDocuments(query);
@@ -177,8 +177,12 @@ export async function getCommissionEntries(params?: {
 // ==========================================
 
 export async function getBatchSettlementStatement(batchId: string, instructorId: string) {
-  await requirePermission("commissions", "read");
+  const profile = await requirePermission("commissions", "read");
   await connectToDatabase();
+
+  if (profile.role === "instructor" && profile.employeeId !== instructorId) {
+    throw new Error("Forbidden: You can only view your own commission statement.");
+  }
 
   const batch = await Batch.findById(batchId)
     .populate("course", "title code")
@@ -187,6 +191,12 @@ export async function getBatchSettlementStatement(batchId: string, instructorId:
 
   const instructor = await Employee.findById(instructorId).lean();
   if (!instructor) throw new Error("Instructor not found");
+  if (
+    profile.role === "instructor" &&
+    !batch.instructors.some((assignedInstructor) => String(assignedInstructor) === String(instructor._id))
+  ) {
+    throw new Error("Forbidden: You are not assigned to this batch.");
+  }
 
   // Eligible confirmed commission entries for this instructor and batch
   const eligibleEntries = await CommissionEntry.find({

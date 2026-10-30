@@ -76,8 +76,8 @@ const LedgerSchema: Schema = new Schema(
   }
 );
 
-LedgerSchema.index({ account: 1 });
-LedgerSchema.index({ transactionDate: -1 });
+LedgerSchema.index({ account: 1, transactionDate: -1, createdAt: -1 });
+LedgerSchema.index({ transactionDate: -1, createdAt: -1 });
 LedgerSchema.index({ sourceModule: 1 });
 
 const Ledger: Model<ILedgerDocument> =

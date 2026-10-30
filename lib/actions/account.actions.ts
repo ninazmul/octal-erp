@@ -9,6 +9,7 @@ import {
   logActivityAndNotify,
 } from "@/lib/auth-guard";
 import { revalidatePath } from "next/cache";
+import { normalizePagination } from "@/lib/utils";
 
 export async function getAccounts() {
   await requirePermission("finance", "read");
@@ -87,10 +88,11 @@ export async function getLedgerEntries(params?: {
   if (params?.accountId) query.account = params.accountId;
   if (params?.sourceModule) query.sourceModule = params.sourceModule;
 
+  const { limit } = normalizePagination(1, params?.limit, 100, 500);
   const entries = await Ledger.find(query)
     .populate("account", "accountName type")
     .sort({ transactionDate: -1, createdAt: -1 })
-    .limit(params?.limit || 100)
+    .limit(limit)
     .lean();
 
   return JSON.parse(JSON.stringify(entries));

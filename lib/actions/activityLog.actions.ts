@@ -5,6 +5,7 @@ import ActivityLog from "@/lib/database/models/activityLog.model";
 import { requireSuperAdmin } from "@/lib/auth-guard";
 import { GetActivityLogsParams, IActivityLog } from "@/types";
 import { FilterQuery } from "mongoose";
+import { escapeRegex, normalizePagination } from "@/lib/utils";
 
 /**
  * Get paginated, filtered, and searchable activity audit logs. Super Admin only.
@@ -24,7 +25,8 @@ export async function getActivityLogs(params?: GetActivityLogsParams) {
     limit = 25,
   } = params || {};
 
-  const skip = (Math.max(1, page) - 1) * limit;
+  const pagination = normalizePagination(page, limit, 25, 100);
+  const skip = (pagination.page - 1) * pagination.limit;
   const query: FilterQuery<typeof ActivityLog> = {};
 
   if (module && module !== "all") {
@@ -41,7 +43,7 @@ export async function getActivityLogs(params?: GetActivityLogsParams) {
 
   if (search && search.trim()) {
     const term = search.trim();
-    const regex = new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+    const regex = new RegExp(escapeRegex(term), "i");
     query.$or = [
       { details: regex },
       { actorEmail: regex },
@@ -67,7 +69,7 @@ export async function getActivityLogs(params?: GetActivityLogsParams) {
     ActivityLog.find(query)
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(limit)
+      .limit(pagination.limit)
       .lean(),
     ActivityLog.countDocuments(query),
   ]);
@@ -75,9 +77,9 @@ export async function getActivityLogs(params?: GetActivityLogsParams) {
   return {
     logs: JSON.parse(JSON.stringify(logs)) as IActivityLog[],
     total,
-    page,
-    limit,
-    totalPages: Math.ceil(total / limit) || 1,
+    limit: pagination.limit,
+    totalPages: Math.ceil(total / pagination.limit) || 1,
+    page: pagination.page,
   };
 }
 
@@ -110,7 +112,7 @@ export async function getAllLogsForExport(params?: GetActivityLogsParams) {
   }
   if (search && search.trim()) {
     const term = search.trim();
-    const regex = new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+    const regex = new RegExp(escapeRegex(term), "i");
     query.$or = [
       { details: regex },
       { actorEmail: regex },

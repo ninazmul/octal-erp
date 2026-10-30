@@ -98,10 +98,11 @@ const PaymentSchema: Schema = new Schema(
 );
 
 PaymentSchema.index({ enrollment: 1 });
-PaymentSchema.index({ student: 1 });
+PaymentSchema.index({ student: 1, paymentDate: -1 });
 PaymentSchema.index({ batch: 1 });
 PaymentSchema.index({ status: 1 });
-PaymentSchema.index({ paymentDate: -1 });
+PaymentSchema.index({ paymentDate: -1, createdAt: -1 });
+PaymentSchema.index({ status: 1, paymentDate: -1, createdAt: -1 });
 
 const Payment: Model<IPaymentDocument> =
   mongoose.models.Payment || mongoose.model<IPaymentDocument>("Payment", PaymentSchema);

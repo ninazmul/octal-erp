@@ -134,7 +134,8 @@ export async function getCourses(params?: {
   }
 
   // Instructor resource-based scoping: only see assigned courses
-  if (profile.role === "instructor" && profile.employeeId) {
+  if (profile.role === "instructor") {
+    if (!profile.employeeId) return [];
     query.instructors = profile.employeeId;
   }
 
@@ -272,7 +273,8 @@ export async function getBatches(params?: {
   }
 
   // Instructor resource-based scoping: only see assigned batches
-  if (profile.role === "instructor" && profile.employeeId) {
+  if (profile.role === "instructor") {
+    if (!profile.employeeId) return [];
     query.instructors = profile.employeeId;
   }
 
@@ -283,31 +285,47 @@ export async function getBatches(params?: {
     .sort({ startDate: -1 })
     .lean();
 
-  // Aggregate real-time statistics per batch
-  const batchSummaries = await Promise.all(
-    batches.map(async (batch) => {
-      const enrollments = await Enrollment.find({ batch: batch._id }).lean();
-      const totalEnrollments = enrollments.length;
-      const totalAgreedFees = enrollments.reduce((sum, e) => sum + (e.finalPayableAmount || 0), 0);
-      const totalCollected = enrollments.reduce((sum, e) => sum + (e.totalCollectedAmount || 0), 0);
-      const totalDue = enrollments.reduce((sum, e) => sum + (e.remainingDue || 0), 0);
-
-      const commissions = await CommissionEntry.find({ batch: batch._id }).lean();
-      const totalCommissionEarned = commissions.reduce(
-        (sum, c) => sum + (c.commissionEarned || 0),
-        0
-      );
-
-      return {
-        ...batch,
-        totalEnrollments,
-        totalAgreedFees,
-        totalCollected,
-        totalDue,
-        totalCommissionEarned,
-      };
-    })
+  // Fetch all summaries in two grouped queries instead of one pair of queries per batch.
+  const batchIds = batches.map((batch) => batch._id);
+  const [enrollmentSummaries, commissionSummaries] = batchIds.length
+    ? await Promise.all([
+        Enrollment.aggregate([
+          { $match: { batch: { $in: batchIds } } },
+          {
+            $group: {
+              _id: "$batch",
+              totalEnrollments: { $sum: 1 },
+              totalAgreedFees: { $sum: { $ifNull: ["$finalPayableAmount", 0] } },
+              totalCollected: { $sum: { $ifNull: ["$totalCollectedAmount", 0] } },
+              totalDue: { $sum: { $ifNull: ["$remainingDue", 0] } },
+            },
+          },
+        ]),
+        CommissionEntry.aggregate([
+          { $match: { batch: { $in: batchIds } } },
+          {
+            $group: {
+              _id: "$batch",
+              totalCommissionEarned: { $sum: { $ifNull: ["$commissionEarned", 0] } },
+            },
+          },
+        ]),
+      ])
+    : [[], []];
+  const enrollmentsByBatch = new Map(
+    enrollmentSummaries.map((summary) => [String(summary._id), summary])
   );
+  const commissionsByBatch = new Map(
+    commissionSummaries.map((summary) => [String(summary._id), summary])
+  );
+  const batchSummaries = batches.map((batch) => ({
+    ...batch,
+    totalEnrollments: enrollmentsByBatch.get(String(batch._id))?.totalEnrollments || 0,
+    totalAgreedFees: enrollmentsByBatch.get(String(batch._id))?.totalAgreedFees || 0,
+    totalCollected: enrollmentsByBatch.get(String(batch._id))?.totalCollected || 0,
+    totalDue: enrollmentsByBatch.get(String(batch._id))?.totalDue || 0,
+    totalCommissionEarned: commissionsByBatch.get(String(batch._id))?.totalCommissionEarned || 0,
+  }));
 
   return JSON.parse(JSON.stringify(batchSummaries));
 }
@@ -325,7 +343,8 @@ export async function getBatchById(id: string) {
   if (!batch) throw new Error("Batch not found");
 
   // Validate instructor access
-  if (profile.role === "instructor" && profile.employeeId) {
+  if (profile.role === "instructor") {
+    if (!profile.employeeId) throw new Error("Forbidden: Instructor profile is not linked to an employee.");
     const isAssigned = batch.instructors?.some(
       (inst: { _id: unknown; employeeId?: string }) =>
         String(inst._id) === profile.employeeId || inst.employeeId === profile.employeeId

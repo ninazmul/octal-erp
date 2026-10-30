@@ -138,6 +138,7 @@ const PayrollSchema: Schema = new Schema(
 // Idempotency: Exactly one payroll record per employee per period!
 PayrollSchema.index({ employee: 1, period: 1 }, { unique: true });
 PayrollSchema.index({ status: 1 });
+PayrollSchema.index({ period: 1, createdAt: -1 });
 
 const Payroll: Model<IPayrollDocument> =
   mongoose.models.Payroll || mongoose.model<IPayrollDocument>("Payroll", PayrollSchema);

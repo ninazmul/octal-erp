@@ -77,6 +77,8 @@ const StudentSchema: Schema = new Schema(
 );
 
 StudentSchema.index({ fullName: "text", phone: "text", email: "text" });
+StudentSchema.index({ createdAt: -1 });
+StudentSchema.index({ status: 1, createdAt: -1 });
 
 const Student: Model<IStudentDocument> =
   mongoose.models.Student || mongoose.model<IStudentDocument>("Student", StudentSchema);

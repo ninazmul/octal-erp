@@ -99,6 +99,9 @@ const SettlementSchema: Schema = new Schema(
 SettlementSchema.index({ batch: 1 });
 SettlementSchema.index({ instructor: 1 });
 SettlementSchema.index({ status: 1 });
+SettlementSchema.index({ createdAt: -1 });
+SettlementSchema.index({ instructor: 1, createdAt: -1 });
+SettlementSchema.index({ batch: 1, createdAt: -1 });
 
 const Settlement: Model<ISettlementDocument> =
   mongoose.models.Settlement || mongoose.model<ISettlementDocument>("Settlement", SettlementSchema);

@@ -5,7 +5,7 @@ import Expense from "@/lib/database/models/expense.model";
 import Account from "@/lib/database/models/account.model";
 import Ledger from "@/lib/database/models/ledger.model";
 import Counter from "@/lib/database/models/counter.model";
-import { formatSL } from "@/lib/utils";
+import { escapeRegex, formatSL, normalizePagination } from "@/lib/utils";
 import {
   requirePermission,
   logActivityAndNotify,
@@ -63,17 +63,18 @@ export async function getExpenses(params?: {
     query.expenseDate = dateQuery;
   }
 
-  if (params?.search) {
+  const searchTerm = params?.search?.trim();
+  if (searchTerm) {
+    const search = new RegExp(escapeRegex(searchTerm), "i");
     query.$or = [
-      { expenseNo: { $regex: params.search, $options: "i" } },
-      { title: { $regex: params.search, $options: "i" } },
-      { recipientName: { $regex: params.search, $options: "i" } },
-      { description: { $regex: params.search, $options: "i" } },
+      { expenseNo: search },
+      { title: search },
+      { recipientName: search },
+      { description: search },
     ];
   }
 
-  const page = params?.page || 1;
-  const limit = params?.limit || 50;
+  const { page, limit } = normalizePagination(params?.page, params?.limit);
   const skip = (page - 1) * limit;
 
   const total = await Expense.countDocuments(query);

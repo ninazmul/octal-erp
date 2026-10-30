@@ -169,9 +169,9 @@ const ExpenseSchema: Schema = new Schema(
   }
 );
 
-ExpenseSchema.index({ category: 1 });
-ExpenseSchema.index({ status: 1 });
-ExpenseSchema.index({ expenseDate: -1 });
+ExpenseSchema.index({ category: 1, status: 1, expenseDate: -1, createdAt: -1 });
+ExpenseSchema.index({ status: 1, expenseDate: -1, createdAt: -1 });
+ExpenseSchema.index({ expenseDate: -1, createdAt: -1 });
 
 const Expense: Model<IExpenseDocument> =
   mongoose.models.Expense || mongoose.model<IExpenseDocument>("Expense", ExpenseSchema);

@@ -113,7 +113,8 @@ const EnrollmentSchema: Schema = new Schema(
 );
 
 EnrollmentSchema.index({ student: 1, batch: 1 }, { unique: true }); // Prevent duplicate enrollment in same batch
-EnrollmentSchema.index({ batch: 1 });
+EnrollmentSchema.index({ student: 1, createdAt: -1 });
+EnrollmentSchema.index({ batch: 1, createdAt: -1 });
 EnrollmentSchema.index({ course: 1 });
 EnrollmentSchema.index({ referrer: 1 });
 EnrollmentSchema.index({ status: 1 });

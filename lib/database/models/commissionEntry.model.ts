@@ -96,8 +96,9 @@ const CommissionEntrySchema: Schema = new Schema(
   }
 );
 
-CommissionEntrySchema.index({ referrer: 1 });
-CommissionEntrySchema.index({ batch: 1 });
+CommissionEntrySchema.index({ referrer: 1, createdAt: -1 });
+CommissionEntrySchema.index({ batch: 1, createdAt: -1 });
+CommissionEntrySchema.index({ createdAt: -1 });
 CommissionEntrySchema.index({ settlementId: 1 });
 CommissionEntrySchema.index({ status: 1 });
 

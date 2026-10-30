@@ -133,6 +133,8 @@ const EmployeeSchema: Schema = new Schema(
 EmployeeSchema.index({ department: 1 });
 EmployeeSchema.index({ isInstructor: 1 });
 EmployeeSchema.index({ status: 1 });
+EmployeeSchema.index({ department: 1, fullName: 1 });
+EmployeeSchema.index({ status: 1, isInstructor: 1, fullName: 1 });
 
 const Employee: Model<IEmployeeDocument> =
   mongoose.models.Employee || mongoose.model<IEmployeeDocument>("Employee", EmployeeSchema);
