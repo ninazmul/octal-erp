@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { IStudent } from "@/types";
-import { updateStudent } from "@/lib/actions/student.actions";
+import { deleteStudent, updateStudent } from "@/lib/actions/student.actions";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +19,7 @@ import {
   Receipt,
   Edit2,
   Archive,
+  Trash2,
 } from "lucide-react";
 import Link from "next/link";
 import toast from "react-hot-toast";
@@ -33,11 +34,12 @@ export default function StudentDirectory({
   total,
 }: StudentDirectoryProps) {
   const [students, setStudents] = useState<IStudent[]>(initialStudents);
-  const { canWrite } = usePermissions();
+  const { canWrite, isSuperAdmin } = usePermissions();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [editingStudent, setEditingStudent] = useState<IStudent | null>(null);
   const [archivingStudent, setArchivingStudent] = useState<IStudent | null>(null);
+  const [deletingStudent, setDeletingStudent] = useState<IStudent | null>(null);
   const [saving, setSaving] = useState(false);
   const [editFields, setEditFields] = useState({ fullName: "", phone: "", email: "", guardianName: "", guardianPhone: "", address: "", notes: "" });
 
@@ -80,6 +82,21 @@ export default function StudentDirectory({
       toast.success("Student archived. Enrollment and payment history was preserved.");
     } catch (error) {
       toast.error((error as Error).message || "Could not archive student.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const removeStudent = async () => {
+    if (!deletingStudent) return;
+    setSaving(true);
+    try {
+      await deleteStudent(deletingStudent._id);
+      setStudents((previous) => previous.filter((student) => student._id !== deletingStudent._id));
+      setDeletingStudent(null);
+      toast.success("Student deleted.");
+    } catch (error) {
+      toast.error((error as Error).message || "Could not delete student.");
     } finally {
       setSaving(false);
     }
@@ -299,6 +316,11 @@ export default function StudentDirectory({
                             )}
                           </>
                         )}
+                        {isSuperAdmin && (
+                          <Button size="sm" variant="ghost" onClick={() => setDeletingStudent(student)} className="h-8 px-2 text-[11px] text-rose-600 hover:text-rose-700 gap-1" aria-label={`Delete ${student.fullName}`}>
+                            <Trash2 className="w-3.5 h-3.5" /> Delete
+                          </Button>
+                        )}
                         <Link href={`/payments?studentId=${student._id}`}>
                           <Button
                             size="sm"
@@ -378,6 +400,14 @@ export default function StudentDirectory({
         title="Archive student?"
         description={`Archive ${archivingStudent?.fullName || "this student"}? Their enrollment and payment history will remain available.`}
         onConfirm={archiveStudent}
+        isLoading={saving}
+      />
+      <DeleteConfirmDialog
+        open={Boolean(deletingStudent)}
+        onOpenChange={(open) => !open && setDeletingStudent(null)}
+        title="Delete student permanently?"
+        description={`Delete ${deletingStudent?.fullName || "this student"}? Students with enrollment or payment history cannot be deleted; archive them to preserve financial records.`}
+        onConfirm={removeStudent}
         isLoading={saving}
       />
     </div>

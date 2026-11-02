@@ -557,6 +557,38 @@ export async function updateStudent(
   return JSON.parse(JSON.stringify(student));
 }
 
+export async function deleteStudent(id: string) {
+  const actor = await getCurrentAdminProfile();
+  if (!actor || actor.role !== "super_admin") {
+    throw new Error("Only a super admin can delete a student.");
+  }
+  await connectToDatabase();
+
+  const student = await Student.findById(id).select("_id studentId fullName");
+  if (!student) throw new Error("Student not found.");
+
+  const [hasEnrollment, hasPayment] = await Promise.all([
+    Enrollment.exists({ student: student._id }),
+    Payment.exists({ student: student._id }),
+  ]);
+  if (hasEnrollment || hasPayment) {
+    throw new Error("This student has enrollment or payment history. Archive the student to preserve financial records.");
+  }
+
+  await Student.deleteOne({ _id: student._id });
+  await logActivityAndNotify({
+    actor,
+    action: "DELETE_STUDENT",
+    module: "students",
+    resourceId: String(student._id),
+    resourceName: student.fullName,
+    details: `Deleted student ${student.fullName} (${student.studentId}). No enrollment or payment history was present.`,
+  });
+  revalidatePath("/students");
+  revalidatePath(`/students/${id}`);
+  return { success: true };
+}
+
 // ==========================================
 // UPDATE ENROLLMENT (DISCOUNT/REFERRER CORRECTION)
 // ==========================================
