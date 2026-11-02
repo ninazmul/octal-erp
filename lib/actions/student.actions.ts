@@ -559,8 +559,8 @@ export async function updateStudent(
 
 export async function deleteStudent(id: string) {
   const actor = await getCurrentAdminProfile();
-  if (!actor || actor.role !== "super_admin") {
-    throw new Error("Only a super admin can delete a student.");
+  if (!actor || !["admin", "super_admin"].includes(actor.role)) {
+    throw new Error("Only an admin or super admin can delete a student.");
   }
   await connectToDatabase();
 

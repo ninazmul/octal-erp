@@ -34,7 +34,7 @@ export default function StudentDirectory({
   total,
 }: StudentDirectoryProps) {
   const [students, setStudents] = useState<IStudent[]>(initialStudents);
-  const { canWrite, isSuperAdmin } = usePermissions();
+  const { canWrite, isAdmin } = usePermissions();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [editingStudent, setEditingStudent] = useState<IStudent | null>(null);
@@ -316,7 +316,7 @@ export default function StudentDirectory({
                             )}
                           </>
                         )}
-                        {isSuperAdmin && (
+                        {isAdmin && (
                           <Button size="sm" variant="ghost" onClick={() => setDeletingStudent(student)} className="h-8 px-2 text-[11px] text-rose-600 hover:text-rose-700 gap-1" aria-label={`Delete ${student.fullName}`}>
                             <Trash2 className="w-3.5 h-3.5" /> Delete
                           </Button>
