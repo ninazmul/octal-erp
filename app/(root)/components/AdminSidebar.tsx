@@ -49,6 +49,7 @@ interface SidebarItem {
   module: AppModule;
   /** If true, only super_admin can see this item */
   superAdminOnly?: boolean;
+  adminOnly?: boolean;
 }
 
 interface SidebarSection {
@@ -106,6 +107,7 @@ const sidebarSections: SidebarSection[] = [
         icon: UserPlus,
         module: "students",
       },
+      { title: "Discount Requests", url: "/students/discount-requests", icon: Percent, module: "students", adminOnly: true },
     ],
   },
   {
@@ -212,7 +214,7 @@ const sidebarSections: SidebarSection[] = [
 const AppSidebar = () => {
   const currentPath = usePathname();
   const { state, isMobile, setOpenMobile } = useSidebar();
-  const { canRead, isSuperAdmin, isInstructor } = usePermissions();
+  const { canRead, isSuperAdmin, isAdmin, isInstructor } = usePermissions();
   const isCollapsed = state === "collapsed";
 
   // Automatically close mobile sidebar menu on route change
@@ -229,6 +231,7 @@ const AppSidebar = () => {
       items: section.items.filter((item) => {
         // Strongest gate first: strictly super-admin-only items
         if (item.superAdminOnly && !isSuperAdmin) return false;
+        if (item.adminOnly && !isAdmin) return false;
 
         // Instructor scope restriction:
         if (isInstructor) {

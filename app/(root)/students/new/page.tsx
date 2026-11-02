@@ -5,23 +5,25 @@ import {
 } from "@/lib/actions/academic.actions";
 import NewAdmissionForm from "@/components/students/NewAdmissionForm";
 import { getCurrentAdminProfile } from "@/lib/auth-guard";
+import { getAdmissionDiscountRequestForUse } from "@/lib/actions/student.actions";
 
 export const dynamic = "force-dynamic";
 
 interface NewStudentPageProps {
-  searchParams: Promise<{ batchId?: string }>;
+  searchParams: Promise<{ batchId?: string; discountRequestId?: string }>;
 }
 
 export default async function NewAdmissionPage({
   searchParams,
 }: NewStudentPageProps) {
-  const { batchId } = await searchParams;
+  const { batchId, discountRequestId } = await searchParams;
 
-  const [courses, batches, instructors, profile] = await Promise.all([
+  const [courses, batches, instructors, profile, discountRequest] = await Promise.all([
     getCourses({ status: "active" }),
     getBatches(),
     getInstructorOptions(),
     getCurrentAdminProfile(),
+    discountRequestId ? getAdmissionDiscountRequestForUse(discountRequestId) : Promise.resolve(null),
   ]);
 
   return (
@@ -31,6 +33,7 @@ export default async function NewAdmissionPage({
         batches={batches}
         instructors={instructors}
         preselectedBatchId={batchId}
+        approvedDiscountRequest={discountRequest}
         isInstructor={profile?.role === "instructor"}
         currentEmployeeId={profile?.role === "instructor" ? profile.employeeId : undefined}
       />

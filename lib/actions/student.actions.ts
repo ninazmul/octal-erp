@@ -8,6 +8,10 @@ import Course from "@/lib/database/models/course.model";
 import Batch from "@/lib/database/models/batch.model";
 import CommissionRule from "@/lib/database/models/commissionRule.model";
 import Counter from "@/lib/database/models/counter.model";
+import Admin from "@/lib/database/models/admin.model";
+import Notification from "@/lib/database/models/notification.model";
+import AdmissionDiscountRequest from "@/lib/database/models/admissionDiscountRequest.model";
+import type { IAdmissionDiscountRequestDocument } from "@/lib/database/models/admissionDiscountRequest.model";
 import { escapeRegex, formatSL, normalizePagination } from "@/lib/utils";
 import {
   getCurrentAdminProfile,
@@ -208,13 +212,11 @@ export async function admitStudent(data: {
   // Enrollment Info
   courseId: string;
   batchId: string;
-  agreedFee: number;
-  discount?: number;
 
   // Referral Attribution
   referrerType?: "Instructor" | "Staff" | "External" | "None";
   referrerId?: string; // Employee ID
-  referrerCommissionRate?: number;
+  discountRequestId?: string;
 }) {
   const currentProfile = await getCurrentAdminProfile();
   if (!currentProfile) throw new Error("Unauthorized: Access is restricted to authorized administrators.");
@@ -297,8 +299,20 @@ export async function admitStudent(data: {
   }
 
   // 3. Compute Financial Invariants
-  const agreedFee = Math.max(0, Number(data.agreedFee));
-  const discount = Math.max(0, Number(data.discount || 0));
+  // Admission fees and commissions are sourced from course/rule settings.
+  const agreedFee = Math.max(0, Number(course.defaultFee || 0));
+  let discount = 0;
+  let approvedDiscountRequest: IAdmissionDiscountRequestDocument | null = null;
+  if (data.discountRequestId) {
+    approvedDiscountRequest = await AdmissionDiscountRequest.findById(data.discountRequestId);
+    if (!approvedDiscountRequest || approvedDiscountRequest.status !== "Approved") throw new Error("Approved discount request not found.");
+    const isRequester = approvedDiscountRequest.requestedBy.email === actor.email.toLowerCase();
+    const isAdmin = ["admin", "super_admin"].includes(actor.role);
+    if (!isRequester && !isAdmin) throw new Error("You cannot use this discount request.");
+    if (String(approvedDiscountRequest.course) !== String(course._id) || String(approvedDiscountRequest.batch) !== String(batch._id)) throw new Error("Discount request does not match this course and batch.");
+    if (approvedDiscountRequest.studentPhone !== data.phone.trim()) throw new Error("Discount request does not match this student.");
+    discount = Math.min(Math.max(0, approvedDiscountRequest.approvedAmount), agreedFee);
+  }
   const finalPayableAmount = Math.max(0, agreedFee - discount);
   const totalCollectedAmount = 0;
   const remainingDue = finalPayableAmount;
@@ -327,7 +341,6 @@ export async function admitStudent(data: {
       });
       commissionRate =
         globalRule?.percentage ??
-        (isInstructorAdmission ? undefined : data.referrerCommissionRate) ??
         course.defaultCommissionRate ??
         20;
     }
@@ -357,6 +370,13 @@ export async function admitStudent(data: {
     notes: data.notes?.trim() || "",
   });
 
+  if (approvedDiscountRequest) {
+    approvedDiscountRequest.status = "Used";
+    approvedDiscountRequest.student = studentDoc._id;
+    approvedDiscountRequest.enrollment = enrollment._id;
+    await approvedDiscountRequest.save();
+  }
+
   await logActivityAndNotify({
     actor,
     action: "ADMIT_STUDENT",
@@ -374,6 +394,118 @@ export async function admitStudent(data: {
       enrollment,
     })
   );
+}
+
+export async function requestAdmissionDiscount(data: {
+  studentName: string;
+  studentPhone: string;
+  studentEmail?: string;
+  courseId: string;
+  batchId: string;
+  requestedAmount: number;
+  reason: string;
+}) {
+  const actor = await requirePermission("students", "read");
+  await connectToDatabase();
+
+  const studentName = data.studentName.trim();
+  const studentPhone = data.studentPhone.trim();
+  const reason = data.reason.trim();
+  const requestedAmount = Number(data.requestedAmount);
+  if (!studentName || !studentPhone || !reason) {
+    throw new Error("Student name, phone, and a discount request reason are required.");
+  }
+  if (!Number.isFinite(requestedAmount) || requestedAmount <= 0) {
+    throw new Error("Enter a requested discount amount greater than zero.");
+  }
+
+  const [course, batch] = await Promise.all([
+    Course.findById(data.courseId).select("title code defaultFee instructors"),
+    Batch.findById(data.batchId).select("batchName batchCode course instructors"),
+  ]);
+  if (!course || !batch || String(batch.course) !== String(course._id)) {
+    throw new Error("Select a valid course and batch.");
+  }
+  if (requestedAmount > Number(course.defaultFee || 0)) {
+    throw new Error("Requested discount cannot exceed the course fee.");
+  }
+
+  if (["instructor", "staff"].includes(actor.role)) {
+    if (!actor.employeeId) throw new Error("Your account is not linked to an employee record.");
+    const assignedToCourse = course.instructors.some((id) => String(id) === actor.employeeId);
+    const assignedToBatch = batch.instructors.some((id) => String(id) === actor.employeeId);
+    if (!assignedToCourse || !assignedToBatch) {
+      throw new Error("You can only request discounts for your assigned course and batch.");
+    }
+  }
+
+  const recipients = await Admin.find({
+    role: { $in: ["admin", "super_admin"] },
+    isActive: true,
+  }).select("email").lean();
+  const recipientEmails = [...new Set(recipients.map((recipient) => recipient.email.toLowerCase()))];
+  if (recipientEmails.length === 0) throw new Error("No active administrators are available to receive discount requests.");
+
+  const request = await AdmissionDiscountRequest.create({
+    studentName, studentPhone, studentEmail: data.studentEmail?.trim().toLowerCase() || "",
+    course: course._id, batch: batch._id, requestedAmount, reason,
+    requestedBy: { email: actor.email.toLowerCase(), name: actor.name || "", role: actor.role },
+  });
+  await Notification.create({
+    actorEmail: actor.email,
+    actorRole: actor.role,
+    action: "DISCOUNT_REQUEST",
+    module: "students",
+    title: "Student discount approval requested",
+    message: `${studentName} (${studentPhone}${data.studentEmail?.trim() ? `, ${data.studentEmail.trim()}` : ""}) requests ৳${requestedAmount.toLocaleString()} discount for ${course.title} (${course.code}), batch ${batch.batchName} (${batch.batchCode}). Reason: ${reason}`,
+    link: `/students/discount-requests?requestId=${request._id}`,
+    recipientEmails,
+  });
+
+  await logActivityAndNotify({
+    actor,
+    action: "REQUEST_ADMISSION_DISCOUNT",
+    module: "students",
+    resourceId: String(batch._id),
+    resourceName: studentName,
+    details: `Requested ৳${requestedAmount.toLocaleString()} admission discount for ${studentName} in ${course.title}, batch ${batch.batchName}. Reason: ${reason}`,
+  });
+
+  return { success: true };
+}
+
+export async function getAdmissionDiscountRequests() {
+  const actor = await getCurrentAdminProfile();
+  if (!actor || !["admin", "super_admin"].includes(actor.role)) throw new Error("Unauthorized.");
+  await connectToDatabase();
+  return JSON.parse(JSON.stringify(await AdmissionDiscountRequest.find().populate("course", "title code").populate("batch", "batchName batchCode").sort({ createdAt: -1 }).limit(200).lean()));
+}
+
+export async function getAdmissionDiscountRequestForUse(id: string) {
+  const actor = await getCurrentAdminProfile();
+  if (!actor) throw new Error("Unauthorized.");
+  await connectToDatabase();
+  const request = await AdmissionDiscountRequest.findById(id).populate("course", "title code").populate("batch", "batchName batchCode").lean();
+  if (!request || request.status !== "Approved") throw new Error("Approved discount request not found.");
+  if (request.requestedBy.email !== actor.email.toLowerCase() && !["admin", "super_admin"].includes(actor.role)) throw new Error("You cannot use this discount request.");
+  return JSON.parse(JSON.stringify(request));
+}
+
+export async function reviewAdmissionDiscountRequest(id: string, decision: "Approved" | "Rejected", approvedAmount = 0, adminNotes = "") {
+  const actor = await getCurrentAdminProfile();
+  if (!actor || !["admin", "super_admin"].includes(actor.role)) throw new Error("Unauthorized.");
+  await connectToDatabase();
+  const request = await AdmissionDiscountRequest.findById(id).populate("course", "defaultFee");
+  if (!request || request.status !== "Pending") throw new Error("Pending discount request not found.");
+  const amount = Number(approvedAmount);
+  if (decision === "Approved" && (!Number.isFinite(amount) || amount <= 0 || amount > request.requestedAmount || amount > Number((request.course as unknown as {defaultFee:number}).defaultFee || 0))) throw new Error("Approved amount must be positive and cannot exceed the requested discount or course fee.");
+  request.status = decision;
+  request.approvedAmount = decision === "Approved" ? amount : 0;
+  request.adminNotes = adminNotes.trim();
+  request.reviewedBy = { email: actor.email.toLowerCase(), name: actor.name || "", date: new Date() };
+  await request.save();
+  revalidatePath("/students/discount-requests");
+  return { success: true };
 }
 
 // ==========================================

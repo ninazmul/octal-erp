@@ -25,8 +25,8 @@ import Link from "next/link";
 import { toast } from "react-hot-toast";
 
 export function NotificationDropdown() {
-  const { isSuperAdmin, isEngineer, admin } = usePermissions();
-  const canAccessNotifications = isSuperAdmin || isEngineer;
+  const { isAdmin, isEngineer, admin } = usePermissions();
+  const canAccessNotifications = isAdmin || isEngineer;
   const currentEmail = admin?.email.toLowerCase() || "";
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<INotification[]>([]);

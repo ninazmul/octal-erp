@@ -2,16 +2,17 @@
 
 import { useState, useEffect } from "react";
 import { ICourse, IBatch, IEmployee } from "@/types";
-import { admitStudent } from "@/lib/actions/student.actions";
+import { admitStudent, requestAdmissionDiscount } from "@/lib/actions/student.actions";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   UserPlus,
   ArrowLeft,
-  Banknote,
   GraduationCap,
   Users,
+  BadgePercent,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -24,6 +25,7 @@ interface NewAdmissionFormProps {
   preselectedBatchId?: string;
   isInstructor?: boolean;
   currentEmployeeId?: string;
+  approvedDiscountRequest?: { _id: string; studentName: string; studentPhone: string; studentEmail?: string; course: { _id: string }; batch: { _id: string } } | null;
 }
 
 export default function NewAdmissionForm({
@@ -33,32 +35,34 @@ export default function NewAdmissionForm({
   preselectedBatchId,
   isInstructor = false,
   currentEmployeeId,
+  approvedDiscountRequest,
 }: NewAdmissionFormProps) {
   const router = useRouter();
 
   // Student Fields
-  const [fullName, setFullName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
+  const [fullName, setFullName] = useState(approvedDiscountRequest?.studentName || "");
+  const [phone, setPhone] = useState(approvedDiscountRequest?.studentPhone || "");
+  const [email, setEmail] = useState(approvedDiscountRequest?.studentEmail || "");
   const [guardianName, setGuardianName] = useState("");
   const [guardianPhone, setGuardianPhone] = useState("");
   const [address, setAddress] = useState("");
   const [studentNotes, setStudentNotes] = useState("");
 
   // Enrollment Fields
-  const [selectedCourseId, setSelectedCourseId] = useState("");
-  const [selectedBatchId, setSelectedBatchId] = useState(preselectedBatchId || "");
-  const [agreedFee, setAgreedFee] = useState<number>(0);
-  const [discount, setDiscount] = useState<number>(0);
+  const [selectedCourseId, setSelectedCourseId] = useState(approvedDiscountRequest?.course?._id || "");
+  const [selectedBatchId, setSelectedBatchId] = useState(approvedDiscountRequest?.batch?._id || preselectedBatchId || "");
 
   // Referral Fields
   const [referrerType, setReferrerType] = useState<
     "Instructor" | "Staff" | "External" | "None"
   >("None");
   const [referrerId, setReferrerId] = useState("");
-  const [customCommissionRate, setCustomCommissionRate] = useState<number>(20);
 
   const [submitting, setSubmitting] = useState(false);
+  const [discountRequestOpen, setDiscountRequestOpen] = useState(false);
+  const [requestedDiscount, setRequestedDiscount] = useState("");
+  const [discountReason, setDiscountReason] = useState("");
+  const [requestingDiscount, setRequestingDiscount] = useState(false);
 
   // Lock referral attribution to the signed-in instructor.
   useEffect(() => {
@@ -70,35 +74,26 @@ export default function NewAdmissionForm({
 
   // Auto-select course and pre-populate fee if preselectedBatchId is passed.
   useEffect(() => {
-    if (preselectedBatchId) {
+    if (approvedDiscountRequest) {
+      setSelectedCourseId(approvedDiscountRequest.course._id);
+      setSelectedBatchId(approvedDiscountRequest.batch._id);
+    } else if (preselectedBatchId) {
       const b = batches.find((item) => item._id === preselectedBatchId);
       if (b) {
         const crsId = typeof b.course === "string" ? b.course : b.course?._id;
         if (crsId) {
           setSelectedCourseId(crsId);
-          const c = courses.find((item) => item._id === crsId);
-          if (c) {
-            setAgreedFee(c.defaultFee || 0);
-            setCustomCommissionRate(c.defaultCommissionRate ?? 20);
-          }
         }
       }
     } else if (courses.length > 0) {
       const firstCourse = courses[0];
       setSelectedCourseId(firstCourse._id);
-      setAgreedFee(firstCourse.defaultFee || 0);
-      setCustomCommissionRate(firstCourse.defaultCommissionRate ?? 20);
     }
-  }, [preselectedBatchId, courses, batches]);
+  }, [preselectedBatchId, courses, batches, approvedDiscountRequest]);
 
-  // When course changes, update available batches and default fee
+  // When course changes, select the first available batch.
   const handleCourseChange = (courseId: string) => {
     setSelectedCourseId(courseId);
-    const crs = courses.find((c) => c._id === courseId);
-    if (crs) {
-      setAgreedFee(crs.defaultFee || 0);
-      setCustomCommissionRate(crs.defaultCommissionRate ?? 20);
-    }
     // Select first matching batch
     const available = batches.filter((b) => {
       const bCrsId = typeof b.course === "string" ? b.course : b.course?._id;
@@ -117,7 +112,6 @@ export default function NewAdmissionForm({
   });
 
   const selectedBatchObj = batches.find((b) => b._id === selectedBatchId);
-  const finalPayable = Math.max(0, (agreedFee || 0) - (discount || 0));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -138,11 +132,9 @@ export default function NewAdmissionForm({
         notes: studentNotes || undefined,
         courseId: selectedCourseId,
         batchId: selectedBatchId,
-        agreedFee,
-        discount,
         referrerType,
         referrerId: referrerType === "Instructor" ? referrerId : undefined,
-        referrerCommissionRate: customCommissionRate,
+        discountRequestId: approvedDiscountRequest?._id,
       });
 
       toast.success(
@@ -154,6 +146,34 @@ export default function NewAdmissionForm({
       toast.error(err.message || "Failed to admit student.");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleDiscountRequest = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!fullName.trim() || !phone.trim() || !selectedCourseId || !selectedBatchId) {
+      toast.error("Enter the student details and choose a course and batch first.");
+      return;
+    }
+    setRequestingDiscount(true);
+    try {
+      await requestAdmissionDiscount({
+        studentName: fullName,
+        studentPhone: phone,
+        studentEmail: email || undefined,
+        courseId: selectedCourseId,
+        batchId: selectedBatchId,
+        requestedAmount: Number(requestedDiscount),
+        reason: discountReason,
+      });
+      toast.success("Discount request sent to the administrators.");
+      setDiscountRequestOpen(false);
+      setRequestedDiscount("");
+      setDiscountReason("");
+    } catch (error: unknown) {
+      toast.error((error as Error).message || "Could not send discount request.");
+    } finally {
+      setRequestingDiscount(false);
     }
   };
 
@@ -173,7 +193,7 @@ export default function NewAdmissionForm({
             New Student Admission
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Enroll student into an active batch, establish tuition fees, discounts, and referral attribution.
+            Enroll a student into an active batch and submit discount requests for administrator review.
           </p>
         </div>
       </div>
@@ -184,6 +204,7 @@ export default function NewAdmissionForm({
           <h2 className="text-sm font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 flex items-center gap-2">
             <Users className="w-4 h-4" /> 1. Student Personal Information
           </h2>
+          {approvedDiscountRequest && <p className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-300">An administrator-approved discount request is attached and will be applied when admission is completed.</p>}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -274,7 +295,7 @@ export default function NewAdmissionForm({
                 <option value="" disabled>Select Course</option>
                 {courses.map((c) => (
                   <option key={c._id} value={c._id}>
-                    {c.title} ({c.code}) - ৳{c.defaultFee?.toLocaleString()}
+                    {c.title} ({c.code})
                   </option>
                 ))}
               </select>
@@ -322,49 +343,13 @@ export default function NewAdmissionForm({
           </div>
         </div>
 
-        {/* Section 3: Financial Agreement & Referral Attribution */}
+        {/* Section 3: Referral Attribution */}
         <div className="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
           <h2 className="text-sm font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 flex items-center gap-2">
-            <Banknote className="w-4 h-4" /> 3. Fee Structure & Referral Attribution
+            <Users className="w-4 h-4" /> 3. Referral Attribution
           </h2>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                Agreed Course Fee (৳) *
-              </label>
-              <Input
-                type="number"
-                min="0"
-                step="500"
-                value={agreedFee}
-                onChange={(e) => setAgreedFee(Number(e.target.value))}
-                required
-              />
-            </div>
-
-            <div>
-              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                Approved Discount (৳)
-              </label>
-              <Input
-                type="number"
-                min="0"
-                step="500"
-                value={discount}
-                onChange={(e) => setDiscount(Number(e.target.value))}
-              />
-            </div>
-
-            <div>
-              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                Final Payable Amount (৳)
-              </label>
-              <div className="h-10 px-3 rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/80 flex items-center font-bold text-base text-indigo-600 dark:text-indigo-400 font-mono">
-                ৳{finalPayable.toLocaleString()}
-              </div>
-            </div>
-
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Referrer Attribution */}
             {isInstructor ? (
               <div className="sm:col-span-2 rounded-xl border border-indigo-200 bg-indigo-50/70 p-3 dark:border-indigo-900 dark:bg-indigo-950/30">
@@ -417,21 +402,6 @@ export default function NewAdmissionForm({
               </div>
             )}
 
-            {!isInstructor && referrerType === "Instructor" && (
-              <div>
-                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                  Commission Rate (%)
-                </label>
-                <Input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={customCommissionRate}
-                  onChange={(e) => setCustomCommissionRate(Number(e.target.value))}
-                />
-              </div>
-            )}
-
             <div className="sm:col-span-3">
               <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
                 Admission Notes / Payment Agreement Terms
@@ -447,21 +417,51 @@ export default function NewAdmissionForm({
         </div>
 
         {/* Submit Actions */}
-        <div className="flex items-center justify-end gap-3 pt-2">
-          <Link href="/students">
-            <Button type="button" variant="outline" disabled={submitting}>
-              Cancel
+        <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
+          {!approvedDiscountRequest && <Button type="button" variant="outline" onClick={() => setDiscountRequestOpen(true)} disabled={submitting || requestingDiscount || !selectedCourseId || !selectedBatchId} className="gap-2 border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-300 dark:hover:bg-amber-950/30">
+            <BadgePercent className="w-4 h-4" /> Request Discount
+          </Button>}
+          <div className="flex items-center justify-end gap-3">
+            <Link href="/students">
+              <Button type="button" variant="outline" disabled={submitting}>Cancel</Button>
+            </Link>
+            <Button type="submit" disabled={submitting || availableBatches.length === 0} className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-6 py-2.5 shadow-sm">
+              {submitting ? "Processing Admission..." : "Complete Admission"}
             </Button>
-          </Link>
-          <Button
-            type="submit"
-            disabled={submitting || availableBatches.length === 0}
-            className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-6 py-2.5 shadow-sm"
-          >
-            {submitting ? "Processing Admission..." : "Complete Admission"}
-          </Button>
+          </div>
         </div>
       </form>
+
+      <Dialog open={discountRequestOpen} onOpenChange={(open) => !requestingDiscount && setDiscountRequestOpen(open)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Request Discount Approval</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            Send the student and enrollment details to the administrators. They will review the requested amount and decide the approved discount.
+          </p>
+          <form onSubmit={handleDiscountRequest} className="space-y-4">
+            <div className="rounded-xl bg-slate-50 dark:bg-slate-800/60 p-3 text-xs text-slate-600 dark:text-slate-300">
+              <div className="font-semibold">{fullName || "Student name not entered"}</div>
+              <div>{courses.find((course) => course._id === selectedCourseId)?.title || "Course"} · {selectedBatchObj?.batchName || "Batch"}</div>
+            </div>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+              Requested discount amount (৳) *
+              <Input type="number" min="1" max={courses.find((course) => course._id === selectedCourseId)?.defaultFee || undefined} step="1" required value={requestedDiscount} onChange={(event) => setRequestedDiscount(event.target.value)} className="mt-1" />
+            </label>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+              Reason for request *
+              <Textarea required value={discountReason} onChange={(event) => setDiscountReason(event.target.value)} rows={3} className="mt-1" placeholder="Add the reason for requesting this discount." />
+            </label>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setDiscountRequestOpen(false)} disabled={requestingDiscount}>Cancel</Button>
+              <Button type="submit" disabled={requestingDiscount || !requestedDiscount || !discountReason.trim()} className="bg-indigo-600 text-white hover:bg-indigo-700">
+                {requestingDiscount ? "Sending..." : "Send Request"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
