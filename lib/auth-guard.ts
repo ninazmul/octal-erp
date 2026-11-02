@@ -250,10 +250,12 @@ export async function logActivityAndNotify({
       const readableModule =
         module.charAt(0).toUpperCase() + module.slice(1).replace("_", " ");
       const title = `${readableModule}: ${action.replace("_", " ")}`;
-      const message = `${currentActor.email} (${currentActor.role}) performed ${action.toLowerCase()} on ${resourceName || module}: "${details}"`;
+      const actorName = currentActor.name?.trim() || currentActor.email.split("@")[0];
+      const message = `${actorName} (${currentActor.role}) performed ${action.toLowerCase()} on ${resourceName || module}: "${details}"`;
 
       await Notification.create({
         actorEmail: currentActor.email,
+        actorName,
         actorRole: currentActor.role,
         action,
         module,

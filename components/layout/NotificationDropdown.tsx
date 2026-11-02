@@ -353,7 +353,7 @@ export function NotificationDropdown() {
                             <span className="inline-flex items-center gap-1 text-[10px] font-medium text-slate-400 dark:text-slate-500 min-w-0">
                               By{" "}
                               <span className="font-semibold text-slate-600 dark:text-slate-300 truncate max-w-[110px] sm:max-w-[150px] inline-block align-bottom">
-                                {item.actorEmail}
+                                {item.actorName || item.actorEmail}
                               </span>{" "}
                               ({item.actorRole})
                             </span>

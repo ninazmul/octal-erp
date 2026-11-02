@@ -63,6 +63,7 @@ export default function NewAdmissionForm({
   const [requestedDiscount, setRequestedDiscount] = useState("");
   const [discountReason, setDiscountReason] = useState("");
   const [requestingDiscount, setRequestingDiscount] = useState(false);
+  const [discountRequestSent, setDiscountRequestSent] = useState(false);
 
   // Lock referral attribution to the signed-in instructor.
   useEffect(() => {
@@ -166,6 +167,7 @@ export default function NewAdmissionForm({
         requestedAmount: Number(requestedDiscount),
         reason: discountReason,
       });
+      setDiscountRequestSent(true);
       toast.success("Discount request sent to the administrators.");
       setDiscountRequestOpen(false);
       setRequestedDiscount("");
@@ -418,15 +420,16 @@ export default function NewAdmissionForm({
 
         {/* Submit Actions */}
         <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
-          {!approvedDiscountRequest && <Button type="button" variant="outline" onClick={() => setDiscountRequestOpen(true)} disabled={submitting || requestingDiscount || !selectedCourseId || !selectedBatchId} className="gap-2 border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-300 dark:hover:bg-amber-950/30">
+          {discountRequestSent && <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300">Admission is pending administrator review. The admin team will complete the remaining steps.</p>}
+          {!approvedDiscountRequest && !discountRequestSent && <Button type="button" variant="outline" onClick={() => setDiscountRequestOpen(true)} disabled={submitting || requestingDiscount || !selectedCourseId || !selectedBatchId} className="gap-2 border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-300 dark:hover:bg-amber-950/30">
             <BadgePercent className="w-4 h-4" /> Request Discount
           </Button>}
           <div className="flex items-center justify-end gap-3">
             <Link href="/students">
               <Button type="button" variant="outline" disabled={submitting}>Cancel</Button>
             </Link>
-            <Button type="submit" disabled={submitting || availableBatches.length === 0} className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-6 py-2.5 shadow-sm">
-              {submitting ? "Processing Admission..." : "Complete Admission"}
+            <Button type="submit" disabled={submitting || availableBatches.length === 0 || discountRequestSent} className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-6 py-2.5 shadow-sm">
+              {submitting ? "Processing Admission..." : discountRequestSent ? "Pending Admin Review" : "Complete Admission"}
             </Button>
           </div>
         </div>

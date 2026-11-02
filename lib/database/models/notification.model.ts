@@ -3,6 +3,7 @@ import { AdminRole, AppModule } from "@/types";
 
 export interface INotificationDoc extends Document {
   actorEmail: string;
+  actorName?: string;
   actorRole: AdminRole;
   action: string;
   module: AppModule | "system";
@@ -24,6 +25,7 @@ const NotificationSchema: Schema = new Schema(
       lowercase: true,
       trim: true,
     },
+    actorName: { type: String, trim: true, default: "" },
     actorRole: {
       type: String,
       required: true,

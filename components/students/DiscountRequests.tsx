@@ -20,6 +20,8 @@ export default function DiscountRequests({ requests }: { requests: DiscountReque
   const [amounts, setAmounts] = useState<Record<string, string>>({});
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
+  const pendingRows = rows.filter((row) => row.status === "Pending");
+  const reviewedRows = rows.filter((row) => row.status !== "Pending");
 
   const review = async (row: DiscountRequest, decision: "Approved" | "Rejected") => {
     setBusy(row._id);
@@ -34,10 +36,10 @@ export default function DiscountRequests({ requests }: { requests: DiscountReque
   return <div className="space-y-5">
     <header className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
       <h1 className="flex items-center gap-2 text-xl font-bold text-slate-900 dark:text-white"><BadgePercent className="h-5 w-5 text-indigo-600"/> Admission Discount Requests</h1>
-      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Review requests from staff and instructors. Approved discounts are applied during admission.</p>
+      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">New discount requests are held in the pending admissions queue for admins to review and complete.</p>
     </header>
-    {rows.length === 0 ? <div className="rounded-xl border border-dashed p-10 text-center text-sm text-slate-500">No discount requests yet.</div> : <div className="space-y-4">
-      {rows.map((row) => <article key={row._id} className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 dark:border-slate-800 dark:bg-slate-900">
+    {rows.length === 0 ? <div className="rounded-xl border border-dashed p-10 text-center text-sm text-slate-500">No discount requests yet.</div> : <div className="space-y-7">
+      {pendingRows.length > 0 && <section className="space-y-3"><h2 className="text-sm font-bold uppercase tracking-wide text-amber-700 dark:text-amber-300">Pending admissions <span className="ml-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs dark:bg-amber-950">{pendingRows.length}</span></h2>{pendingRows.map((row) => <article key={row._id} className="rounded-2xl border border-amber-200 bg-white p-4 sm:p-5 dark:border-amber-900/70 dark:bg-slate-900">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div><h2 className="font-semibold text-slate-900 dark:text-white">{row.studentName} <span className="font-normal text-slate-500">· {row.studentPhone}</span></h2><p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{row.course?.title} ({row.course?.code}) · {row.batch?.batchName} ({row.batch?.batchCode})</p><p className="mt-2 text-sm text-slate-600 dark:text-slate-300">Requested: ৳{row.requestedAmount.toLocaleString()} · {row.reason}</p></div>
           <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold dark:bg-slate-800">{row.status}</span>
@@ -47,7 +49,11 @@ export default function DiscountRequests({ requests }: { requests: DiscountReque
           <label className="text-xs font-semibold">Admin note (optional)<Textarea rows={1} value={notes[row._id] || ""} onChange={(e) => setNotes({ ...notes, [row._id]: e.target.value })} className="mt-1" /></label>
           <div className="flex gap-2"><Button type="button" disabled={busy === row._id} onClick={() => review(row, "Approved")} className="gap-1 bg-indigo-600 text-white hover:bg-indigo-700"><Check className="h-4 w-4"/>Approve</Button><Button type="button" variant="outline" disabled={busy === row._id} onClick={() => review(row, "Rejected")} className="gap-1"><X className="h-4 w-4"/>Reject</Button></div>
         </div> : <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm text-slate-500">{row.status === "Approved" && <><span>Approved amount: ৳{row.approvedAmount.toLocaleString()}</span><Link className="text-indigo-600 hover:underline dark:text-indigo-400" href={`/students/new?discountRequestId=${row._id}`}>Complete admission</Link></>}{row.adminNotes && <span>{row.adminNotes}</span>}</div>}
-      </article>)}
+      </article>)}</section>}
+      {reviewedRows.length > 0 && <section className="space-y-3"><h2 className="text-sm font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">Reviewed requests</h2>{reviewedRows.map((row) => <article key={row._id} className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 dark:border-slate-800 dark:bg-slate-900">
+        <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="font-semibold text-slate-900 dark:text-white">{row.studentName} <span className="font-normal text-slate-500">· {row.studentPhone}</span></h2><p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{row.course?.title} ({row.course?.code}) · {row.batch?.batchName} ({row.batch?.batchCode})</p><p className="mt-2 text-sm text-slate-600 dark:text-slate-300">Requested: ৳{row.requestedAmount.toLocaleString()} · {row.reason}</p></div><span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold dark:bg-slate-800">{row.status}</span></div>
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm text-slate-500">{row.status === "Approved" && <><span>Approved amount: ৳{row.approvedAmount.toLocaleString()}</span><Link className="text-indigo-600 hover:underline dark:text-indigo-400" href={`/students/new?discountRequestId=${row._id}`}>Complete admission</Link></>}{row.adminNotes && <span>{row.adminNotes}</span>}</div>
+      </article>)}</section>}
     </div>}
   </div>;
 }

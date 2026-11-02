@@ -453,6 +453,7 @@ export async function requestAdmissionDiscount(data: {
   });
   await Notification.create({
     actorEmail: actor.email,
+    actorName: actor.name?.trim() || actor.email.split("@")[0],
     actorRole: actor.role,
     action: "DISCOUNT_REQUEST",
     module: "students",

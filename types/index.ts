@@ -625,6 +625,7 @@ export interface IActivityLog {
 export interface INotification {
   _id: string;
   actorEmail: string;
+  actorName?: string;
   actorRole: AdminRole;
   action: string;
   module: AppModule | "system";
