@@ -24,7 +24,6 @@ import {
   Users,
   UserPlus,
   Receipt,
-  Percent,
   FileCheck,
   Briefcase,
   Wallet,
@@ -123,12 +122,6 @@ const sidebarSections: SidebarSection[] = [
   {
     label: "Commissions & Payouts",
     items: [
-      {
-        title: "Commission Entries",
-        url: "/finance/commissions",
-        icon: Percent,
-        module: "commissions",
-      },
       {
         title: "Batch Settlements",
         url: "/finance/settlements",

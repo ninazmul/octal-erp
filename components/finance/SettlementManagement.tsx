@@ -1,7 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { IBatch, IEmployee, IAccount, PopulatedSettlement, IBatchSettlementStatement } from "@/types";
+import {
+  IBatch,
+  IEmployee,
+  IAccount,
+  PopulatedSettlement,
+  IBatchSettlementStatement,
+  ICommissionTrackingData,
+} from "@/types";
 import {
   getBatchSettlementStatement,
   createSettlement,
@@ -26,8 +33,12 @@ import {
   Banknote,
   Edit2,
   Trash2,
+  Layers,
+  UserCheck,
+  Search,
+  DollarSign,
+  TrendingUp,
 } from "lucide-react";
-import Link from "next/link";
 import toast from "react-hot-toast";
 import { DeleteConfirmDialog } from "@/components/shared/DeleteConfirmDialog";
 
@@ -36,6 +47,7 @@ interface SettlementManagementProps {
   batches: IBatch[];
   instructors: IEmployee[];
   accounts: IAccount[];
+  trackingData: ICommissionTrackingData;
   isSuperAdmin: boolean;
 }
 
@@ -44,12 +56,14 @@ export default function SettlementManagement({
   batches,
   instructors,
   accounts,
+  trackingData,
   isSuperAdmin,
 }: SettlementManagementProps) {
   const [settlements, setSettlements] = useState<PopulatedSettlement[]>(initialSettlements);
+  const [activeTab, setActiveTab] = useState<"settlements" | "batches" | "instructors">("settlements");
   const [search, setSearch] = useState("");
 
-  // Create settlement dialog state
+  // Create / Edit settlement dialog state
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedBatchId, setSelectedBatchId] = useState("");
   const [selectedInstructorId, setSelectedInstructorId] = useState("");
@@ -83,6 +97,52 @@ export default function SettlementManagement({
     setNotes("");
     setStatementData(null);
     setIsCreateOpen(true);
+  };
+
+  const handleOpenCreateWithBatch = async (batchId: string, instructorId?: string) => {
+    setEditingSettlement(null);
+    setSelectedBatchId(batchId);
+    const targetInstId = instructorId || instructors[0]?._id || "";
+    setSelectedInstructorId(targetInstId);
+    setDeductions(0);
+    setNotes("");
+    setStatementData(null);
+    setIsCreateOpen(true);
+
+    if (batchId && targetInstId) {
+      setLoadingStatement(true);
+      try {
+        const data = await getBatchSettlementStatement(batchId, targetInstId);
+        setStatementData(data);
+      } catch {
+        setStatementData(null);
+      } finally {
+        setLoadingStatement(false);
+      }
+    }
+  };
+
+  const handleOpenCreateWithInstructor = async (instructorId: string, batchId?: string) => {
+    setEditingSettlement(null);
+    setSelectedInstructorId(instructorId);
+    const targetBatchId = batchId || batches[0]?._id || "";
+    setSelectedBatchId(targetBatchId);
+    setDeductions(0);
+    setNotes("");
+    setStatementData(null);
+    setIsCreateOpen(true);
+
+    if (targetBatchId && instructorId) {
+      setLoadingStatement(true);
+      try {
+        const data = await getBatchSettlementStatement(targetBatchId, instructorId);
+        setStatementData(data);
+      } catch {
+        setStatementData(null);
+      } finally {
+        setLoadingStatement(false);
+      }
+    }
   };
 
   const handleOpenEdit = (settlement: PopulatedSettlement) => {
@@ -124,7 +184,13 @@ export default function SettlementManagement({
     try {
       if (editingSettlement) {
         const updated = await updateDraftSettlement(editingSettlement._id, { deductions, notes });
-        setSettlements((prev) => prev.map((item) => item._id === updated._id ? { ...item, ...updated, batch: item.batch, instructor: item.instructor } : item));
+        setSettlements((prev) =>
+          prev.map((item) =>
+            item._id === updated._id
+              ? { ...item, ...updated, batch: item.batch, instructor: item.instructor }
+              : item
+          )
+        );
         toast.success(`Settlement ${editingSettlement.settlementNo} updated.`);
         setIsCreateOpen(false);
         setEditingSettlement(null);
@@ -153,7 +219,11 @@ export default function SettlementManagement({
     setIsCancelling(true);
     try {
       const updated = await cancelDraftSettlement(cancellingSettlement._id);
-      setSettlements((prev) => prev.map((item) => item._id === updated._id ? { ...item, status: "Cancelled", dueAmount: 0 } : item));
+      setSettlements((prev) =>
+        prev.map((item) =>
+          item._id === updated._id ? { ...item, status: "Cancelled", dueAmount: 0 } : item
+        )
+      );
       toast.success(`Settlement ${cancellingSettlement.settlementNo} cancelled.`);
       setCancellingSettlement(null);
     } catch (error: unknown) {
@@ -167,9 +237,7 @@ export default function SettlementManagement({
     try {
       await approveSettlement(s._id);
       setSettlements((prev) =>
-        prev.map((item) =>
-          item._id === s._id ? { ...item, status: "Approved" } : item
-        )
+        prev.map((item) => (item._id === s._id ? { ...item, status: "Approved" } : item))
       );
       toast.success(`Settlement ${s.settlementNo} approved!`);
     } catch (error: unknown) {
@@ -226,12 +294,33 @@ export default function SettlementManagement({
     }
   };
 
-  const filtered = settlements.filter((s) => {
-    const matchesSearch =
-      s.settlementNo.toLowerCase().includes(search.toLowerCase()) ||
-      s.instructor?.fullName?.toLowerCase().includes(search.toLowerCase()) ||
-      s.batch?.batchName?.toLowerCase().includes(search.toLowerCase());
-    return matchesSearch;
+  // Filtered lists for each tab
+  const filteredSettlements = settlements.filter((s) => {
+    const q = search.toLowerCase();
+    return (
+      s.settlementNo.toLowerCase().includes(q) ||
+      s.instructor?.fullName?.toLowerCase().includes(q) ||
+      s.batch?.batchName?.toLowerCase().includes(q)
+    );
+  });
+
+  const filteredBatches = trackingData.batchTracking.filter((b) => {
+    const q = search.toLowerCase();
+    return (
+      b.batchName.toLowerCase().includes(q) ||
+      b.batchCode.toLowerCase().includes(q) ||
+      b.courseTitle.toLowerCase().includes(q) ||
+      b.instructors.some((inst) => inst.fullName.toLowerCase().includes(q))
+    );
+  });
+
+  const filteredInstructors = trackingData.instructorTracking.filter((inst) => {
+    const q = search.toLowerCase();
+    return (
+      inst.fullName.toLowerCase().includes(q) ||
+      inst.employeeId.toLowerCase().includes(q) ||
+      inst.phone.includes(q)
+    );
   });
 
   return (
@@ -241,19 +330,14 @@ export default function SettlementManagement({
         <div>
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2.5">
             <FileCheck className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
-            Batch Settlement Statements & Payouts
+            Batch Settlements & Commission Tracking
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Reconcile verified student collections for a batch, calculate net commissions, approve statements, and disburse payouts.
+            Track commission calculations per batch & per instructor, reconcile verified tuition collections, approve statements, and disburse payouts.
           </p>
         </div>
 
         <div className="flex items-center gap-3">
-          <Link href="/finance/commissions">
-            <Button variant="outline" className="rounded-xl text-xs sm:text-sm">
-              Commission Entries
-            </Button>
-          </Link>
           <Button
             onClick={handleOpenCreate}
             className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs sm:text-sm gap-2 shadow-sm"
@@ -263,176 +347,540 @@ export default function SettlementManagement({
         </div>
       </div>
 
-      {/* Settlements Table */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden">
-        <div className="p-4 border-b border-slate-100 dark:border-slate-800">
-          <Input
-            placeholder="Search settlements by settlement no, instructor, or batch..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="h-9 text-xs"
-          />
+      {/* Aggregate Metric Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 sm:gap-4">
+        <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm">
+          <div className="flex items-center justify-between text-slate-400">
+            <span className="text-[11px] font-semibold uppercase tracking-wider block">Total Earned</span>
+            <TrendingUp className="w-4 h-4 text-indigo-500" />
+          </div>
+          <div className="text-xl font-bold text-slate-900 dark:text-white mt-1">
+            ৳{trackingData.summary.totalEarned.toLocaleString()}
+          </div>
+          <span className="text-[11px] text-slate-400 mt-0.5 block">From batch collections</span>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead>
-              <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-400 font-semibold uppercase tracking-wider text-[10px] bg-slate-50/50 dark:bg-slate-800/40">
-                <th className="py-3 px-4">Settlement No</th>
-                <th className="py-3 px-4">Instructor</th>
-                <th className="py-3 px-4">Batch</th>
-                <th className="py-3 px-4">Eligible Collections</th>
-                <th className="py-3 px-4">Gross Commission</th>
-                <th className="py-3 px-4">Net Payable</th>
-                <th className="py-3 px-4">Paid / Due</th>
-                <th className="py-3 px-4">Status</th>
-                <th className="py-3 px-4 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
-              {filtered.map((s) => (
-                <tr key={s._id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
-                  <td className="py-3 px-4 font-mono font-bold text-indigo-600 dark:text-indigo-400">
-                    {s.settlementNo}
-                  </td>
-                  <td className="py-3 px-4">
-                    <div className="font-semibold text-slate-900 dark:text-white">
-                      {s.instructor?.fullName}
-                    </div>
-                    <span className="font-mono text-[10px] text-slate-400">
-                      {s.instructor?.employeeId}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4 text-slate-700 dark:text-slate-300">
-                    {s.batch?.batchName}
-                  </td>
-                  <td className="py-3 px-4 font-mono text-slate-600 dark:text-slate-300">
-                    ৳{s.totalEligibleCollections?.toLocaleString()}
-                  </td>
-                  <td className="py-3 px-4 font-mono font-medium text-slate-800 dark:text-slate-200">
-                    ৳{s.grossCommission?.toLocaleString()}
-                  </td>
-                  <td className="py-3 px-4 font-mono font-bold text-slate-900 dark:text-white text-sm">
-                    ৳{s.netPayable?.toLocaleString()}
-                  </td>
-                  <td className="py-3 px-4 font-mono">
-                    <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
-                      ৳{s.paidAmount?.toLocaleString() || "0"}
-                    </span>
-                    <span className="text-slate-400"> / </span>
-                    <span className={s.dueAmount > 0 ? "text-amber-600 font-semibold" : "text-slate-400"}>
-                      ৳{s.dueAmount?.toLocaleString()}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4">
-                    <Badge
-                      variant="outline"
-                      className={`text-[10px] ${
-                        s.status === "Disbursed"
-                          ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20"
-                          : s.status === "Approved"
-                          ? "bg-sky-500/10 text-sky-700 dark:text-sky-400 border-sky-500/20"
-                          : s.status === "Cancelled" ? "bg-slate-500/10 text-slate-600 border-slate-500/20" : "bg-amber-500/10 text-amber-700 border-amber-500/20"
-                      }`}
-                    >
-                      {s.status}
-                    </Badge>
-                  </td>
-                  <td className="py-3 px-4 text-right">
-                    <div className="flex items-center justify-end gap-1.5">
-                      {s.status === "Draft" && isSuperAdmin && <>
-                        <Button size="sm" variant="outline" onClick={() => handleOpenEdit(s)} className="h-7 px-2 text-[11px] gap-1"><Edit2 className="w-3 h-3" /> Edit</Button>
-                        <Button size="sm" variant="outline" onClick={() => setCancellingSettlement(s)} className="h-7 px-2 text-[11px] gap-1 text-rose-600"><Trash2 className="w-3 h-3" /> Delete</Button>
-                      </>}
-                      {s.status === "Draft" && isSuperAdmin && (
-                        <Button
-                          size="sm"
-                          onClick={() => handleApprove(s)}
-                          className="h-7 px-2 text-[11px] bg-sky-600 hover:bg-sky-700 text-white"
-                        >
-                          Approve Statement
-                        </Button>
-                      )}
+        <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm">
+          <div className="flex items-center justify-between text-slate-400">
+            <span className="text-[11px] font-semibold uppercase tracking-wider block">Total Settled</span>
+            <FileCheck className="w-4 h-4 text-sky-500" />
+          </div>
+          <div className="text-xl font-bold text-sky-600 dark:text-sky-400 mt-1">
+            ৳{trackingData.summary.totalSettled.toLocaleString()}
+          </div>
+          <span className="text-[11px] text-slate-400 mt-0.5 block">In active statements</span>
+        </div>
 
-                      {s.status === "Approved" && isSuperAdmin && (
-                        <Button
-                          size="sm"
-                          onClick={() => handleOpenPayout(s)}
-                          className="h-7 px-2 text-[11px] bg-emerald-600 hover:bg-emerald-700 text-white gap-1"
-                        >
-                          <Banknote className="w-3 h-3" /> Disburse Payout
-                        </Button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
+        <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm">
+          <div className="flex items-center justify-between text-slate-400">
+            <span className="text-[11px] font-semibold uppercase tracking-wider block">Disbursed Payouts</span>
+            <Banknote className="w-4 h-4 text-emerald-500" />
+          </div>
+          <div className="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">
+            ৳{trackingData.summary.totalPaidOut.toLocaleString()}
+          </div>
+          <span className="text-[11px] text-slate-400 mt-0.5 block">Paid to instructors</span>
+        </div>
 
-              {filtered.length === 0 && (
-                <tr>
-                  <td colSpan={9} className="py-12 text-center text-slate-400">
-                    <FileCheck className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
-                    <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                      No settlements generated yet
-                    </p>
-                    <p className="text-xs text-slate-400 mt-1">
-                      Prepare a batch settlement to reconcile verified student collections and pay instructors.
-                    </p>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+        <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm">
+          <div className="flex items-center justify-between text-slate-400">
+            <span className="text-[11px] font-semibold uppercase tracking-wider block">Outstanding Due</span>
+            <DollarSign className="w-4 h-4 text-amber-500" />
+          </div>
+          <div className="text-xl font-bold text-amber-600 dark:text-amber-400 mt-1">
+            ৳{trackingData.summary.totalOutstandingDue.toLocaleString()}
+          </div>
+          <span className="text-[11px] text-slate-400 mt-0.5 block">Pending payment</span>
         </div>
       </div>
 
+      {/* Tabs Navigation */}
+      <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
+        <button
+          type="button"
+          onClick={() => setActiveTab("settlements")}
+          className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 border ${
+            activeTab === "settlements"
+              ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
+              : "bg-white text-slate-600 border-slate-200 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800"
+          }`}
+        >
+          <FileCheck className="w-4 h-4" />
+          <span>Settlement Statements</span>
+          <span
+            className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+              activeTab === "settlements" ? "bg-white/20 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-500"
+            }`}
+          >
+            {settlements.length}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("batches")}
+          className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 border ${
+            activeTab === "batches"
+              ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
+              : "bg-white text-slate-600 border-slate-200 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800"
+          }`}
+        >
+          <Layers className="w-4 h-4" />
+          <span>Track by Batch</span>
+          <span
+            className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+              activeTab === "batches" ? "bg-white/20 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-500"
+            }`}
+          >
+            {trackingData.batchTracking.length}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("instructors")}
+          className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 border ${
+            activeTab === "instructors"
+              ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
+              : "bg-white text-slate-600 border-slate-200 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800"
+          }`}
+        >
+          <UserCheck className="w-4 h-4" />
+          <span>Track by Instructor</span>
+          <span
+            className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+              activeTab === "instructors" ? "bg-white/20 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-500"
+            }`}
+          >
+            {trackingData.instructorTracking.length}
+          </span>
+        </button>
+      </div>
+
+      {/* Search Input */}
+      <div className="flex items-center gap-3 bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200/80 dark:border-slate-800">
+        <Search className="w-4 h-4 text-slate-400 ml-1 shrink-0" />
+        <Input
+          placeholder={
+            activeTab === "settlements"
+              ? "Search settlements by settlement no, instructor, or batch..."
+              : activeTab === "batches"
+              ? "Search by batch code, batch name, course title, or assigned instructor..."
+              : "Search instructors by name, employee ID, or phone..."
+          }
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="border-0 focus-visible:ring-0 text-sm shadow-none p-0 h-8"
+        />
+      </div>
+
+      {/* TAB 1: SETTLEMENT STATEMENTS */}
+      {activeTab === "settlements" && (
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-400 font-semibold uppercase tracking-wider text-[10px] bg-slate-50/50 dark:bg-slate-800/40">
+                  <th className="py-3 px-4">Settlement No</th>
+                  <th className="py-3 px-4">Instructor</th>
+                  <th className="py-3 px-4">Batch</th>
+                  <th className="py-3 px-4">Eligible Collections</th>
+                  <th className="py-3 px-4">Gross Commission</th>
+                  <th className="py-3 px-4">Net Payable</th>
+                  <th className="py-3 px-4">Paid / Due</th>
+                  <th className="py-3 px-4">Status</th>
+                  <th className="py-3 px-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+                {filteredSettlements.map((s) => (
+                  <tr key={s._id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
+                    <td className="py-3 px-4 font-mono font-bold text-indigo-600 dark:text-indigo-400">
+                      {s.settlementNo}
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="font-semibold text-slate-900 dark:text-white">
+                        {s.instructor?.fullName}
+                      </div>
+                      <span className="font-mono text-[10px] text-slate-400">
+                        {s.instructor?.employeeId}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-slate-700 dark:text-slate-300">
+                      {s.batch?.batchName}
+                    </td>
+                    <td className="py-3 px-4 font-mono text-slate-600 dark:text-slate-300">
+                      ৳{s.totalEligibleCollections?.toLocaleString()}
+                    </td>
+                    <td className="py-3 px-4 font-mono font-medium text-slate-800 dark:text-slate-200">
+                      ৳{s.grossCommission?.toLocaleString()}
+                    </td>
+                    <td className="py-3 px-4 font-mono font-bold text-slate-900 dark:text-white text-sm">
+                      ৳{s.netPayable?.toLocaleString()}
+                    </td>
+                    <td className="py-3 px-4 font-mono">
+                      <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
+                        ৳{s.paidAmount?.toLocaleString() || "0"}
+                      </span>
+                      <span className="text-slate-400"> / </span>
+                      <span className={s.dueAmount > 0 ? "text-amber-600 font-semibold" : "text-slate-400"}>
+                        ৳{s.dueAmount?.toLocaleString()}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4">
+                      <Badge
+                        variant="outline"
+                        className={`text-[10px] ${
+                          s.status === "Disbursed"
+                            ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20"
+                            : s.status === "Approved"
+                            ? "bg-sky-500/10 text-sky-700 dark:text-sky-400 border-sky-500/20"
+                            : s.status === "Cancelled"
+                            ? "bg-slate-500/10 text-slate-600 border-slate-500/20"
+                            : "bg-amber-500/10 text-amber-700 border-amber-500/20"
+                        }`}
+                      >
+                        {s.status}
+                      </Badge>
+                    </td>
+                    <td className="py-3 px-4 text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        {s.status === "Draft" && isSuperAdmin && (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleOpenEdit(s)}
+                              className="h-7 px-2 text-[11px] gap-1"
+                            >
+                              <Edit2 className="w-3 h-3" /> Edit
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setCancellingSettlement(s)}
+                              className="h-7 px-2 text-[11px] gap-1 text-rose-600"
+                            >
+                              <Trash2 className="w-3 h-3" /> Cancel
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={() => handleApprove(s)}
+                              className="h-7 px-2 text-[11px] bg-sky-600 hover:bg-sky-700 text-white"
+                            >
+                              Approve Statement
+                            </Button>
+                          </>
+                        )}
+
+                        {s.status === "Approved" && isSuperAdmin && (
+                          <Button
+                            size="sm"
+                            onClick={() => handleOpenPayout(s)}
+                            className="h-7 px-2 text-[11px] bg-emerald-600 hover:bg-emerald-700 text-white gap-1"
+                          >
+                            <Banknote className="w-3 h-3" /> Disburse Payout
+                          </Button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+
+                {filteredSettlements.length === 0 && (
+                  <tr>
+                    <td colSpan={9} className="py-12 text-center text-slate-400">
+                      <FileCheck className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
+                      <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                        No settlements generated yet
+                      </p>
+                      <p className="text-xs text-slate-400 mt-1">
+                        Prepare a batch settlement to reconcile verified student collections and pay instructors.
+                      </p>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 2: TRACK BY BATCH */}
+      {activeTab === "batches" && (
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-400 font-semibold uppercase tracking-wider text-[10px] bg-slate-50/50 dark:bg-slate-800/40">
+                  <th className="py-3 px-4">Batch Code & Name</th>
+                  <th className="py-3 px-4">Course & Declared Rate</th>
+                  <th className="py-3 px-4">Assigned Instructors</th>
+                  <th className="py-3 px-4 text-center">Enrolled</th>
+                  <th className="py-3 px-4 text-right">Collections</th>
+                  <th className="py-3 px-4 text-right">Earned</th>
+                  <th className="py-3 px-4 text-right">Paid Out</th>
+                  <th className="py-3 px-4 text-right">Outstanding Due</th>
+                  <th className="py-3 px-4 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+                {filteredBatches.map((b) => (
+                  <tr key={b.batchId} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
+                    <td className="py-3 px-4">
+                      <div className="font-semibold text-slate-900 dark:text-white">
+                        {b.batchName}
+                      </div>
+                      <span className="font-mono text-[10px] font-bold text-indigo-600 dark:text-indigo-400">
+                        {b.batchCode}
+                      </span>
+                      <Badge variant="outline" className="ml-2 text-[9px] py-0 px-1">
+                        {b.status}
+                      </Badge>
+                    </td>
+
+                    <td className="py-3 px-4">
+                      <span className="font-medium text-slate-800 dark:text-slate-200 block">
+                        {b.courseTitle}
+                      </span>
+                      <span className="text-[10px] font-semibold text-indigo-600 dark:text-indigo-400">
+                        Declared: {b.defaultCommissionRate}%
+                      </span>
+                    </td>
+
+                    <td className="py-3 px-4">
+                      <div className="space-y-0.5">
+                        {b.instructors.length > 0 ? (
+                          b.instructors.map((inst) => (
+                            <div key={inst._id} className="text-slate-700 dark:text-slate-300 font-medium">
+                              {inst.fullName} ({inst.employeeId})
+                            </div>
+                          ))
+                        ) : (
+                          <span className="text-slate-400 italic">No instructor assigned</span>
+                        )}
+                      </div>
+                    </td>
+
+                    <td className="py-3 px-4 text-center font-bold text-slate-800 dark:text-slate-200">
+                      {b.totalEnrollments}
+                    </td>
+
+                    <td className="py-3 px-4 text-right font-mono font-medium text-slate-700 dark:text-slate-300">
+                      ৳{b.totalCollected.toLocaleString()}
+                    </td>
+
+                    <td className="py-3 px-4 text-right font-mono font-semibold text-indigo-600 dark:text-indigo-400">
+                      ৳{b.totalCommissionEarned.toLocaleString()}
+                    </td>
+
+                    <td className="py-3 px-4 text-right font-mono font-semibold text-emerald-600 dark:text-emerald-400">
+                      ৳{b.totalCommissionPaid.toLocaleString()}
+                    </td>
+
+                    <td className="py-3 px-4 text-right font-mono">
+                      <span
+                        className={
+                          b.pendingDue > 0
+                            ? "font-bold text-amber-600 dark:text-amber-400"
+                            : "text-slate-400"
+                        }
+                      >
+                        ৳{b.pendingDue.toLocaleString()}
+                      </span>
+                    </td>
+
+                    <td className="py-3 px-4 text-right">
+                      <Button
+                        size="sm"
+                        onClick={() =>
+                          handleOpenCreateWithBatch(
+                            b.batchId,
+                            b.instructors[0]?._id
+                          )
+                        }
+                        className="h-7 px-2.5 text-[11px] bg-indigo-600 hover:bg-indigo-700 text-white font-medium"
+                      >
+                        Reconcile & Settle
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+
+                {filteredBatches.length === 0 && (
+                  <tr>
+                    <td colSpan={9} className="py-12 text-center text-slate-400">
+                      <Layers className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
+                      <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                        No batch tracking records found
+                      </p>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 3: TRACK BY INSTRUCTOR */}
+      {activeTab === "instructors" && (
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-400 font-semibold uppercase tracking-wider text-[10px] bg-slate-50/50 dark:bg-slate-800/40">
+                  <th className="py-3 px-4">Instructor Name & ID</th>
+                  <th className="py-3 px-4">Contact</th>
+                  <th className="py-3 px-4">Assigned Batches</th>
+                  <th className="py-3 px-4 text-right">Collections Generated</th>
+                  <th className="py-3 px-4 text-right">Total Commission</th>
+                  <th className="py-3 px-4 text-right">Disbursed Payouts</th>
+                  <th className="py-3 px-4 text-right">Pending Balance</th>
+                  <th className="py-3 px-4 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+                {filteredInstructors.map((inst) => (
+                  <tr key={inst.instructorId} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
+                    <td className="py-3 px-4">
+                      <div className="font-semibold text-slate-900 dark:text-white">
+                        {inst.fullName}
+                      </div>
+                      <span className="font-mono text-[10px] text-slate-400">
+                        {inst.employeeId} • {inst.designation}
+                      </span>
+                    </td>
+
+                    <td className="py-3 px-4 font-mono text-slate-600 dark:text-slate-300">
+                      <div>{inst.phone}</div>
+                      {inst.email && <div className="text-[10px] text-slate-400">{inst.email}</div>}
+                    </td>
+
+                    <td className="py-3 px-4">
+                      <div className="flex flex-wrap gap-1">
+                        {inst.assignedBatches.length > 0 ? (
+                          inst.assignedBatches.map((b) => (
+                            <Badge key={b.batchId} variant="outline" className="text-[10px] font-mono">
+                              {b.batchCode}
+                            </Badge>
+                          ))
+                        ) : (
+                          <span className="text-slate-400 italic">No batches</span>
+                        )}
+                      </div>
+                    </td>
+
+                    <td className="py-3 px-4 text-right font-mono font-medium text-slate-700 dark:text-slate-300">
+                      ৳{inst.totalCollections.toLocaleString()}
+                    </td>
+
+                    <td className="py-3 px-4 text-right font-mono font-semibold text-indigo-600 dark:text-indigo-400">
+                      ৳{inst.totalCommissionEarned.toLocaleString()}
+                    </td>
+
+                    <td className="py-3 px-4 text-right font-mono font-semibold text-emerald-600 dark:text-emerald-400">
+                      ৳{inst.totalPaidOut.toLocaleString()}
+                    </td>
+
+                    <td className="py-3 px-4 text-right font-mono">
+                      <span
+                        className={
+                          inst.pendingDue > 0
+                            ? "font-bold text-amber-600 dark:text-amber-400"
+                            : "text-slate-400"
+                        }
+                      >
+                        ৳{inst.pendingDue.toLocaleString()}
+                      </span>
+                    </td>
+
+                    <td className="py-3 px-4 text-right">
+                      <Button
+                        size="sm"
+                        onClick={() =>
+                          handleOpenCreateWithInstructor(
+                            inst.instructorId,
+                            inst.assignedBatches[0]?.batchId
+                          )
+                        }
+                        className="h-7 px-2.5 text-[11px] bg-indigo-600 hover:bg-indigo-700 text-white font-medium"
+                      >
+                        Generate Settlement
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+
+                {filteredInstructors.length === 0 && (
+                  <tr>
+                    <td colSpan={8} className="py-12 text-center text-slate-400">
+                      <UserCheck className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
+                      <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                        No instructor tracking records found
+                      </p>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {/* Prepare Settlement Dialog */}
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <DialogContent className="sm:max-w-lg max-h-[calc(100dvh-1.5rem)] overflow-y-auto">
+        <DialogContent className="sm:max-w-xl max-h-[calc(100dvh-1.5rem)] overflow-y-auto">
           <DialogHeader>
-          <DialogTitle>{editingSettlement ? "Edit Draft Settlement" : "Prepare Batch Settlement Statement"}</DialogTitle>
+            <DialogTitle>
+              {editingSettlement ? "Edit Draft Settlement" : "Prepare Batch Settlement Statement"}
+            </DialogTitle>
           </DialogHeader>
 
           <form onSubmit={handleCreateSettlement} className="space-y-4 pt-2">
-            {!editingSettlement && <><div>
-              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                Select Batch *
-              </label>
-              <select
-                value={selectedBatchId}
-                onChange={(e) => setSelectedBatchId(e.target.value)}
-                required
-                aria-label="Select Batch"
-                className="w-full h-10 px-3 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                <option value="" disabled>Select Batch</option>
-                {batches.map((b) => (
-                  <option key={b._id} value={b._id}>
-                    {b.batchName} ({b.batchCode})
-                  </option>
-                ))}
-              </select>
-            </div>
+            {!editingSettlement && (
+              <>
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                    Select Batch *
+                  </label>
+                  <select
+                    value={selectedBatchId}
+                    onChange={(e) => setSelectedBatchId(e.target.value)}
+                    required
+                    aria-label="Select Batch"
+                    className="w-full h-10 px-3 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="" disabled>Select Batch</option>
+                    {batches.map((b) => (
+                      <option key={b._id} value={b._id}>
+                        {b.batchName} ({b.batchCode})
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-            <div>
-              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                Select Instructor *
-              </label>
-              <select
-                value={selectedInstructorId}
-                onChange={(e) => setSelectedInstructorId(e.target.value)}
-                required
-                aria-label="Select Instructor"
-                className="w-full h-10 px-3 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                <option value="" disabled>Select Instructor</option>
-                {instructors.map((inst) => (
-                  <option key={inst._id} value={inst._id}>
-                    {inst.fullName} ({inst.employeeId})
-                  </option>
-                ))}
-              </select>
-            </div></>}
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                    Select Instructor *
+                  </label>
+                  <select
+                    value={selectedInstructorId}
+                    onChange={(e) => setSelectedInstructorId(e.target.value)}
+                    required
+                    aria-label="Select Instructor"
+                    className="w-full h-10 px-3 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="" disabled>Select Instructor</option>
+                    {instructors.map((inst) => (
+                      <option key={inst._id} value={inst._id}>
+                        {inst.fullName} ({inst.employeeId})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </>
+            )}
 
             <Button
               type="button"
@@ -445,7 +893,7 @@ export default function SettlementManagement({
             </Button>
 
             {statementData && (
-              <div className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-100 dark:border-slate-800 space-y-2 text-xs">
+              <div className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-100 dark:border-slate-800 space-y-2.5 text-xs">
                 <div className="flex justify-between">
                   <span className="text-slate-500">Eligible Collections:</span>
                   <span className="font-mono font-semibold">
@@ -470,6 +918,49 @@ export default function SettlementManagement({
                     ৳{(statementData.netPayable - (deductions || 0)).toLocaleString()}
                   </span>
                 </div>
+
+                {/* Detailed Verified Collections Breakdown */}
+                {statementData.eligibleEntries && statementData.eligibleEntries.length > 0 && (
+                  <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
+                    <span className="font-semibold text-slate-700 dark:text-slate-300 block mb-1.5 text-[11px] uppercase tracking-wider">
+                      Verified Collections Breakdown ({statementData.eligibleEntries.length})
+                    </span>
+                    <div className="max-h-40 overflow-y-auto rounded-lg border border-slate-200 dark:border-slate-700">
+                      <table className="w-full text-left text-[11px]">
+                        <thead className="bg-slate-100 dark:bg-slate-800 text-slate-500 sticky top-0">
+                          <tr>
+                            <th className="py-1 px-2">Student</th>
+                            <th className="py-1 px-2">Receipt</th>
+                            <th className="py-1 px-2 text-right">Amount</th>
+                            <th className="py-1 px-2 text-right">Rate</th>
+                            <th className="py-1 px-2 text-right">Commission</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                          {statementData.eligibleEntries.map((e, idx) => (
+                            <tr key={idx} className="hover:bg-slate-100/50 dark:hover:bg-slate-800/50">
+                              <td className="py-1 px-2 font-medium">
+                                {(e.enrollment as unknown as { student?: { fullName?: string } })?.student?.fullName || "Student"}
+                              </td>
+                              <td className="py-1 px-2 font-mono text-slate-500">
+                                {(e.payment as unknown as { receiptNo?: string })?.receiptNo || "—"}
+                              </td>
+                              <td className="py-1 px-2 font-mono text-right">
+                                ৳{(e.collectedAmount || 0).toLocaleString()}
+                              </td>
+                              <td className="py-1 px-2 font-mono text-right text-indigo-600 dark:text-indigo-400 font-semibold">
+                                {e.commissionRate}%
+                              </td>
+                              <td className="py-1 px-2 font-mono text-right font-semibold text-emerald-600 dark:text-emerald-400">
+                                ৳{(e.commissionEarned || 0).toLocaleString()}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -507,7 +998,12 @@ export default function SettlementManagement({
               </Button>
               <Button
                 type="submit"
-                disabled={submitting || (editingSettlement ? deductions > editingSettlement.grossCommission : !statementData || statementData.netPayable <= 0)}
+                disabled={
+                  submitting ||
+                  (editingSettlement
+                    ? deductions > editingSettlement.grossCommission
+                    : !statementData || statementData.netPayable <= 0)
+                }
                 className="bg-indigo-600 hover:bg-indigo-700 text-white"
               >
                 {submitting ? "Saving..." : editingSettlement ? "Save Changes" : "Generate Statement"}
@@ -520,8 +1016,8 @@ export default function SettlementManagement({
       <DeleteConfirmDialog
         open={!!cancellingSettlement}
         onOpenChange={(open) => !open && setCancellingSettlement(null)}
-        title="Delete draft settlement?"
-        description="This will cancel the unpaid draft and release its commission entries for a future settlement. Approved or paid settlements cannot be deleted."
+        title="Cancel draft settlement?"
+        description="This will cancel the unpaid draft and release its commission entries for a future settlement. Approved or paid settlements cannot be cancelled."
         onConfirm={handleCancelSettlement}
         isLoading={isCancelling}
       />
@@ -645,4 +1141,3 @@ export default function SettlementManagement({
     </div>
   );
 }
-

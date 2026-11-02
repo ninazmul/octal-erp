@@ -348,6 +348,51 @@ export interface IBatchSettlementStatement {
   netPayable: number;
 }
 
+export interface IBatchCommissionTracking {
+  batchId: string;
+  batchCode: string;
+  batchName: string;
+  status: string;
+  courseTitle: string;
+  defaultCommissionRate?: number;
+  instructors: Array<{ _id: string; fullName: string; employeeId: string }>;
+  totalEnrollments: number;
+  totalCollected: number;
+  totalCommissionEarned: number;
+  totalCommissionPaid: number;
+  pendingDue: number;
+  settlementsCount: number;
+}
+
+export interface IInstructorCommissionTracking {
+  instructorId: string;
+  fullName: string;
+  employeeId: string;
+  phone: string;
+  email: string;
+  designation?: string;
+  assignedBatchesCount: number;
+  assignedBatches: Array<{ batchId: string; batchName: string; batchCode: string }>;
+  totalCollections: number;
+  totalCommissionEarned: number;
+  totalPaidOut: number;
+  pendingDue: number;
+  settlementsCount: number;
+}
+
+export interface ICommissionTrackingSummary {
+  totalEarned: number;
+  totalSettled: number;
+  totalPaidOut: number;
+  totalOutstandingDue: number;
+}
+
+export interface ICommissionTrackingData {
+  summary: ICommissionTrackingSummary;
+  batchTracking: IBatchCommissionTracking[];
+  instructorTracking: IInstructorCommissionTracking[];
+}
+
 export interface IPayout {
   _id: string;
   payoutNo: string; // e.g. "PO-000001"

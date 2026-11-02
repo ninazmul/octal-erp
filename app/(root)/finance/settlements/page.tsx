@@ -1,4 +1,4 @@
-import { getSettlements } from "@/lib/actions/commission.actions";
+import { getSettlements, getCommissionTracking } from "@/lib/actions/commission.actions";
 import { getBatches, getInstructorOptions } from "@/lib/actions/academic.actions";
 import { getAccounts } from "@/lib/actions/account.actions";
 import { getCurrentAdminProfile } from "@/lib/auth-guard";
@@ -8,11 +8,12 @@ export const dynamic = "force-dynamic";
 
 export default async function SettlementsPage() {
   const profile = await getCurrentAdminProfile();
-  const [settlements, batches, instructors, accounts] = await Promise.all([
+  const [settlements, batches, instructors, accounts, trackingData] = await Promise.all([
     getSettlements(),
     getBatches(),
     getInstructorOptions(),
     profile?.role === "super_admin" ? getAccounts() : Promise.resolve([]),
+    getCommissionTracking(),
   ]);
 
   const isSuperAdmin = profile?.role === "super_admin";
@@ -24,6 +25,7 @@ export default async function SettlementsPage() {
         batches={batches}
         instructors={instructors}
         accounts={accounts}
+        trackingData={trackingData}
         isSuperAdmin={isSuperAdmin}
       />
     </div>

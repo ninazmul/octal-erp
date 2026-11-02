@@ -10,6 +10,7 @@ import Employee from "@/lib/database/models/employee.model";
 import Account from "@/lib/database/models/account.model";
 import Ledger from "@/lib/database/models/ledger.model";
 import Counter from "@/lib/database/models/counter.model";
+import Enrollment from "@/lib/database/models/enrollment.model";
 import { formatSL } from "@/lib/utils";
 import {
   requirePermission,
@@ -620,7 +621,197 @@ export async function disburseCommissionPayout(data: {
   });
 
   revalidatePath("/finance/settlements");
-  revalidatePath("/finance/commissions");
   return JSON.parse(JSON.stringify(payout));
+}
+
+// ==========================================
+// COMMISSION TRACKING (PER BATCH & INSTRUCTOR)
+// ==========================================
+
+export async function getCommissionTracking() {
+  const profile = await requirePermission("commissions", "read");
+  await connectToDatabase();
+
+  const isInstructor = profile.role === "instructor";
+  const instructorEmployeeId = profile.employeeId;
+
+  const entryFilter: Record<string, unknown> = {
+    status: { $ne: "adjusted" },
+  };
+  const batchFilter: Record<string, unknown> = {};
+  const instructorFilter: Record<string, unknown> = {
+    $or: [{ isInstructor: true }, { department: "Academic" }],
+    status: { $ne: "Terminated" },
+  };
+
+  if (isInstructor) {
+    if (!instructorEmployeeId) {
+      return {
+        summary: { totalEarned: 0, totalSettled: 0, totalPaidOut: 0, totalOutstandingDue: 0 },
+        batchTracking: [],
+        instructorTracking: [],
+      };
+    }
+    entryFilter.referrer = instructorEmployeeId;
+    batchFilter.instructors = instructorEmployeeId;
+    instructorFilter._id = instructorEmployeeId;
+    delete instructorFilter.$or;
+  }
+
+  // 1. Fetch batches
+  const batches = await Batch.find(batchFilter)
+    .populate("course", "title code defaultCommissionRate")
+    .populate("instructors", "fullName employeeId email phone")
+    .sort({ createdAt: -1 })
+    .lean();
+
+  // 2. Fetch instructors
+  const instructors = await Employee.find(instructorFilter)
+    .select("_id fullName employeeId phone email designation")
+    .sort({ fullName: 1 })
+    .lean();
+
+  // 3. Aggregate Commission Entries by Batch
+  const batchAgg = await CommissionEntry.aggregate([
+    { $match: entryFilter },
+    {
+      $group: {
+        _id: "$batch",
+        totalCollected: { $sum: "$collectedAmount" },
+        totalEarned: { $sum: "$commissionEarned" },
+        totalPaid: { $sum: "$paidAmount" },
+        remainingDue: { $sum: "$remainingCommission" },
+      },
+    },
+  ]);
+  const batchStatsMap = new Map(batchAgg.map((b) => [String(b._id), b]));
+
+  // 4. Aggregate Commission Entries by Instructor (referrer)
+  const instructorAgg = await CommissionEntry.aggregate([
+    { $match: entryFilter },
+    {
+      $group: {
+        _id: "$referrer",
+        totalCollected: { $sum: "$collectedAmount" },
+        totalEarned: { $sum: "$commissionEarned" },
+        totalPaid: { $sum: "$paidAmount" },
+        remainingDue: { $sum: "$remainingCommission" },
+      },
+    },
+  ]);
+  const instructorStatsMap = new Map(instructorAgg.map((i) => [String(i._id), i]));
+
+  // 5. Aggregate Settlements Count & Amount
+  const settlementFilter: Record<string, unknown> = { status: { $ne: "Cancelled" } };
+  if (isInstructor && instructorEmployeeId) {
+    settlementFilter.instructor = instructorEmployeeId;
+  }
+
+  const [settlementsByBatch, settlementsByInstructor] = await Promise.all([
+    Settlement.aggregate([
+      { $match: settlementFilter },
+      { $group: { _id: "$batch", count: { $sum: 1 }, totalSettled: { $sum: "$netPayable" } } },
+    ]),
+    Settlement.aggregate([
+      { $match: settlementFilter },
+      { $group: { _id: "$instructor", count: { $sum: 1 }, totalSettled: { $sum: "$netPayable" } } },
+    ]),
+  ]);
+  const batchSettlementsMap = new Map(settlementsByBatch.map((s) => [String(s._id), s]));
+  const instructorSettlementsMap = new Map(settlementsByInstructor.map((s) => [String(s._id), s]));
+
+  // 6. Aggregate Enrollment count per batch
+  const batchIds = batches.map((b) => b._id);
+  const enrollmentCounts = batchIds.length
+    ? await Enrollment.aggregate([
+        { $match: { batch: { $in: batchIds } } },
+        { $group: { _id: "$batch", count: { $sum: 1 } } },
+      ])
+    : [];
+  const enrollmentCountMap = new Map(enrollmentCounts.map((e) => [String(e._id), e.count]));
+
+  // 7. Build Batch Tracking items
+  const batchTracking = batches.map((b) => {
+    const stats = batchStatsMap.get(String(b._id));
+    const settle = batchSettlementsMap.get(String(b._id));
+    const crs = b.course as unknown as { title?: string; code?: string; defaultCommissionRate?: number } | null;
+    const instList = (b.instructors || []) as unknown as Array<{ _id: string; fullName: string; employeeId: string }>;
+
+    return {
+      batchId: String(b._id),
+      batchCode: b.batchCode,
+      batchName: b.batchName,
+      status: b.status,
+      courseTitle: crs?.title || "",
+      defaultCommissionRate: crs?.defaultCommissionRate ?? 20,
+      instructors: instList.map((i) => ({
+        _id: String(i._id),
+        fullName: i.fullName || "",
+        employeeId: i.employeeId || "",
+      })),
+      totalEnrollments: enrollmentCountMap.get(String(b._id)) || 0,
+      totalCollected: stats?.totalCollected || 0,
+      totalCommissionEarned: stats?.totalEarned || 0,
+      totalCommissionPaid: stats?.totalPaid || 0,
+      pendingDue: Math.max(0, (stats?.totalEarned || 0) - (stats?.totalPaid || 0)),
+      settlementsCount: settle?.count || 0,
+    };
+  });
+
+  // 8. Build Instructor Tracking items
+  const instructorTracking = instructors.map((inst) => {
+    const stats = instructorStatsMap.get(String(inst._id));
+    const settle = instructorSettlementsMap.get(String(inst._id));
+
+    // Find batches where this instructor is assigned
+    const assignedBatches = batches
+      .filter((b) => {
+        const instList = (b.instructors || []) as unknown as Array<{ _id?: unknown } | string>;
+        return instList.some((i) => {
+          const id = typeof i === "object" && i !== null && "_id" in i ? (i as { _id?: unknown })._id : i;
+          return String(id) === String(inst._id);
+        });
+      })
+      .map((b) => ({
+        batchId: String(b._id),
+        batchName: b.batchName,
+        batchCode: b.batchCode,
+      }));
+
+    return {
+      instructorId: String(inst._id),
+      fullName: inst.fullName,
+      employeeId: inst.employeeId || "",
+      phone: inst.phone || "",
+      email: inst.email || "",
+      designation: (inst as unknown as { designation?: string }).designation || "Instructor",
+      assignedBatchesCount: assignedBatches.length,
+      assignedBatches,
+      totalCollections: stats?.totalCollected || 0,
+      totalCommissionEarned: stats?.totalEarned || 0,
+      totalPaidOut: stats?.totalPaid || 0,
+      pendingDue: Math.max(0, (stats?.totalEarned || 0) - (stats?.totalPaid || 0)),
+      settlementsCount: settle?.count || 0,
+    };
+  });
+
+  // 9. Overall Summary
+  const totalEarned = batchTracking.reduce((sum, b) => sum + b.totalCommissionEarned, 0);
+  const totalPaidOut = batchTracking.reduce((sum, b) => sum + b.totalCommissionPaid, 0);
+  const totalOutstandingDue = Math.max(0, totalEarned - totalPaidOut);
+  const totalSettled = settlementsByBatch.reduce((sum, s) => sum + (s.totalSettled || 0), 0);
+
+  return JSON.parse(
+    JSON.stringify({
+      summary: {
+        totalEarned,
+        totalSettled,
+        totalPaidOut,
+        totalOutstandingDue,
+      },
+      batchTracking,
+      instructorTracking,
+    })
+  );
 }
 

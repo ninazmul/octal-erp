@@ -148,9 +148,9 @@ export default function SettingsClient() {
             </p>
           </div>
           <div className="pt-4 flex flex-col sm:flex-row gap-2">
-            <Link href="/finance/commissions" className="flex-1">
+            <Link href="/finance/settlements" className="flex-1">
               <Button className="w-full rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs justify-between">
-                <span>Commission Rules</span>
+                <span>Batch Settlements & Payouts</span>
                 <ChevronRight className="w-4 h-4" />
               </Button>
             </Link>
