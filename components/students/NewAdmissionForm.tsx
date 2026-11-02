@@ -22,6 +22,8 @@ interface NewAdmissionFormProps {
   batches: IBatch[];
   instructors: IEmployee[];
   preselectedBatchId?: string;
+  isInstructor?: boolean;
+  currentEmployeeId?: string;
 }
 
 export default function NewAdmissionForm({
@@ -29,6 +31,8 @@ export default function NewAdmissionForm({
   batches,
   instructors,
   preselectedBatchId,
+  isInstructor = false,
+  currentEmployeeId,
 }: NewAdmissionFormProps) {
   const router = useRouter();
 
@@ -56,7 +60,15 @@ export default function NewAdmissionForm({
 
   const [submitting, setSubmitting] = useState(false);
 
-  // Auto-select course and pre-populate fee if preselectedBatchId is passed
+  // Lock referral attribution to the signed-in instructor.
+  useEffect(() => {
+    if (isInstructor && currentEmployeeId) {
+      setReferrerType("Instructor");
+      setReferrerId(currentEmployeeId);
+    }
+  }, [isInstructor, currentEmployeeId]);
+
+  // Auto-select course and pre-populate fee if preselectedBatchId is passed.
   useEffect(() => {
     if (preselectedBatchId) {
       const b = batches.find((item) => item._id === preselectedBatchId);
@@ -354,7 +366,15 @@ export default function NewAdmissionForm({
             </div>
 
             {/* Referrer Attribution */}
-            <div>
+            {isInstructor ? (
+              <div className="sm:col-span-2 rounded-xl border border-indigo-200 bg-indigo-50/70 p-3 dark:border-indigo-900 dark:bg-indigo-950/30">
+                <span className="text-xs font-semibold text-slate-700 dark:text-slate-200 block mb-1">Referral Attribution</span>
+                <p className="text-sm font-semibold text-indigo-700 dark:text-indigo-300">
+                  {instructors.find((instructor) => instructor._id === currentEmployeeId)?.fullName || "Your instructor account"} · Instructor Referral
+                </p>
+                <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">Your referral is added automatically. The applicable commission rule will set the rate.</p>
+              </div>
+            ) : <div>
               <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
                 Referral Attribution
               </label>
@@ -373,9 +393,9 @@ export default function NewAdmissionForm({
                 <option value="Staff">Staff Referral</option>
                 <option value="External">External Referrer</option>
               </select>
-            </div>
+            </div>}
 
-            {referrerType === "Instructor" && (
+            {!isInstructor && referrerType === "Instructor" && (
               <div>
                 <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
                   Referring Instructor *
@@ -397,7 +417,7 @@ export default function NewAdmissionForm({
               </div>
             )}
 
-            {referrerType === "Instructor" && (
+            {!isInstructor && referrerType === "Instructor" && (
               <div>
                 <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
                   Commission Rate (%)

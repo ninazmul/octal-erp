@@ -517,13 +517,20 @@ export async function closeBatchAcademically(id: string) {
 
 // Helper to get instructors for course & batch assignments
 export async function getInstructorOptions() {
-  await requirePermission("academic", "read");
+  const profile = await requirePermission("academic", "read");
   await connectToDatabase();
 
-  const instructors = await Employee.find({
+  const query: Record<string, unknown> = {
     $or: [{ isInstructor: true }, { department: "Academic" }],
     status: { $ne: "Terminated" },
-  })
+  };
+  if (profile.role === "instructor") {
+    if (!profile.employeeId) return [];
+    query._id = profile.employeeId;
+    delete query.$or;
+  }
+
+  const instructors = await Employee.find(query)
     .select("_id fullName employeeId email phone designation")
     .sort({ fullName: 1 })
     .lean();

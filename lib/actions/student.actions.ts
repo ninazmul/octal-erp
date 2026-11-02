@@ -10,6 +10,7 @@ import CommissionRule from "@/lib/database/models/commissionRule.model";
 import Counter from "@/lib/database/models/counter.model";
 import { escapeRegex, formatSL, normalizePagination } from "@/lib/utils";
 import {
+  getCurrentAdminProfile,
   requirePermission,
   logActivityAndNotify,
 } from "@/lib/auth-guard";
@@ -215,7 +216,11 @@ export async function admitStudent(data: {
   referrerId?: string; // Employee ID
   referrerCommissionRate?: number;
 }) {
-  const actor = await requirePermission("students", "write");
+  const currentProfile = await getCurrentAdminProfile();
+  if (!currentProfile) throw new Error("Unauthorized: Access is restricted to authorized administrators.");
+  const actor = currentProfile.role === "instructor"
+    ? await requirePermission("students", "read")
+    : await requirePermission("students", "write");
   await connectToDatabase();
 
   const course = await Course.findById(data.courseId);
@@ -223,6 +228,16 @@ export async function admitStudent(data: {
 
   const batch = await Batch.findById(data.batchId);
   if (!batch) throw new Error("Batch not found");
+
+  const isInstructorAdmission = actor.role === "instructor";
+  if (isInstructorAdmission) {
+    if (!actor.employeeId) throw new Error("Your instructor account is not linked to an employee record.");
+    const isAssignedToBatch = batch.instructors.some((instructorId) => String(instructorId) === actor.employeeId);
+    const isAssignedToCourse = course.instructors.some((instructorId) => String(instructorId) === actor.employeeId);
+    if (!isAssignedToBatch || !isAssignedToCourse || String(batch.course) !== String(course._id)) {
+      throw new Error("You can only admit students into your assigned courses and batches.");
+    }
+  }
 
   // Check seat capacity
   const currentBatchEnrollments = await Enrollment.countDocuments({
@@ -292,11 +307,13 @@ export async function admitStudent(data: {
   let commissionRate = 0;
   let referrerEmployeeId = null;
 
-  if (data.referrerType === "Instructor" && data.referrerId) {
-    referrerEmployeeId = data.referrerId;
+  const referrerType = isInstructorAdmission ? "Instructor" : (data.referrerType || "None");
+  const selectedReferrerId = isInstructorAdmission ? actor.employeeId : data.referrerId;
+  if (referrerType === "Instructor" && selectedReferrerId) {
+    referrerEmployeeId = selectedReferrerId;
     // Check if custom rule exists for this referrer & course
     const specificRule = await CommissionRule.findOne({
-      referrer: data.referrerId,
+      referrer: selectedReferrerId,
       course: course._id,
       isActive: true,
     });
@@ -304,13 +321,13 @@ export async function admitStudent(data: {
       commissionRate = specificRule.percentage;
     } else {
       const globalRule = await CommissionRule.findOne({
-        referrer: data.referrerId,
+        referrer: selectedReferrerId,
         course: null,
         isActive: true,
       });
       commissionRate =
         globalRule?.percentage ??
-        data.referrerCommissionRate ??
+        (isInstructorAdmission ? undefined : data.referrerCommissionRate) ??
         course.defaultCommissionRate ??
         20;
     }
@@ -328,7 +345,7 @@ export async function admitStudent(data: {
     finalPayableAmount,
     totalCollectedAmount,
     remainingDue,
-    referrerType: data.referrerType || "None",
+    referrerType,
     referrer: referrerEmployeeId,
     commissionRate,
     status: "Active",
@@ -346,7 +363,7 @@ export async function admitStudent(data: {
     module: "students",
     resourceId: String(studentDoc._id),
     resourceName: studentDoc.fullName,
-    details: `Admitted student ${studentDoc.fullName} (${studentDoc.studentId}) to batch ${batch.batchName}. Final payable: ৳${finalPayableAmount}. Referrer: ${data.referrerType || "None"} (${commissionRate}%)`,
+    details: `Admitted student ${studentDoc.fullName} (${studentDoc.studentId}) to batch ${batch.batchName}. Final payable: ৳${finalPayableAmount}. Referrer: ${referrerType} (${commissionRate}%)`,
   });
 
   revalidatePath("/students");

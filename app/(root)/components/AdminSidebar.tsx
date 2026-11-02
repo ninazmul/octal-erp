@@ -236,7 +236,6 @@ const AppSidebar = () => {
           if (["staff", "payroll", "expenses", "finance", "reports", "admins", "settings", "payments"].includes(item.module)) {
             return false;
           }
-          if (item.url === "/students/new") return false;
         }
 
         if (item.module !== "dashboard" && !canRead(item.module)) return false;

@@ -7,14 +7,13 @@ import SettlementManagement from "@/components/finance/SettlementManagement";
 export const dynamic = "force-dynamic";
 
 export default async function SettlementsPage() {
-  const [profile, settlements, batches, instructors, accounts] =
-    await Promise.all([
-      getCurrentAdminProfile(),
-      getSettlements(),
-      getBatches(),
-      getInstructorOptions(),
-      getAccounts(),
-    ]);
+  const profile = await getCurrentAdminProfile();
+  const [settlements, batches, instructors, accounts] = await Promise.all([
+    getSettlements(),
+    getBatches(),
+    getInstructorOptions(),
+    profile?.role === "super_admin" ? getAccounts() : Promise.resolve([]),
+  ]);
 
   const isSuperAdmin = profile?.role === "super_admin";
 

@@ -4,6 +4,7 @@ import {
   getInstructorOptions,
 } from "@/lib/actions/academic.actions";
 import NewAdmissionForm from "@/components/students/NewAdmissionForm";
+import { getCurrentAdminProfile } from "@/lib/auth-guard";
 
 export const dynamic = "force-dynamic";
 
@@ -16,10 +17,11 @@ export default async function NewAdmissionPage({
 }: NewStudentPageProps) {
   const { batchId } = await searchParams;
 
-  const [courses, batches, instructors] = await Promise.all([
+  const [courses, batches, instructors, profile] = await Promise.all([
     getCourses({ status: "active" }),
     getBatches(),
     getInstructorOptions(),
+    getCurrentAdminProfile(),
   ]);
 
   return (
@@ -29,6 +31,8 @@ export default async function NewAdmissionPage({
         batches={batches}
         instructors={instructors}
         preselectedBatchId={batchId}
+        isInstructor={profile?.role === "instructor"}
+        currentEmployeeId={profile?.role === "instructor" ? profile.employeeId : undefined}
       />
     </div>
   );

@@ -51,10 +51,14 @@ async function getNextLedgerEntryNo(): Promise<string> {
 // ==========================================
 
 export async function getCommissionRules() {
-  await requirePermission("commissions", "read");
+  const profile = await requirePermission("commissions", "read");
   await connectToDatabase();
 
-  const rules = await CommissionRule.find()
+  const query = profile.role === "instructor"
+    ? { referrer: profile.employeeId || null }
+    : {};
+  if (profile.role === "instructor" && !profile.employeeId) return [];
+  const rules = await CommissionRule.find(query)
     .populate("referrer", "fullName employeeId email phone")
     .populate("course", "title code")
     .sort({ createdAt: -1 })
