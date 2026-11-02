@@ -409,6 +409,9 @@ export async function createBatch(data: {
 }) {
   const actor = await requirePermission("academic", "write");
   await connectToDatabase();
+  if ((data.instructors || []).filter(Boolean).length > 1) {
+    throw new Error("A batch can have only one assigned instructor.");
+  }
 
   const existing = await Batch.findOne({ batchCode: data.batchCode.trim().toUpperCase() });
   if (existing) {
@@ -459,6 +462,9 @@ export async function updateBatch(
 ) {
   const actor = await requirePermission("academic", "write");
   await connectToDatabase();
+  if (data.instructors && data.instructors.filter(Boolean).length > 1) {
+    throw new Error("A batch can have only one assigned instructor.");
+  }
 
   const batch = await Batch.findById(id);
   if (!batch) throw new Error("Batch not found");

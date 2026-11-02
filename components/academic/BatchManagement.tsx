@@ -29,6 +29,7 @@ import {
   Clock,
   ArrowRight,
   Trash2,
+  Users,
 } from "lucide-react";
 import Link from "next/link";
 import toast from "react-hot-toast";
@@ -89,7 +90,7 @@ export default function BatchManagement({
       const instIds = (courseObj.instructors || []).map((i) =>
         typeof i === "string" ? i : (i as IEmployee)._id
       );
-      setSelectedInstructors(instIds);
+      setSelectedInstructors(instIds.slice(0, 1));
     }
   };
 
@@ -115,7 +116,7 @@ export default function BatchManagement({
           : firstCourse.subject?._id;
       setSubjectId(subjId || subjects[0]?._id || "");
       setSelectedInstructors(
-        (firstCourse.instructors || []).map((i) =>
+        (firstCourse.instructors || []).slice(0, 1).map((i) =>
           typeof i === "string" ? i : (i as IEmployee)._id
         )
       );
@@ -144,7 +145,7 @@ export default function BatchManagement({
     setCourseId(crsId || courses[0]?._id || "");
     setSubjectId(sbjId || subjects[0]?._id || "");
     setSelectedInstructors(
-      (batch.instructors || []).map((i) =>
+      (batch.instructors || []).slice(0, 1).map((i) =>
         typeof i === "string" ? i : (i as IEmployee)._id
       )
     );
@@ -244,9 +245,7 @@ export default function BatchManagement({
   };
 
   const toggleInstructorSelection = (id: string) => {
-    setSelectedInstructors((prev) =>
-      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
-    );
+    setSelectedInstructors((prev) => prev.includes(id) ? [] : [id]);
   };
 
   return (
@@ -364,6 +363,11 @@ export default function BatchManagement({
                     Starts: {new Date(batch.startDate).toLocaleDateString()}
                     {batch.endDate && ` • Ends: ${new Date(batch.endDate).toLocaleDateString()}`}
                   </span>
+                </p>
+
+                <p className="text-xs text-slate-600 dark:text-slate-300 flex items-center gap-1.5 mt-2">
+                  <Users className="w-3.5 h-3.5 text-indigo-500" />
+                  <span>Instructor: <strong>{(batch.instructors || []).map((item) => typeof item === "string" ? instructors.find((inst) => inst._id === item)?.fullName : item.fullName).filter(Boolean).slice(0, 1)[0] || "None assigned"}</strong></span>
                 </p>
 
                 {batch.scheduleDescription && (
@@ -621,7 +625,7 @@ export default function BatchManagement({
               {/* Assign Instructors */}
               <div className="sm:col-span-2">
                 <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                  Assigned Instructors
+                  Assign One Instructor
                 </label>
                 <div className="max-h-36 overflow-y-auto p-2 rounded-lg border border-slate-200 dark:border-slate-800 space-y-1">
                   {instructors.map((inst) => (

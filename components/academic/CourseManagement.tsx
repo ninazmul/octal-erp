@@ -248,7 +248,9 @@ export default function CourseManagement({
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {filteredCourses.map((course) => {
           const subjectObj = course.subject as ISubject;
-          const instCount = course.instructors?.length || 0;
+          const assignedInstructorNames = (course.instructors || []).map((item) =>
+            typeof item === "string" ? instructors.find((inst) => inst._id === item)?.fullName : item.fullName
+          ).filter(Boolean);
 
           return (
             <div
@@ -298,7 +300,7 @@ export default function CourseManagement({
                   </div>
                   <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300">
                     <Users className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
-                    <span>{instCount} Instructors</span>
+                    <span className="line-clamp-1">{assignedInstructorNames.length ? assignedInstructorNames.join(", ") : "No instructor assigned"}</span>
                   </div>
                   <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300">
                     <span className="font-bold text-indigo-600 dark:text-indigo-400">

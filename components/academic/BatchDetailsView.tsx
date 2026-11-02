@@ -38,7 +38,7 @@ export default function BatchDetailsView({ batch }: BatchDetailsProps) {
 
   const courseObj = batch.course as ICourse;
   const subjectObj = batch.subject as ISubject;
-  const instructors = (batch.instructors || []) as IEmployee[];
+  const instructors = (batch.instructors || []).slice(0, 1) as IEmployee[];
 
   return (
     <div className="space-y-6">
