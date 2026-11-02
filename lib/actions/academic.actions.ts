@@ -134,7 +134,7 @@ export async function getCourses(params?: {
   }
 
   // Instructor resource-based scoping: only see assigned courses
-  if (profile.role === "instructor") {
+  if (profile.role === "instructor" || profile.role === "staff") {
     if (!profile.employeeId) return [];
     query.instructors = profile.employeeId;
   }
@@ -273,7 +273,7 @@ export async function getBatches(params?: {
   }
 
   // Instructor resource-based scoping: only see assigned batches
-  if (profile.role === "instructor") {
+  if (profile.role === "instructor" || profile.role === "staff") {
     if (!profile.employeeId) return [];
     query.instructors = profile.employeeId;
   }
@@ -343,7 +343,7 @@ export async function getBatchById(id: string) {
   if (!batch) throw new Error("Batch not found");
 
   // Validate instructor access
-  if (profile.role === "instructor") {
+  if (profile.role === "instructor" || profile.role === "staff") {
     if (!profile.employeeId) throw new Error("Forbidden: Instructor profile is not linked to an employee.");
     const isAssigned = batch.instructors?.some(
       (inst: { _id: unknown; employeeId?: string }) =>

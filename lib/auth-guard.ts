@@ -1,6 +1,7 @@
 import { currentUser } from "@clerk/nextjs/server";
 import { connectToDatabase } from "@/lib/database";
 import Admin from "@/lib/database/models/admin.model";
+import Employee from "@/lib/database/models/employee.model";
 import ActivityLog from "@/lib/database/models/activityLog.model";
 import Notification from "@/lib/database/models/notification.model";
 import {
@@ -50,8 +51,11 @@ export async function getCurrentAdminProfile(): Promise<IAdminUser | null> {
     const user = await currentUser();
     if (!user) return null;
 
-    const primaryEmail = user.emailAddresses[0]?.emailAddress?.toLowerCase();
+    const primaryEmail = user.emailAddresses[0]?.emailAddress?.trim().toLowerCase();
     if (!primaryEmail) return null;
+    const accountEmails = user.emailAddresses
+      .map(({ emailAddress }) => emailAddress.trim().toLowerCase())
+      .filter(Boolean);
 
     // Check total admins
     const totalAdmins = await Admin.countDocuments();
@@ -70,6 +74,16 @@ export async function getCurrentAdminProfile(): Promise<IAdminUser | null> {
     }
 
     if (!adminDoc || !adminDoc.isActive) return null;
+
+    // Staff and instructor records are linked to login accounts by email. Resolve
+    // the Employee document ID because course and batch assignments store refs.
+    const linkedEmployee =
+      (await Employee.findOne({ linkedUserId: user.id, status: { $ne: "Terminated" } })
+        .select("_id")
+        .lean()) ||
+      (await Employee.findOne({ email: { $in: accountEmails }, status: { $ne: "Terminated" } })
+        .select("_id")
+        .lean());
 
     // Auto-migrate legacy admin records without role to super_admin or admin
     if (!adminDoc.role) {
@@ -92,7 +106,7 @@ export async function getCurrentAdminProfile(): Promise<IAdminUser | null> {
       email: adminDoc.email,
       name: adminDoc.name || "",
       role: adminDoc.role as AdminRole,
-      employeeId: adminDoc.employeeId,
+      employeeId: linkedEmployee ? String(linkedEmployee._id) : adminDoc.employeeId,
       permissions: effective,
       granularPermissions: effectiveGranular,
       isActive: adminDoc.isActive,
