@@ -4,6 +4,7 @@ import { connectToDatabase } from "@/lib/database";
 import Payment from "@/lib/database/models/payment.model";
 import Enrollment from "@/lib/database/models/enrollment.model";
 import CommissionEntry from "@/lib/database/models/commissionEntry.model";
+import Batch from "@/lib/database/models/batch.model";
 import Account from "@/lib/database/models/account.model";
 import Ledger from "@/lib/database/models/ledger.model";
 import Counter from "@/lib/database/models/counter.model";
@@ -156,13 +157,19 @@ export async function recordPayment(data: {
 
   const enrollment = await Enrollment.findById(data.enrollmentId)
     .populate("student", "fullName studentId")
-    .populate("batch", "batchCode batchName")
+    .populate("batch", "batchCode batchName instructors commissionRate")
     .populate("course", "title code");
 
   if (!enrollment) throw new Error("Enrollment record not found");
 
   const studentObj = enrollment.student as unknown as { _id: string; fullName: string; studentId: string };
-  const batchObj = enrollment.batch as unknown as { _id: string; batchName: string; batchCode: string };
+  const batchObj = enrollment.batch as unknown as {
+    _id: string;
+    batchName: string;
+    batchCode: string;
+    instructors?: string[];
+    commissionRate?: number;
+  };
 
   if (amount > enrollment.remainingDue) {
     throw new Error(
@@ -203,23 +210,29 @@ export async function recordPayment(data: {
     );
     await enrollment.save();
 
-    // B. Trigger Commission Entry if referrer is an instructor
-    if (
-      enrollment.referrerType === "Instructor" &&
-      enrollment.referrer &&
+    // B. Trigger Commission Entry from referrer or batch instructor
+    const effectiveReferrer =
+      enrollment.referrerType === "Instructor" && enrollment.referrer
+        ? enrollment.referrer
+        : batchObj.instructors?.[0] || null;
+
+    const effectiveCommRate =
       enrollment.commissionRate > 0
-    ) {
+        ? enrollment.commissionRate
+        : (batchObj.commissionRate ?? 20);
+
+    if (effectiveReferrer && effectiveCommRate > 0) {
       const commissionEarned = Math.round(
-        (amount * enrollment.commissionRate) / 100
+        (amount * effectiveCommRate) / 100
       );
 
       await CommissionEntry.create({
         payment: payment._id,
         enrollment: enrollment._id,
         batch: batchObj._id,
-        referrer: enrollment.referrer,
+        referrer: effectiveReferrer,
         collectedAmount: amount,
-        commissionRate: enrollment.commissionRate,
+        commissionRate: effectiveCommRate,
         commissionEarned,
         status: "earned",
         paidAmount: 0,
@@ -316,24 +329,31 @@ export async function verifyPayment(paymentId: string) {
     );
     await enrollment.save();
 
-    // Trigger commission
-    if (
-      enrollment.referrerType === "Instructor" &&
-      enrollment.referrer &&
+    // Trigger commission from referrer or batch instructor
+    const batchDoc = await Batch.findById(enrollment.batch).select("commissionRate instructors");
+    const effectiveReferrer =
+      enrollment.referrerType === "Instructor" && enrollment.referrer
+        ? enrollment.referrer
+        : batchDoc?.instructors?.[0] || null;
+
+    const effectiveCommRate =
       enrollment.commissionRate > 0
-    ) {
+        ? enrollment.commissionRate
+        : (batchDoc?.commissionRate ?? 20);
+
+    if (effectiveReferrer && effectiveCommRate > 0) {
       const existingEntry = await CommissionEntry.findOne({ payment: payment._id });
       if (!existingEntry) {
         const commissionEarned = Math.round(
-          (payment.amount * enrollment.commissionRate) / 100
+          (payment.amount * effectiveCommRate) / 100
         );
         await CommissionEntry.create({
           payment: payment._id,
           enrollment: enrollment._id,
           batch: enrollment.batch,
-          referrer: enrollment.referrer,
+          referrer: effectiveReferrer,
           collectedAmount: payment.amount,
-          commissionRate: enrollment.commissionRate,
+          commissionRate: effectiveCommRate,
           commissionEarned,
           status: "earned",
           paidAmount: 0,

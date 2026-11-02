@@ -11,6 +11,7 @@ import Account from "@/lib/database/models/account.model";
 import Ledger from "@/lib/database/models/ledger.model";
 import Counter from "@/lib/database/models/counter.model";
 import Enrollment from "@/lib/database/models/enrollment.model";
+import Payment from "@/lib/database/models/payment.model";
 import { formatSL } from "@/lib/utils";
 import {
   requirePermission,
@@ -254,7 +255,7 @@ export async function getBatchSettlementStatement(batchId: string, instructorId:
   }
 
   const batch = await Batch.findById(batchId)
-    .populate("course", "title code")
+    .populate("course", "title code defaultCommissionRate")
     .lean();
   if (!batch) throw new Error("Batch not found");
 
@@ -265,6 +266,51 @@ export async function getBatchSettlementStatement(batchId: string, instructorId:
     !batch.instructors.some((assignedInstructor) => String(assignedInstructor) === String(instructor._id))
   ) {
     throw new Error("Forbidden: You are not assigned to this batch.");
+  }
+
+  // Get commission rate directly from batch commission (falling back to course default, then 20)
+  const batchCommissionRate =
+    batch.commissionRate !== undefined && batch.commissionRate !== null
+      ? Number(batch.commissionRate)
+      : (batch.course as unknown as { defaultCommissionRate?: number })?.defaultCommissionRate ?? 20;
+
+  // Find all confirmed payments for this batch
+  const confirmedPayments = await Payment.find({
+    batch: batchId,
+    status: "confirmed",
+  }).lean();
+
+  // Ensure every confirmed payment has a CommissionEntry reflecting the batch commission rate
+  for (const p of confirmedPayments) {
+    const existingEntry = await CommissionEntry.findOne({ payment: p._id });
+    if (!existingEntry) {
+      const commEarned = Math.round(((p.amount * batchCommissionRate) / 100) * 100) / 100;
+      await CommissionEntry.create({
+        payment: p._id,
+        enrollment: p.enrollment,
+        batch: batchId,
+        referrer: instructorId,
+        collectedAmount: p.amount,
+        commissionRate: batchCommissionRate,
+        commissionEarned: commEarned,
+        status: "earned",
+        paidAmount: 0,
+        remainingCommission: commEarned,
+      });
+    } else if (
+      ["earned", "awaiting_settlement"].includes(existingEntry.status) &&
+      existingEntry.commissionRate !== batchCommissionRate
+    ) {
+      // Synchronize commission rate from batch commission
+      existingEntry.commissionRate = batchCommissionRate;
+      existingEntry.commissionEarned =
+        Math.round(((existingEntry.collectedAmount * batchCommissionRate) / 100) * 100) / 100;
+      existingEntry.remainingCommission = Math.max(
+        0,
+        existingEntry.commissionEarned - existingEntry.paidAmount
+      );
+      await existingEntry.save();
+    }
   }
 
   // Eligible confirmed commission entries for this instructor and batch
@@ -298,6 +344,7 @@ export async function getBatchSettlementStatement(batchId: string, instructorId:
     JSON.stringify({
       batch,
       instructor,
+      batchCommissionRate,
       eligibleEntries,
       eligibleCollectionsCount: eligibleEntries.length,
       totalEligibleCollections,
@@ -743,7 +790,7 @@ export async function getCommissionTracking() {
       batchName: b.batchName,
       status: b.status,
       courseTitle: crs?.title || "",
-      defaultCommissionRate: crs?.defaultCommissionRate ?? 20,
+      defaultCommissionRate: b.commissionRate ?? crs?.defaultCommissionRate ?? 20,
       instructors: instList.map((i) => ({
         _id: String(i._id),
         fullName: i.fullName || "",

@@ -13,6 +13,7 @@ export interface IBatchDocument extends Document {
   status: "Upcoming" | "Ongoing" | "Completed" | "Cancelled";
   financialStatus: "Open" | "Settling" | "Settled";
   notes?: string;
+  commissionRate?: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -78,6 +79,12 @@ const BatchSchema: Schema = new Schema(
       type: String,
       trim: true,
       default: "",
+    },
+    commissionRate: {
+      type: Number,
+      default: 20,
+      min: 0,
+      max: 100,
     },
   },
   {

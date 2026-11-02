@@ -118,6 +118,7 @@ export interface IBatch {
   status: BatchStatus;
   financialStatus: BatchFinancialStatus;
   notes?: string;
+  commissionRate?: number;
   // Computed / aggregated runtime fields
   totalEnrollments?: number;
   totalAgreedFees?: number;
@@ -340,6 +341,7 @@ export type PopulatedSettlement = ISettlement & {
 export interface IBatchSettlementStatement {
   batch: IBatch;
   instructor: IEmployee;
+  batchCommissionRate?: number;
   eligibleEntries: PopulatedCommissionEntry[];
   eligibleCollectionsCount: number;
   totalEligibleCollections: number;

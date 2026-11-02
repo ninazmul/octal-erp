@@ -69,6 +69,7 @@ export default function BatchManagement({
   const [endDate, setEndDate] = useState("");
   const [scheduleDescription, setScheduleDescription] = useState("");
   const [maxCapacity, setMaxCapacity] = useState(30);
+  const [commissionRate, setCommissionRate] = useState(20);
   const [status, setStatus] = useState<
     "Upcoming" | "Ongoing" | "Completed" | "Cancelled"
   >("Upcoming");
@@ -95,6 +96,7 @@ export default function BatchManagement({
         typeof i === "string" ? i : (i as IEmployee)._id
       );
       setSelectedInstructors(instIds.slice(0, 1));
+      setCommissionRate(courseObj.defaultCommissionRate ?? 20);
     }
   };
 
@@ -132,6 +134,7 @@ export default function BatchManagement({
     setEndDate("");
     setScheduleDescription("Sun, Tue, Thu | 7:00 PM - 9:00 PM");
     setMaxCapacity(30);
+    setCommissionRate(firstCourse?.defaultCommissionRate ?? 20);
     setStatus("Upcoming");
     setFinancialStatus("Open");
     setNotes("");
@@ -161,6 +164,8 @@ export default function BatchManagement({
     );
     setScheduleDescription(batch.scheduleDescription || "");
     setMaxCapacity(batch.maxCapacity || 30);
+    const crsComm = typeof batch.course === "object" ? batch.course?.defaultCommissionRate : 20;
+    setCommissionRate(batch.commissionRate ?? crsComm ?? 20);
     setStatus(batch.status);
     setFinancialStatus(batch.financialStatus);
     setNotes(batch.notes || "");
@@ -184,6 +189,7 @@ export default function BatchManagement({
           endDate: endDate || undefined,
           scheduleDescription,
           maxCapacity: Number(maxCapacity),
+          commissionRate: Number(commissionRate),
           status,
           financialStatus,
           notes,
@@ -203,6 +209,7 @@ export default function BatchManagement({
           endDate: endDate || undefined,
           scheduleDescription,
           maxCapacity: Number(maxCapacity),
+          commissionRate: Number(commissionRate),
           notes,
         });
         setBatches((prev) => [created, ...prev]);
@@ -374,6 +381,12 @@ export default function BatchManagement({
                 <p className="text-xs text-slate-600 dark:text-slate-300 flex items-center gap-1.5 mt-2">
                   <Users className="w-3.5 h-3.5 text-indigo-500" />
                   <span>Instructor: <strong>{(batch.instructors || []).map((item) => typeof item === "string" ? instructors.find((inst) => inst._id === item)?.fullName : item.fullName).filter(Boolean).slice(0, 1)[0] || "None assigned"}</strong></span>
+                </p>
+
+                <p className="text-xs text-slate-600 dark:text-slate-300 flex items-center gap-1.5 mt-1 font-mono">
+                  <span className="font-semibold text-indigo-600 dark:text-indigo-400">
+                    Batch Commission: {batch.commissionRate ?? (typeof batch.course === "object" ? batch.course?.defaultCommissionRate : 20) ?? 20}%
+                  </span>
                 </p>
 
                 {batch.scheduleDescription && (
@@ -621,6 +634,21 @@ export default function BatchManagement({
                   <option value="Completed">Completed</option>
                   <option value="Cancelled">Cancelled</option>
                 </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                  Batch Commission Rate (%) *
+                </label>
+                <Input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.5"
+                  value={commissionRate}
+                  onChange={(e) => setCommissionRate(Number(e.target.value))}
+                  required
+                />
               </div>
 
               <div className="sm:col-span-2">

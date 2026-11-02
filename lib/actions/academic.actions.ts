@@ -438,6 +438,7 @@ export async function createBatch(data: {
   scheduleDescription?: string;
   maxCapacity?: number;
   notes?: string;
+  commissionRate?: number;
 }) {
   const actor = await requirePermission("academic", "write");
   if (actor.role === "instructor") {
@@ -453,6 +454,12 @@ export async function createBatch(data: {
     throw new Error(`Batch code "${data.batchCode}" is already in use.`);
   }
 
+  let commRate = data.commissionRate;
+  if (commRate === undefined || isNaN(Number(commRate))) {
+    const courseDoc = await Course.findById(data.courseId).select("defaultCommissionRate");
+    commRate = courseDoc?.defaultCommissionRate ?? 20;
+  }
+
   const batch = await Batch.create({
     batchCode: data.batchCode.trim().toUpperCase(),
     batchName: data.batchName.trim(),
@@ -466,6 +473,7 @@ export async function createBatch(data: {
     status: "Upcoming",
     financialStatus: "Open",
     notes: data.notes?.trim() || "",
+    commissionRate: Math.max(0, Math.min(100, Number(commRate))),
   });
 
   await logActivityAndNotify({
@@ -493,6 +501,7 @@ export async function updateBatch(
     status?: "Upcoming" | "Ongoing" | "Completed" | "Cancelled";
     financialStatus?: "Open" | "Settling" | "Settled";
     notes?: string;
+    commissionRate?: number;
   }
 ) {
   const actor = await requirePermission("academic", "write");
@@ -508,6 +517,9 @@ export async function updateBatch(
   if (!batch) throw new Error("Batch not found");
 
   if (data.batchName !== undefined) batch.batchName = data.batchName.trim();
+  if (data.commissionRate !== undefined && !isNaN(Number(data.commissionRate))) {
+    batch.commissionRate = Math.max(0, Math.min(100, Number(data.commissionRate)));
+  }
   if (data.instructors !== undefined)
     batch.instructors = (data.instructors || []) as unknown as mongoose.Types.ObjectId[];
   if (data.startDate !== undefined) batch.startDate = new Date(data.startDate);

@@ -854,7 +854,7 @@ export default function SettlementManagement({
                     <option value="" disabled>Select Batch</option>
                     {batches.map((b) => (
                       <option key={b._id} value={b._id}>
-                        {b.batchName} ({b.batchCode})
+                        {b.batchName} ({b.batchCode}) — Commission: {b.commissionRate ?? 20}%
                       </option>
                     ))}
                   </select>
@@ -894,6 +894,20 @@ export default function SettlementManagement({
 
             {statementData && (
               <div className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-100 dark:border-slate-800 space-y-2.5 text-xs">
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800">
+                  <div>
+                    <span className="font-bold text-xs text-indigo-900 dark:text-indigo-200 block">
+                      Batch Commission Rate
+                    </span>
+                    <span className="text-[10px] text-indigo-600 dark:text-indigo-400">
+                      Declared on batch creation
+                    </span>
+                  </div>
+                  <span className="font-mono text-base font-bold text-indigo-700 dark:text-indigo-300">
+                    {statementData.batchCommissionRate ?? (statementData.batch as unknown as { commissionRate?: number })?.commissionRate ?? 20}%
+                  </span>
+                </div>
+
                 <div className="flex justify-between">
                   <span className="text-slate-500">Eligible Collections:</span>
                   <span className="font-mono font-semibold">
@@ -903,7 +917,7 @@ export default function SettlementManagement({
                 <div className="flex justify-between">
                   <span className="text-slate-500">Gross Commission Earned:</span>
                   <span className="font-mono font-semibold text-indigo-600 dark:text-indigo-400">
-                    ৳{statementData.grossCommission.toLocaleString()}
+                    ৳{statementData.grossCommission.toLocaleString()} ({statementData.batchCommissionRate ?? 20}% of ৳{statementData.totalEligibleCollections.toLocaleString()})
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -949,7 +963,7 @@ export default function SettlementManagement({
                                 ৳{(e.collectedAmount || 0).toLocaleString()}
                               </td>
                               <td className="py-1 px-2 font-mono text-right text-indigo-600 dark:text-indigo-400 font-semibold">
-                                {e.commissionRate}%
+                                {e.commissionRate ?? statementData.batchCommissionRate ?? 20}%
                               </td>
                               <td className="py-1 px-2 font-mono text-right font-semibold text-emerald-600 dark:text-emerald-400">
                                 ৳{(e.commissionEarned || 0).toLocaleString()}
