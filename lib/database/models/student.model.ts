@@ -9,7 +9,7 @@ export interface IStudentDocument extends Document {
   guardianPhone?: string;
   address?: string;
   notes?: string;
-  status: "Active" | "Inactive" | "Archived";
+  status: "Active" | "Inactive" | "Archived" | "Discount Requested";
   admissionDate: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -63,7 +63,7 @@ const StudentSchema: Schema = new Schema(
     },
     status: {
       type: String,
-      enum: ["Active", "Inactive", "Archived"],
+      enum: ["Active", "Inactive", "Archived", "Discount Requested"],
       default: "Active",
     },
     admissionDate: {

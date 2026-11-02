@@ -107,7 +107,6 @@ const sidebarSections: SidebarSection[] = [
         icon: UserPlus,
         module: "students",
       },
-      { title: "Discount Requests", url: "/students/discount-requests", icon: Percent, module: "students", adminOnly: true },
     ],
   },
   {

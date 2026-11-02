@@ -57,7 +57,7 @@ export async function getStudents(params?: {
 
   const query: Record<string, unknown> = {};
 
-  if (params?.status) {
+  if (params?.status && params.status !== "all") {
     query.status = params.status;
   }
 
@@ -114,20 +114,130 @@ export async function getStudents(params?: {
   const summaryByStudent = new Map(
     enrollmentSummaries.map((summary) => [String(summary._id), summary])
   );
-  const studentListWithStats = students.map((student) => ({
-    ...student,
-    totalEnrollmentsCount: summaryByStudent.get(String(student._id))?.totalEnrollmentsCount || 0,
-    totalPayableSum: summaryByStudent.get(String(student._id))?.totalPayableSum || 0,
-    totalPaidSum: summaryByStudent.get(String(student._id))?.totalPaidSum || 0,
-    totalDueSum: summaryByStudent.get(String(student._id))?.totalDueSum || 0,
-  }));
+
+  interface PopulatedDiscountRequestItem {
+    _id: string | mongoose.Types.ObjectId;
+    studentName: string;
+    studentPhone: string;
+    studentEmail?: string;
+    course?: { _id: string; title?: string; code?: string; defaultFee?: number } | null;
+    batch?: { _id: string; batchName?: string; batchCode?: string } | null;
+    requestedAmount: number;
+    approvedAmount?: number;
+    reason: string;
+    adminNotes?: string;
+    status: string;
+    requestedBy: { email: string; name?: string; role: string };
+    student?: string | mongoose.Types.ObjectId;
+    createdAt: Date;
+  }
+
+  // Fetch active admission discount requests to enrich students or unlinked discount requests
+  const activeDiscountRequests = (await AdmissionDiscountRequest.find({
+    status: { $in: ["Pending", "Approved"] },
+  })
+    .populate("course", "title code defaultFee")
+    .populate("batch", "batchName batchCode")
+    .lean()) as unknown as PopulatedDiscountRequestItem[];
+
+  const discountRequestByStudentId = new Map<string, PopulatedDiscountRequestItem>();
+  const discountRequestByPhone = new Map<string, PopulatedDiscountRequestItem>();
+  for (const req of activeDiscountRequests) {
+    if (req.student) {
+      discountRequestByStudentId.set(String(req.student), req);
+    }
+    if (req.studentPhone) {
+      discountRequestByPhone.set(req.studentPhone.trim(), req);
+    }
+  }
+
+  const studentListWithStats: Record<string, unknown>[] = students.map((student) => {
+    const attachedReq =
+      discountRequestByStudentId.get(String(student._id)) ||
+      discountRequestByPhone.get(student.phone);
+    const courseFee = Number(attachedReq?.course?.defaultFee || 0);
+    const reqDiscount = Number(attachedReq?.approvedAmount || attachedReq?.requestedAmount || 0);
+
+    return {
+      ...student,
+      totalEnrollmentsCount:
+        summaryByStudent.get(String(student._id))?.totalEnrollmentsCount ||
+        (attachedReq ? 1 : 0),
+      totalPayableSum:
+        summaryByStudent.get(String(student._id))?.totalPayableSum ||
+        (attachedReq ? Math.max(0, courseFee - reqDiscount) : 0),
+      totalPaidSum:
+        summaryByStudent.get(String(student._id))?.totalPaidSum || 0,
+      totalDueSum:
+        summaryByStudent.get(String(student._id))?.totalDueSum ||
+        (attachedReq ? Math.max(0, courseFee - reqDiscount) : 0),
+      discountRequestId: attachedReq ? String(attachedReq._id) : undefined,
+      requestedDiscount: attachedReq?.requestedAmount,
+      approvedDiscount: attachedReq?.approvedAmount,
+      discountReason: attachedReq?.reason,
+      requestedCourse: attachedReq?.course,
+      requestedBatch: attachedReq?.batch,
+      requestedBy: attachedReq?.requestedBy,
+    };
+  });
+
+  // If there are unlinked discount requests without student documents in DB, merge them
+  const studentPhones = new Set(students.map((s) => s.phone));
+  const studentDocIds = new Set(students.map((s) => String(s._id)));
+  const unlinkedRequests = activeDiscountRequests.filter((req) => {
+    const hasPhone = studentPhones.has(req.studentPhone);
+    const hasId = req.student ? studentDocIds.has(String(req.student)) : false;
+    return !hasPhone && !hasId;
+  });
+
+  for (const req of unlinkedRequests) {
+    if (params?.status && params.status !== "all" && params.status !== "Discount Requested") {
+      continue;
+    }
+    if (searchTerm) {
+      const search = new RegExp(escapeRegex(searchTerm), "i");
+      if (
+        !search.test(req.studentName) &&
+        !search.test(req.studentPhone) &&
+        !search.test(req.studentEmail || "")
+      ) {
+        continue;
+      }
+    }
+    const courseFee = Number(req.course?.defaultFee || 0);
+    const reqDiscount = Number(req.approvedAmount || req.requestedAmount || 0);
+    studentListWithStats.push({
+      _id: String(req._id),
+      studentId: "REQ-DISC",
+      fullName: req.studentName,
+      phone: req.studentPhone,
+      email: req.studentEmail || "",
+      status: "Discount Requested" as const,
+      admissionDate: req.createdAt,
+      createdAt: req.createdAt,
+      totalEnrollmentsCount: 1,
+      totalPayableSum: Math.max(0, courseFee - reqDiscount),
+      totalPaidSum: 0,
+      totalDueSum: Math.max(0, courseFee - reqDiscount),
+      discountRequestId: String(req._id),
+      requestedDiscount: req.requestedAmount,
+      approvedDiscount: req.approvedAmount,
+      discountReason: req.reason,
+      requestedCourse: req.course,
+      requestedBatch: req.batch,
+      requestedBy: req.requestedBy,
+    });
+  }
+
+  const pendingDiscountCount = await AdmissionDiscountRequest.countDocuments({ status: "Pending" });
 
   return JSON.parse(
     JSON.stringify({
       students: studentListWithStats,
-      total,
+      total: total + unlinkedRequests.length,
       page,
-      totalPages: Math.ceil(total / limit),
+      totalPages: Math.ceil((total + unlinkedRequests.length) / limit),
+      pendingDiscountCount,
     })
   );
 }
@@ -446,10 +556,33 @@ export async function requestAdmissionDiscount(data: {
   const recipientEmails = [...new Set(recipients.map((recipient) => recipient.email.toLowerCase()))];
   if (recipientEmails.length === 0) throw new Error("No active administrators are available to receive discount requests.");
 
-  const request = await AdmissionDiscountRequest.create({
-    studentName, studentPhone, studentEmail: data.studentEmail?.trim().toLowerCase() || "",
-    course: course._id, batch: batch._id, requestedAmount, reason,
+  let studentDoc = await Student.findOne({ phone: studentPhone });
+  if (!studentDoc) {
+    const newStudentId = await getNextStudentId();
+    studentDoc = await Student.create({
+      studentId: newStudentId,
+      fullName: studentName,
+      phone: studentPhone,
+      email: data.studentEmail?.trim().toLowerCase() || "",
+      status: "Discount Requested",
+      admissionDate: new Date(),
+    });
+  } else if (studentDoc.status !== "Active") {
+    studentDoc.status = "Discount Requested";
+    await studentDoc.save();
+  }
+
+  await AdmissionDiscountRequest.create({
+    studentName,
+    studentPhone,
+    studentEmail: data.studentEmail?.trim().toLowerCase() || "",
+    course: course._id,
+    batch: batch._id,
+    requestedAmount,
+    reason,
     requestedBy: { email: actor.email.toLowerCase(), name: actor.name || "", role: actor.role },
+    student: studentDoc._id,
+    status: "Pending",
   });
   await Notification.create({
     actorEmail: actor.email,
@@ -459,7 +592,7 @@ export async function requestAdmissionDiscount(data: {
     module: "students",
     title: "Student discount approval requested",
     message: `${studentName} (${studentPhone}${data.studentEmail?.trim() ? `, ${data.studentEmail.trim()}` : ""}) requests ৳${requestedAmount.toLocaleString()} discount for ${course.title} (${course.code}), batch ${batch.batchName} (${batch.batchCode}). Reason: ${reason}`,
-    link: `/students/discount-requests?requestId=${request._id}`,
+    link: `/students?status=Discount+Requested`,
     recipientEmails,
   });
 
@@ -472,6 +605,173 @@ export async function requestAdmissionDiscount(data: {
     details: `Requested ৳${requestedAmount.toLocaleString()} admission discount for ${studentName} in ${course.title}, batch ${batch.batchName}. Reason: ${reason}`,
   });
 
+  revalidatePath("/students");
+  return { success: true };
+}
+
+export async function allowDiscountAndActivateStudent(data: {
+  discountRequestId?: string;
+  studentId?: string;
+  fullName?: string;
+  phone?: string;
+  email?: string;
+  courseId: string;
+  batchId: string;
+  allowedDiscount: number;
+  adminNotes?: string;
+}) {
+  const actor = await requirePermission("students", "write");
+  if (!["admin", "super_admin"].includes(actor.role)) {
+    throw new Error("Forbidden: Only Admins or Super Admins can allow discounts and activate students.");
+  }
+  await connectToDatabase();
+
+  const [course, batch] = await Promise.all([
+    Course.findById(data.courseId),
+    Batch.findById(data.batchId),
+  ]);
+  if (!course || !batch) throw new Error("Course or batch not found.");
+
+  const courseFee = Number(course.defaultFee || 0);
+  const discount = Math.min(Math.max(0, Number(data.allowedDiscount)), courseFee);
+  const finalPayable = Math.max(0, courseFee - discount);
+
+  let studentDoc = null;
+  if (data.studentId && mongoose.Types.ObjectId.isValid(data.studentId)) {
+    studentDoc = await Student.findById(data.studentId);
+  }
+  if (!studentDoc && data.phone) {
+    studentDoc = await Student.findOne({ phone: data.phone.trim() });
+  }
+
+  if (!studentDoc) {
+    const newStudentId = await getNextStudentId();
+    studentDoc = await Student.create({
+      studentId: newStudentId,
+      fullName: data.fullName?.trim() || "Student",
+      phone: data.phone?.trim() || "",
+      email: data.email?.trim().toLowerCase() || "",
+      status: "Active",
+      admissionDate: new Date(),
+    });
+  } else {
+    studentDoc.status = "Active";
+    if (data.fullName?.trim()) studentDoc.fullName = data.fullName.trim();
+    if (data.email?.trim()) studentDoc.email = data.email.trim().toLowerCase();
+    await studentDoc.save();
+  }
+
+  // Check if enrollment already exists in batch
+  let enrollment = await Enrollment.findOne({ student: studentDoc._id, batch: batch._id });
+  if (!enrollment) {
+    const enrollmentId = await getNextEnrollmentId();
+    enrollment = await Enrollment.create({
+      enrollmentId,
+      student: studentDoc._id,
+      course: course._id,
+      batch: batch._id,
+      agreedFee: courseFee,
+      discount,
+      finalPayableAmount: finalPayable,
+      totalCollectedAmount: 0,
+      remainingDue: finalPayable,
+      paymentStatus: "Pending",
+      status: "Enrolled",
+      admissionDate: new Date(),
+      referrerType: "None",
+      commissionRate: 0,
+      admittedBy: {
+        email: actor.email,
+        name: actor.name,
+      },
+      notes: data.adminNotes?.trim() || `Discount ৳${discount.toLocaleString()} manually allowed by ${actor.name || actor.email}.`,
+    });
+  } else {
+    enrollment.agreedFee = courseFee;
+    enrollment.discount = discount;
+    enrollment.finalPayableAmount = finalPayable;
+    enrollment.remainingDue = Math.max(0, finalPayable - (enrollment.totalCollectedAmount || 0));
+    if (data.adminNotes?.trim()) {
+      enrollment.notes = `${enrollment.notes ? enrollment.notes + " | " : ""}${data.adminNotes.trim()}`;
+    }
+    await enrollment.save();
+  }
+
+  // Update discount request if provided or found
+  let requestDoc = null;
+  if (data.discountRequestId && mongoose.Types.ObjectId.isValid(data.discountRequestId)) {
+    requestDoc = await AdmissionDiscountRequest.findById(data.discountRequestId);
+  }
+  if (!requestDoc) {
+    requestDoc = await AdmissionDiscountRequest.findOne({
+      $or: [
+        { student: studentDoc._id, batch: batch._id },
+        { studentPhone: studentDoc.phone, batch: batch._id },
+      ],
+      status: { $in: ["Pending", "Approved"] },
+    });
+  }
+
+  if (requestDoc) {
+    requestDoc.status = "Used";
+    requestDoc.approvedAmount = discount;
+    requestDoc.adminNotes = data.adminNotes?.trim() || `Manually allowed ৳${discount.toLocaleString()} and activated.`;
+    requestDoc.student = studentDoc._id;
+    requestDoc.enrollment = enrollment._id;
+    requestDoc.reviewedBy = {
+      email: actor.email.toLowerCase(),
+      name: actor.name || "",
+      date: new Date(),
+    };
+    await requestDoc.save();
+  }
+
+  await logActivityAndNotify({
+    actor,
+    action: "ALLOW_DISCOUNT_ACTIVATE",
+    module: "students",
+    resourceId: String(studentDoc._id),
+    resourceName: studentDoc.fullName,
+    details: `Allowed ৳${discount.toLocaleString()} manual discount for ${studentDoc.fullName} (${studentDoc.studentId}) in ${course.title} and set status to Active.`,
+  });
+
+  revalidatePath("/students");
+  revalidatePath(`/students/${studentDoc._id}`);
+  revalidatePath(`/academic/batches/${batch._id}`);
+
+  return JSON.parse(JSON.stringify({ success: true, student: studentDoc, enrollment }));
+}
+
+export async function rejectDiscountRequest(requestId: string, adminNotes?: string) {
+  const actor = await requirePermission("students", "write");
+  if (!["admin", "super_admin"].includes(actor.role)) {
+    throw new Error("Forbidden: Only Admins or Super Admins can reject discount requests.");
+  }
+  await connectToDatabase();
+  const request = await AdmissionDiscountRequest.findById(requestId);
+  if (!request) throw new Error("Discount request not found.");
+
+  request.status = "Rejected";
+  request.adminNotes = adminNotes?.trim() || "Discount request rejected.";
+  request.reviewedBy = {
+    email: actor.email.toLowerCase(),
+    name: actor.name || "",
+    date: new Date(),
+  };
+  await request.save();
+
+  if (request.student) {
+    const student = await Student.findById(request.student);
+    if (student && student.status === "Discount Requested") {
+      const enrollmentsCount = await Enrollment.countDocuments({ student: student._id });
+      if (enrollmentsCount === 0) {
+        student.status = "Inactive";
+        await student.save();
+      }
+    }
+  }
+
+  revalidatePath("/students");
   return { success: true };
 }
 
@@ -505,7 +805,7 @@ export async function reviewAdmissionDiscountRequest(id: string, decision: "Appr
   request.adminNotes = adminNotes.trim();
   request.reviewedBy = { email: actor.email.toLowerCase(), name: actor.name || "", date: new Date() };
   await request.save();
-  revalidatePath("/students/discount-requests");
+  revalidatePath("/students");
   return { success: true };
 }
 
@@ -523,7 +823,7 @@ export async function updateStudent(
     guardianPhone?: string;
     address?: string;
     notes?: string;
-    status?: "Active" | "Inactive" | "Archived";
+    status?: "Active" | "Inactive" | "Archived" | "Discount Requested";
   }
 ) {
   const actor = await requirePermission("students", "write");

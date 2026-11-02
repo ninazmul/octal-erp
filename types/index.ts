@@ -132,7 +132,7 @@ export interface IBatch {
 // STUDENT & ENROLLMENT TYPES
 // ==========================================
 
-export type StudentStatus = "Active" | "Inactive" | "Archived";
+export type StudentStatus = "Active" | "Inactive" | "Archived" | "Discount Requested";
 export type EnrollmentStatus = "Active" | "Completed" | "Dropped" | "Suspended";
 export type ReferrerType = "Instructor" | "Staff" | "External" | "None";
 
@@ -153,6 +153,14 @@ export interface IStudent {
   totalPayableSum?: number;
   totalPaidSum?: number;
   totalDueSum?: number;
+  // Attached discount request metadata (if status is "Discount Requested")
+  discountRequestId?: string;
+  requestedDiscount?: number;
+  approvedDiscount?: number;
+  discountReason?: string;
+  requestedCourse?: { _id: string; title: string; code: string; defaultFee: number };
+  requestedBatch?: { _id: string; batchName: string; batchCode: string };
+  requestedBy?: { email: string; name?: string; role: string };
   createdAt?: Date | string;
   updatedAt?: Date | string;
 }
