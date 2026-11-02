@@ -113,6 +113,7 @@ export default function NewAdmissionForm({
   });
 
   const selectedBatchObj = batches.find((b) => b._id === selectedBatchId);
+  const selectedCourse = courses.find((c) => c._id === selectedCourseId);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -329,17 +330,49 @@ export default function NewAdmissionForm({
               )}
             </div>
 
-            {selectedBatchObj && (
-              <div className="sm:col-span-2 p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-100 dark:border-slate-800 text-xs flex items-center justify-between flex-wrap gap-2">
-                <span className="text-slate-600 dark:text-slate-300">
-                  Schedule: <strong>{selectedBatchObj.scheduleDescription || "Regular"}</strong>
-                </span>
-                <span className="text-slate-600 dark:text-slate-300">
-                  Capacity: <strong>{selectedBatchObj.maxCapacity} seats</strong>
-                </span>
-                <span className="text-slate-600 dark:text-slate-300">
-                  Starts: <strong>{new Date(selectedBatchObj.startDate).toLocaleDateString()}</strong>
-                </span>
+            {/* Read-Only Course Fee & Batch Information Display */}
+            {selectedCourse && (
+              <div className="sm:col-span-2 p-4 rounded-xl border border-indigo-100 dark:border-indigo-900/50 bg-indigo-50/50 dark:bg-indigo-950/20 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
+                      Course Fee (Official Tuition)
+                    </span>
+                    <div className="flex items-baseline gap-2 mt-0.5">
+                      <span className="text-2xl font-bold font-mono text-indigo-700 dark:text-indigo-300">
+                        ৳{(selectedCourse.defaultFee || 0).toLocaleString()}
+                      </span>
+                      <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                        (Standard Fee · Read-only)
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium px-2.5 py-1 rounded-md bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 shadow-xs">
+                      Duration: <strong>{selectedCourse.durationMonths || 3} Months</strong>
+                    </span>
+                    <span className="text-xs font-semibold px-2.5 py-1 rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                      Standard Rate
+                    </span>
+                  </div>
+                </div>
+
+                {selectedBatchObj && (
+                  <div className="pt-2.5 border-t border-indigo-100/80 dark:border-indigo-900/40 grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs text-slate-600 dark:text-slate-300">
+                    <div className="p-2.5 bg-white/80 dark:bg-slate-900/60 rounded-lg border border-indigo-50 dark:border-indigo-950">
+                      <span className="text-slate-400 block text-[10px] uppercase font-semibold">Batch Schedule</span>
+                      <strong className="text-slate-700 dark:text-slate-200">{selectedBatchObj.scheduleDescription || "Regular"}</strong>
+                    </div>
+                    <div className="p-2.5 bg-white/80 dark:bg-slate-900/60 rounded-lg border border-indigo-50 dark:border-indigo-950">
+                      <span className="text-slate-400 block text-[10px] uppercase font-semibold">Seat Capacity</span>
+                      <strong className="text-slate-700 dark:text-slate-200">{selectedBatchObj.maxCapacity} seats</strong>
+                    </div>
+                    <div className="p-2.5 bg-white/80 dark:bg-slate-900/60 rounded-lg border border-indigo-50 dark:border-indigo-950">
+                      <span className="text-slate-400 block text-[10px] uppercase font-semibold">Batch Starts</span>
+                      <strong className="text-slate-700 dark:text-slate-200">{new Date(selectedBatchObj.startDate).toLocaleDateString()}</strong>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

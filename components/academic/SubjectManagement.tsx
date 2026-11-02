@@ -19,6 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { DeleteConfirmDialog } from "@/components/shared/DeleteConfirmDialog";
 import { Plus, Search, Edit2, CheckCircle2, XCircle, GraduationCap, Trash2 } from "lucide-react";
+import { usePermissions } from "@/components/providers/PermissionContext";
 import toast from "react-hot-toast";
 
 interface SubjectManagementProps {
@@ -28,6 +29,9 @@ interface SubjectManagementProps {
 export default function SubjectManagement({
   initialSubjects,
 }: SubjectManagementProps) {
+  const { isInstructor, canWrite } = usePermissions();
+  const canManage = !isInstructor && canWrite("academic");
+
   const [subjects, setSubjects] = useState<ISubject[]>(initialSubjects);
   const [search, setSearch] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -149,15 +153,17 @@ export default function SubjectManagement({
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <Button
-            onClick={handleOpenCreate}
-            className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs sm:text-sm gap-2 shadow-sm"
-          >
-            <Plus className="w-4 h-4" />
-            Add Subject
-          </Button>
-        </div>
+        {canManage && (
+          <div className="flex items-center gap-3">
+            <Button
+              onClick={handleOpenCreate}
+              className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs sm:text-sm gap-2 shadow-sm"
+            >
+              <Plus className="w-4 h-4" />
+              Add Subject
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Filter and search */}
@@ -185,12 +191,14 @@ export default function SubjectManagement({
                 </span>
                 <Badge
                   variant={subject.isActive ? "default" : "secondary"}
-                  className={`text-[11px] cursor-pointer ${
+                  className={`text-[11px] ${
+                    canManage ? "cursor-pointer" : "cursor-default"
+                  } ${
                     subject.isActive
                       ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/25 border-emerald-500/30"
                       : "bg-slate-500/15 text-slate-600 dark:text-slate-400 hover:bg-slate-500/25 border-slate-500/30"
                   }`}
-                  onClick={() => handleToggleStatus(subject)}
+                  onClick={() => canManage && handleToggleStatus(subject)}
                 >
                   {subject.isActive ? (
                     <span className="flex items-center gap-1">
@@ -216,12 +224,14 @@ export default function SubjectManagement({
               <span className="text-[11px] text-slate-400">
                 Created: {new Date(subject.createdAt || Date.now()).toLocaleDateString()}
               </span>
-              <div className="flex items-center gap-1">
-                <Button variant="ghost" size="sm" onClick={() => handleOpenEdit(subject)} className="h-8 px-2 text-xs text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400">
-                  <Edit2 className="w-3.5 h-3.5 mr-1" /> Edit
-                </Button>
-                {subject.isActive && <Button variant="ghost" size="sm" onClick={() => setDeletingSubject(subject)} className="h-8 px-2 text-xs text-rose-600" aria-label={`Delete ${subject.name}`}><Trash2 className="w-3.5 h-3.5" /></Button>}
-              </div>
+              {canManage && (
+                <div className="flex items-center gap-1">
+                  <Button variant="ghost" size="sm" onClick={() => handleOpenEdit(subject)} className="h-8 px-2 text-xs text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400">
+                    <Edit2 className="w-3.5 h-3.5 mr-1" /> Edit
+                  </Button>
+                  {subject.isActive && <Button variant="ghost" size="sm" onClick={() => setDeletingSubject(subject)} className="h-8 px-2 text-xs text-rose-600" aria-label={`Delete ${subject.name}`}><Trash2 className="w-3.5 h-3.5" /></Button>}
+                </div>
+              )}
             </div>
           </div>
         ))}
@@ -230,10 +240,12 @@ export default function SubjectManagement({
           <div className="col-span-full py-12 text-center bg-white dark:bg-slate-900 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
             <GraduationCap className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
             <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
-              No subjects found
+              {isInstructor ? "No assigned subjects found" : "No subjects found"}
             </p>
             <p className="text-xs text-slate-400 mt-1">
-              Add your first subject to start organizing Octal courses and training programs.
+              {isInstructor
+                ? "You will see subjects here once you are assigned to a course or batch under that subject."
+                : "Add your first subject to start organizing Octal courses and training programs."}
             </p>
           </div>
         )}

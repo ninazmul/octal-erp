@@ -28,6 +28,7 @@ import {
   Users,
   Trash2,
 } from "lucide-react";
+import { usePermissions } from "@/components/providers/PermissionContext";
 import toast from "react-hot-toast";
 
 interface CourseManagementProps {
@@ -41,6 +42,9 @@ export default function CourseManagement({
   subjects,
   instructors,
 }: CourseManagementProps) {
+  const { isInstructor, canWrite } = usePermissions();
+  const canManage = !isInstructor && canWrite("academic");
+
   const [courses, setCourses] = useState<ICourse[]>(initialCourses);
   const [search, setSearch] = useState("");
   const [subjectFilter, setSubjectFilter] = useState("all");
@@ -206,15 +210,17 @@ export default function CourseManagement({
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <Button
-            onClick={handleOpenCreate}
-            className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs sm:text-sm gap-2 shadow-sm"
-          >
-            <Plus className="w-4 h-4" />
-            Add Course
-          </Button>
-        </div>
+        {canManage && (
+          <div className="flex items-center gap-3">
+            <Button
+              onClick={handleOpenCreate}
+              className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs sm:text-sm gap-2 shadow-sm"
+            >
+              <Plus className="w-4 h-4" />
+              Add Course
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Filter and search bar */}
@@ -270,12 +276,14 @@ export default function CourseManagement({
 
                   <Badge
                     variant={course.isActive ? "default" : "secondary"}
-                    className={`text-[11px] cursor-pointer ${
+                    className={`text-[11px] ${
+                      canManage ? "cursor-pointer" : "cursor-default"
+                    } ${
                       course.isActive
                         ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/25 border-emerald-500/30"
                         : "bg-slate-500/15 text-slate-600 dark:text-slate-400 hover:bg-slate-500/25 border-slate-500/30"
                     }`}
-                    onClick={() => handleToggleStatus(course)}
+                    onClick={() => canManage && handleToggleStatus(course)}
                   >
                     {course.isActive ? "Active" : "Inactive"}
                   </Badge>
@@ -315,12 +323,14 @@ export default function CourseManagement({
                 <span className="text-[11px] text-slate-400">
                   Multiple batches supported
                 </span>
-                <div className="flex items-center gap-1">
-                  <Button variant="ghost" size="sm" onClick={() => handleOpenEdit(course)} className="h-8 px-2 text-xs text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400">
-                    <Edit2 className="w-3.5 h-3.5 mr-1" /> Edit
-                  </Button>
-                  {course.isActive && <Button variant="ghost" size="sm" onClick={() => setDeletingCourse(course)} className="h-8 px-2 text-xs text-rose-600" aria-label={`Delete ${course.title}`}><Trash2 className="w-3.5 h-3.5" /></Button>}
-                </div>
+                {canManage && (
+                  <div className="flex items-center gap-1">
+                    <Button variant="ghost" size="sm" onClick={() => handleOpenEdit(course)} className="h-8 px-2 text-xs text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400">
+                      <Edit2 className="w-3.5 h-3.5 mr-1" /> Edit
+                    </Button>
+                    {course.isActive && <Button variant="ghost" size="sm" onClick={() => setDeletingCourse(course)} className="h-8 px-2 text-xs text-rose-600" aria-label={`Delete ${course.title}`}><Trash2 className="w-3.5 h-3.5" /></Button>}
+                  </div>
+                )}
               </div>
             </div>
           );
@@ -330,10 +340,12 @@ export default function CourseManagement({
           <div className="col-span-full py-12 text-center bg-white dark:bg-slate-900 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
             <BookOpen className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
             <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
-              No courses found
+              {isInstructor ? "No assigned courses found" : "No courses found"}
             </p>
             <p className="text-xs text-slate-400 mt-1">
-              Add your first course under a subject to begin admissions and batch scheduling.
+              {isInstructor
+                ? "You will see courses here once you are assigned as an instructor to a course or its batches."
+                : "Add your first course under a subject to begin admissions and batch scheduling."}
             </p>
           </div>
         )}

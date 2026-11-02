@@ -32,6 +32,7 @@ import {
   Users,
 } from "lucide-react";
 import Link from "next/link";
+import { usePermissions } from "@/components/providers/PermissionContext";
 import toast from "react-hot-toast";
 
 interface BatchManagementProps {
@@ -47,6 +48,9 @@ export default function BatchManagement({
   subjects,
   instructors,
 }: BatchManagementProps) {
+  const { isInstructor, canWrite } = usePermissions();
+  const canManage = !isInstructor && canWrite("academic");
+
   const [batches, setBatches] = useState<IBatch[]>(initialBatches);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -262,15 +266,17 @@ export default function BatchManagement({
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <Button
-            onClick={handleOpenCreate}
-            className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs sm:text-sm gap-2 shadow-sm"
-          >
-            <Plus className="w-4 h-4" />
-            Create Batch
-          </Button>
-        </div>
+        {canManage && (
+          <div className="flex items-center gap-3">
+            <Button
+              onClick={handleOpenCreate}
+              className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs sm:text-sm gap-2 shadow-sm"
+            >
+              <Plus className="w-4 h-4" />
+              Create Batch
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Filter and search bar */}
@@ -420,29 +426,33 @@ export default function BatchManagement({
               {/* Action buttons */}
               <div className="pt-4 mt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleOpenEdit(batch)}
-                    className="h-8 text-xs text-slate-700 dark:text-slate-300"
-                  >
-                    <Edit2 className="w-3 h-3 mr-1" /> Edit
-                  </Button>
+                  {canManage && (
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleOpenEdit(batch)}
+                        className="h-8 text-xs text-slate-700 dark:text-slate-300"
+                      >
+                        <Edit2 className="w-3 h-3 mr-1" /> Edit
+                      </Button>
 
-                  {batch.status !== "Completed" && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleCloseAcademically(batch)}
-                      className="h-8 text-xs text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/40"
-                    >
-                      <CheckCircle2 className="w-3 h-3 mr-1" /> Complete Academic
-                    </Button>
-                  )}
-                  {batch.status !== "Cancelled" && (
-                    <Button variant="ghost" size="sm" onClick={() => setCancellingBatch(batch)} className="h-8 text-xs text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30">
-                      <Trash2 className="w-3 h-3 mr-1" /> Delete
-                    </Button>
+                      {batch.status !== "Completed" && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleCloseAcademically(batch)}
+                          className="h-8 text-xs text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/40"
+                        >
+                          <CheckCircle2 className="w-3 h-3 mr-1" /> Complete Academic
+                        </Button>
+                      )}
+                      {batch.status !== "Cancelled" && (
+                        <Button variant="ghost" size="sm" onClick={() => setCancellingBatch(batch)} className="h-8 text-xs text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30">
+                          <Trash2 className="w-3 h-3 mr-1" /> Delete
+                        </Button>
+                      )}
+                    </>
                   )}
                 </div>
 
@@ -463,10 +473,12 @@ export default function BatchManagement({
           <div className="col-span-full py-12 text-center bg-white dark:bg-slate-900 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
             <Layers className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
             <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
-              No batches found
+              {isInstructor ? "No assigned batches found" : "No batches found"}
             </p>
             <p className="text-xs text-slate-400 mt-1">
-              Create a batch to start scheduling classes, admitting students, and tracking payments.
+              {isInstructor
+                ? "You will see batches here once an administrator assigns you as the instructor for a batch."
+                : "Create a batch to start scheduling classes, admitting students, and tracking payments."}
             </p>
           </div>
         )}

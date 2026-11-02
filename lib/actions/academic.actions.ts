@@ -16,7 +16,7 @@ import mongoose from "mongoose";
 // ==========================================
 
 export async function getSubjects(params?: { search?: string; status?: string }) {
-  await requirePermission("academic", "read");
+  const profile = await requirePermission("academic", "read");
   await connectToDatabase();
 
   const query: Record<string, unknown> = {};
@@ -29,6 +29,22 @@ export async function getSubjects(params?: { search?: string; status?: string })
   if (params?.status === "active") query.isActive = true;
   if (params?.status === "inactive") query.isActive = false;
 
+  // Instructor resource-based scoping: only see subjects on which the instructor is assigned
+  if (profile.role === "instructor" || profile.role === "staff") {
+    if (!profile.employeeId) return [];
+    const [assignedCourseSubjects, assignedBatchSubjects] = await Promise.all([
+      Course.find({ instructors: profile.employeeId }).distinct("subject"),
+      Batch.find({ instructors: profile.employeeId }).distinct("subject"),
+    ]);
+    const assignedSubjectIds = Array.from(
+      new Set([
+        ...assignedCourseSubjects.map((id) => String(id)),
+        ...assignedBatchSubjects.map((id) => String(id)),
+      ])
+    );
+    query._id = { $in: assignedSubjectIds };
+  }
+
   const subjects = await Subject.find(query).sort({ name: 1 }).lean();
   return JSON.parse(JSON.stringify(subjects));
 }
@@ -40,6 +56,9 @@ export async function createSubject(data: {
   isActive?: boolean;
 }) {
   const actor = await requirePermission("academic", "write");
+  if (actor.role === "instructor") {
+    throw new Error("Forbidden: Instructors are not permitted to add subjects.");
+  }
   await connectToDatabase();
 
   const existing = await Subject.findOne({ code: data.code.trim().toUpperCase() });
@@ -77,6 +96,9 @@ export async function updateSubject(
   }
 ) {
   const actor = await requirePermission("academic", "write");
+  if (actor.role === "instructor") {
+    throw new Error("Forbidden: Instructors are not permitted to edit subjects.");
+  }
   await connectToDatabase();
 
   const subject = await Subject.findById(id);
@@ -133,10 +155,14 @@ export async function getCourses(params?: {
     ];
   }
 
-  // Instructor resource-based scoping: only see assigned courses
+  // Instructor resource-based scoping: only see assigned courses (directly or via assigned batch)
   if (profile.role === "instructor" || profile.role === "staff") {
     if (!profile.employeeId) return [];
-    query.instructors = profile.employeeId;
+    const batchCourseIds = await Batch.find({ instructors: profile.employeeId }).distinct("course");
+    query.$or = [
+      { instructors: profile.employeeId },
+      { _id: { $in: batchCourseIds } },
+    ];
   }
 
   const courses = await Course.find(query)
@@ -160,6 +186,9 @@ export async function createCourse(data: {
   isActive?: boolean;
 }) {
   const actor = await requirePermission("academic", "write");
+  if (actor.role === "instructor") {
+    throw new Error("Forbidden: Instructors are not permitted to add courses.");
+  }
   await connectToDatabase();
 
   const existing = await Course.findOne({ code: data.code.trim().toUpperCase() });
@@ -207,6 +236,9 @@ export async function updateCourse(
   }
 ) {
   const actor = await requirePermission("academic", "write");
+  if (actor.role === "instructor") {
+    throw new Error("Forbidden: Instructors are not permitted to edit courses.");
+  }
   await connectToDatabase();
 
   const course = await Course.findById(id);
@@ -408,6 +440,9 @@ export async function createBatch(data: {
   notes?: string;
 }) {
   const actor = await requirePermission("academic", "write");
+  if (actor.role === "instructor") {
+    throw new Error("Forbidden: Instructors are not permitted to create batches.");
+  }
   await connectToDatabase();
   if ((data.instructors || []).filter(Boolean).length > 1) {
     throw new Error("A batch can have only one assigned instructor.");
@@ -461,6 +496,9 @@ export async function updateBatch(
   }
 ) {
   const actor = await requirePermission("academic", "write");
+  if (actor.role === "instructor") {
+    throw new Error("Forbidden: Instructors are not permitted to edit batches.");
+  }
   await connectToDatabase();
   if (data.instructors && data.instructors.filter(Boolean).length > 1) {
     throw new Error("A batch can have only one assigned instructor.");
@@ -500,6 +538,9 @@ export async function updateBatch(
 // Mark academic completion separate from financial settlement
 export async function closeBatchAcademically(id: string) {
   const actor = await requirePermission("academic", "write");
+  if (actor.role === "instructor") {
+    throw new Error("Forbidden: Instructors are not permitted to close batches.");
+  }
   await connectToDatabase();
 
   const batch = await Batch.findById(id);
