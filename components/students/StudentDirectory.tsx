@@ -21,6 +21,13 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Users,
   Search,
   Plus,
@@ -33,6 +40,7 @@ import {
   Trash2,
   BadgePercent,
   CheckCircle2,
+  MoreHorizontal,
 } from "lucide-react";
 import Link from "next/link";
 import toast from "react-hot-toast";
@@ -512,18 +520,19 @@ export default function StudentDirectory({
 
       {/* Students Table */}
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
+        {/* Desktop Table */}
+        <div className="hidden lg:block overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
               <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-400 font-semibold uppercase tracking-wider text-[10px] bg-slate-50/50 dark:bg-slate-800/40">
-                <th className="py-3 px-4">Student ID & Name</th>
-                <th className="py-3 px-4">Phone / Contact</th>
-                <th className="py-3 px-4">Course / Batches</th>
-                <th className="py-3 px-4">Total Payable</th>
-                <th className="py-3 px-4">Paid</th>
-                <th className="py-3 px-4">Remaining Due</th>
-                <th className="py-3 px-4">Status</th>
-                <th className="py-3 px-4 text-right">Actions</th>
+                <th className="py-3 px-4 w-[22%]">Student</th>
+                <th className="py-3 px-4 w-[15%]">Contact</th>
+                <th className="py-3 px-4 w-[13%]">Course</th>
+                <th className="py-3 px-4 w-[12%] text-right">Payable</th>
+                <th className="py-3 px-4 w-[10%] text-right">Paid</th>
+                <th className="py-3 px-4 w-[10%] text-right">Due</th>
+                <th className="py-3 px-4 w-[10%] text-center">Status</th>
+                <th className="py-3 px-4 w-[8%] text-center">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
@@ -542,78 +551,80 @@ export default function StudentDirectory({
                         : "hover:bg-slate-50/50 dark:hover:bg-slate-800/30"
                     }`}
                   >
+                    {/* Student Name & ID */}
                     <td className="py-3 px-4">
-                      <div className="font-semibold text-sm text-slate-900 dark:text-white">
+                      <div className="font-semibold text-sm text-slate-900 dark:text-white truncate max-w-[200px]">
                         {student.fullName}
                       </div>
-                      <span className="font-mono text-[11px] font-semibold text-indigo-600 dark:text-indigo-400">
+                      <span className="font-mono text-[11px] font-medium text-indigo-600 dark:text-indigo-400">
                         {student.studentId}
                       </span>
                     </td>
 
+                    {/* Contact */}
                     <td className="py-3 px-4">
-                      <div className="font-mono text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                        <Phone className="w-3.5 h-3.5 text-slate-400" />
-                        {student.phone}
+                      <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300 text-[11px]">
+                        <Phone className="w-3 h-3 text-slate-400 shrink-0" />
+                        <span className="font-mono">{student.phone}</span>
                       </div>
                       {student.email && (
-                        <div className="text-[11px] text-slate-400 flex items-center gap-1.5 mt-0.5 truncate max-w-[150px]">
-                          <Mail className="w-3 h-3 text-slate-400 shrink-0" />
-                          {student.email}
+                        <div className="flex items-center gap-1.5 text-[10px] text-slate-400 mt-0.5 truncate max-w-[140px]">
+                          <Mail className="w-3 h-3 shrink-0" />
+                          <span className="truncate">{student.email}</span>
                         </div>
                       )}
                     </td>
 
+                    {/* Course */}
                     <td className="py-3 px-4">
                       {isDiscountReq && student.requestedCourse ? (
                         <div>
-                          <span className="font-semibold text-slate-800 dark:text-slate-200">
+                          <span className="font-medium text-[11px] text-slate-800 dark:text-slate-200 block truncate max-w-[120px]">
                             {student.requestedCourse.title}
                           </span>
-                          <span className="block text-[11px] text-amber-700 dark:text-amber-400">
-                            {student.requestedBatch?.batchName || "Pending Batch"}
+                          <span className="text-[10px] text-amber-600 dark:text-amber-400">
+                            {student.requestedBatch?.batchName || "Pending"}
                           </span>
                         </div>
                       ) : (
-                        <div>
-                          <span className="font-bold text-slate-800 dark:text-slate-200">
-                            {student.totalEnrollmentsCount || 0}
-                          </span>
-                          <span className="text-slate-400 text-[11px]"> Courses</span>
-                        </div>
+                        <span className="text-slate-600 dark:text-slate-300 text-[11px]">
+                          <strong className="text-slate-800 dark:text-slate-200">{student.totalEnrollmentsCount || 0}</strong> Course{(student.totalEnrollmentsCount || 0) !== 1 ? "s" : ""}
+                        </span>
                       )}
                     </td>
 
-                    <td className="py-3 px-4 font-mono font-medium text-slate-800 dark:text-slate-200">
+                    {/* Payable */}
+                    <td className="py-3 px-4 text-right">
+                      <span className="font-mono text-[11px] font-medium text-slate-800 dark:text-slate-200">
+                        ৳{(student.totalPayableSum || 0).toLocaleString()}
+                      </span>
                       {isDiscountReq && student.requestedDiscount ? (
-                        <div>
-                          <span>৳{student.totalPayableSum?.toLocaleString() || "0"}</span>
-                          <span className="block text-[10px] text-amber-600 dark:text-amber-400">
-                            Req Disc: ৳{student.requestedDiscount.toLocaleString()}
-                          </span>
-                        </div>
-                      ) : (
-                        <span>৳{student.totalPayableSum?.toLocaleString() || "0"}</span>
-                      )}
+                        <span className="block text-[10px] text-amber-600 dark:text-amber-400 font-medium">
+                          Disc: ৳{student.requestedDiscount.toLocaleString()}
+                        </span>
+                      ) : null}
                     </td>
 
-                    <td className="py-3 px-4 font-mono font-semibold text-emerald-600 dark:text-emerald-400">
-                      ৳{student.totalPaidSum?.toLocaleString() || "0"}
+                    {/* Paid */}
+                    <td className="py-3 px-4 text-right font-mono text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+                      ৳{(student.totalPaidSum || 0).toLocaleString()}
                     </td>
 
-                    <td className="py-3 px-4 font-mono">
+                    {/* Due */}
+                    <td className="py-3 px-4 text-right">
                       <span
-                        className={
+                        className={`font-mono text-[11px] ${
                           due > 0
                             ? "font-bold text-amber-600 dark:text-amber-400"
                             : "text-slate-400"
-                        }
+                        }`}
                       >
                         ৳{due.toLocaleString()}
                       </span>
                     </td>
 
-                    <td className="py-3 px-4">
+                    {/* Status */}
+                    <td className="py-3 px-4 text-center">
                       <Badge
                         variant="outline"
                         className={`text-[10px] ${
@@ -621,89 +632,97 @@ export default function StudentDirectory({
                             ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20"
                             : student.status === "Discount Requested"
                             ? "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30 font-bold gap-1"
+                            : student.status === "Archived"
+                            ? "bg-slate-500/10 text-slate-500 border-slate-500/20"
                             : "bg-slate-500/10 text-slate-600 border-slate-500/20"
                         }`}
                       >
                         {student.status === "Discount Requested" && (
                           <BadgePercent className="w-3 h-3 text-amber-600" />
                         )}
-                        {student.status}
+                        {student.status === "Discount Requested" ? "Pending" : student.status}
                       </Badge>
                     </td>
 
-                    <td className="py-3 px-4 text-right">
-                      <div className="flex items-center justify-end gap-1.5 flex-wrap">
-                        {/* If student requested discount, allow Admin/Super Admin to manually allow discount & activate */}
+                    {/* Actions */}
+                    <td className="py-3 px-4 text-center">
+                      <div className="flex items-center justify-center gap-1">
+                        {/* Primary CTA for discount requests */}
                         {isDiscountReq && isAdmin && (
                           <Button
                             size="sm"
                             onClick={() => openAllowDiscount(student)}
-                            className="h-8 px-2.5 text-[11px] bg-amber-600 hover:bg-amber-700 text-white gap-1.5 font-semibold shadow-xs"
+                            className="h-7 px-2 text-[10px] bg-amber-600 hover:bg-amber-700 text-white gap-1 font-semibold shadow-xs"
+                            title="Allow Discount & Activate"
                           >
-                            <BadgePercent className="w-3.5 h-3.5" />
-                            Allow Discount & Activate
+                            <CheckCircle2 className="w-3 h-3" />
+                            Approve
                           </Button>
                         )}
 
-                        {canWrite("students") && (
-                          <>
+                        {/* Dropdown for secondary actions */}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
                             <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => openEdit(student)}
-                              className="h-8 px-2 text-[11px] gap-1"
-                            >
-                              <Edit2 className="w-3 h-3" /> Edit
-                            </Button>
-                            {student.status !== "Archived" && (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => setArchivingStudent(student)}
-                                className="h-8 px-2 text-[11px] text-rose-600 hover:text-rose-700 gap-1"
-                                aria-label={`Archive ${student.fullName}`}
-                              >
-                                <Archive className="w-3.5 h-3.5" /> Archive
-                              </Button>
-                            )}
-                          </>
-                        )}
-
-                        {isAdmin && (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => setDeletingStudent(student)}
-                            className="h-8 px-2 text-[11px] text-rose-600 hover:text-rose-700 gap-1"
-                            aria-label={`Delete ${student.fullName}`}
-                          >
-                            <Trash2 className="w-3.5 h-3.5" /> Delete
-                          </Button>
-                        )}
-
-                        {student.status === "Active" && (
-                          <Link href={`/payments?studentId=${student._id}`}>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-8 px-2 text-[11px] text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 gap-1"
-                            >
-                              <Receipt className="w-3 h-3" /> Pay
-                            </Button>
-                          </Link>
-                        )}
-
-                        {student.studentId !== "REQ-DISC" && (
-                          <Link href={`/students/${student._id}`}>
-                            <Button
-                              size="sm"
                               variant="ghost"
-                              className="h-8 px-2 text-[11px] text-indigo-600 dark:text-indigo-400"
+                              size="sm"
+                              className="h-7 w-7 p-0 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
                             >
-                              Profile <ArrowRight className="w-3 h-3 ml-0.5" />
+                              <MoreHorizontal className="w-4 h-4" />
                             </Button>
-                          </Link>
-                        )}
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-44">
+                            {student.studentId !== "REQ-DISC" && (
+                              <DropdownMenuItem asChild>
+                                <Link href={`/students/${student._id}`} className="gap-2 cursor-pointer">
+                                  <ArrowRight className="w-3.5 h-3.5" />
+                                  View Profile
+                                </Link>
+                              </DropdownMenuItem>
+                            )}
+
+                            {student.status === "Active" && (
+                              <DropdownMenuItem asChild>
+                                <Link href={`/payments?studentId=${student._id}`} className="gap-2 cursor-pointer text-emerald-600">
+                                  <Receipt className="w-3.5 h-3.5" />
+                                  Record Payment
+                                </Link>
+                              </DropdownMenuItem>
+                            )}
+
+                            {canWrite("students") && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => openEdit(student)} className="gap-2 cursor-pointer">
+                                  <Edit2 className="w-3.5 h-3.5" />
+                                  Edit Student
+                                </DropdownMenuItem>
+                                {student.status !== "Archived" && (
+                                  <DropdownMenuItem
+                                    onClick={() => setArchivingStudent(student)}
+                                    className="gap-2 cursor-pointer text-rose-600 focus:text-rose-700"
+                                  >
+                                    <Archive className="w-3.5 h-3.5" />
+                                    Archive
+                                  </DropdownMenuItem>
+                                )}
+                              </>
+                            )}
+
+                            {isAdmin && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onClick={() => setDeletingStudent(student)}
+                                  className="gap-2 cursor-pointer text-rose-600 focus:text-rose-700"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </td>
                   </tr>
@@ -729,6 +748,173 @@ export default function StudentDirectory({
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile Card Layout */}
+        <div className="lg:hidden divide-y divide-slate-100 dark:divide-slate-800/60">
+          {filtered.map((student) => {
+            const due = student.totalDueSum || 0;
+            const isDiscountReq =
+              student.status === "Discount Requested" ||
+              Boolean(student.discountRequestId);
+
+            return (
+              <div
+                key={student._id}
+                className={`p-4 space-y-3 ${
+                  isDiscountReq
+                    ? "bg-amber-50/40 dark:bg-amber-950/20"
+                    : ""
+                }`}
+              >
+                {/* Top: Name, Status, Menu */}
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="font-semibold text-sm text-slate-900 dark:text-white truncate">
+                      {student.fullName}
+                    </div>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="font-mono text-[11px] font-medium text-indigo-600 dark:text-indigo-400">
+                        {student.studentId}
+                      </span>
+                      <Badge
+                        variant="outline"
+                        className={`text-[9px] px-1.5 py-0 ${
+                          student.status === "Active"
+                            ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20"
+                            : student.status === "Discount Requested"
+                            ? "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30 font-bold"
+                            : "bg-slate-500/10 text-slate-600 border-slate-500/20"
+                        }`}
+                      >
+                        {student.status === "Discount Requested" ? "Pending Discount" : student.status}
+                      </Badge>
+                    </div>
+                  </div>
+
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0 shrink-0">
+                        <MoreHorizontal className="w-4 h-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-44">
+                      {student.studentId !== "REQ-DISC" && (
+                        <DropdownMenuItem asChild>
+                          <Link href={`/students/${student._id}`} className="gap-2 cursor-pointer">
+                            <ArrowRight className="w-3.5 h-3.5" />
+                            View Profile
+                          </Link>
+                        </DropdownMenuItem>
+                      )}
+                      {student.status === "Active" && (
+                        <DropdownMenuItem asChild>
+                          <Link href={`/payments?studentId=${student._id}`} className="gap-2 cursor-pointer text-emerald-600">
+                            <Receipt className="w-3.5 h-3.5" />
+                            Record Payment
+                          </Link>
+                        </DropdownMenuItem>
+                      )}
+                      {canWrite("students") && (
+                        <>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => openEdit(student)} className="gap-2 cursor-pointer">
+                            <Edit2 className="w-3.5 h-3.5" />
+                            Edit Student
+                          </DropdownMenuItem>
+                          {student.status !== "Archived" && (
+                            <DropdownMenuItem
+                              onClick={() => setArchivingStudent(student)}
+                              className="gap-2 cursor-pointer text-rose-600"
+                            >
+                              <Archive className="w-3.5 h-3.5" />
+                              Archive
+                            </DropdownMenuItem>
+                          )}
+                        </>
+                      )}
+                      {isAdmin && (
+                        <>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={() => setDeletingStudent(student)}
+                            className="gap-2 cursor-pointer text-rose-600"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            Delete
+                          </DropdownMenuItem>
+                        </>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+
+                {/* Contact */}
+                <div className="flex items-center gap-4 text-[11px] text-slate-500">
+                  <span className="flex items-center gap-1">
+                    <Phone className="w-3 h-3" />
+                    <span className="font-mono">{student.phone}</span>
+                  </span>
+                  {student.email && (
+                    <span className="flex items-center gap-1 truncate">
+                      <Mail className="w-3 h-3 shrink-0" />
+                      <span className="truncate">{student.email}</span>
+                    </span>
+                  )}
+                </div>
+
+                {/* Financial row */}
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-2">
+                    <span className="text-[9px] font-semibold uppercase text-slate-400 block">Payable</span>
+                    <span className="font-mono text-xs font-bold text-slate-800 dark:text-slate-200">
+                      ৳{(student.totalPayableSum || 0).toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-2">
+                    <span className="text-[9px] font-semibold uppercase text-slate-400 block">Paid</span>
+                    <span className="font-mono text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                      ৳{(student.totalPaidSum || 0).toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-2">
+                    <span className="text-[9px] font-semibold uppercase text-slate-400 block">Due</span>
+                    <span className={`font-mono text-xs font-bold ${due > 0 ? "text-amber-600 dark:text-amber-400" : "text-slate-400"}`}>
+                      ৳{due.toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Discount approve CTA for mobile */}
+                {isDiscountReq && isAdmin && (
+                  <Button
+                    size="sm"
+                    onClick={() => openAllowDiscount(student)}
+                    className="w-full h-8 text-xs bg-amber-600 hover:bg-amber-700 text-white gap-1.5 font-semibold"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    Allow Discount & Activate
+                  </Button>
+                )}
+              </div>
+            );
+          })}
+
+          {filtered.length === 0 && (
+            <div className="py-12 text-center text-slate-400 px-4">
+              <Users className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
+              <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                {statusFilter === "Discount Requested"
+                  ? "No discount requested students found"
+                  : "No students found"}
+              </p>
+              <p className="text-xs text-slate-400 mt-1">
+                {statusFilter === "Discount Requested"
+                  ? "All discount requests have been reviewed and activated."
+                  : "Admit a student to register them into courses and batches."}
+              </p>
+            </div>
+          )}
         </div>
       </div>
 

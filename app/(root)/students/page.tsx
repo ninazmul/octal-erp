@@ -5,11 +5,13 @@ import StudentDirectory from "@/components/students/StudentDirectory";
 export const dynamic = "force-dynamic";
 
 interface StudentsPageProps {
-  searchParams: Promise<{ status?: string }>;
+  searchParams?: Promise<{ status?: string }>;
 }
 
 export default async function StudentsPage({ searchParams }: StudentsPageProps) {
-  const { status } = await searchParams;
+  const resolvedParams = searchParams ? await searchParams : {};
+  const status = resolvedParams?.status;
+
   const [data, courses, batches] = await Promise.all([
     getStudents(),
     getCourses({ status: "active" }),
@@ -19,12 +21,12 @@ export default async function StudentsPage({ searchParams }: StudentsPageProps) 
   return (
     <div className="p-4 sm:p-6 max-w-7xl mx-auto">
       <StudentDirectory
-        initialStudents={data.students}
-        total={data.total}
-        initialPendingDiscountCount={data.pendingDiscountCount || 0}
+        initialStudents={data?.students || []}
+        total={data?.total || 0}
+        initialPendingDiscountCount={data?.pendingDiscountCount || 0}
         initialStatusFilter={status || "all"}
-        courses={courses}
-        batches={batches}
+        courses={courses || []}
+        batches={batches || []}
       />
     </div>
   );

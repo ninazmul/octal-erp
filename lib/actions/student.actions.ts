@@ -626,6 +626,11 @@ export async function allowDiscountAndActivateStudent(data: {
   }
   await connectToDatabase();
 
+  let requestDoc = null;
+  if (data.discountRequestId && mongoose.Types.ObjectId.isValid(data.discountRequestId)) {
+    requestDoc = await AdmissionDiscountRequest.findById(data.discountRequestId);
+  }
+
   const [course, batch] = await Promise.all([
     Course.findById(data.courseId),
     Batch.findById(data.batchId),
@@ -636,28 +641,35 @@ export async function allowDiscountAndActivateStudent(data: {
   const discount = Math.min(Math.max(0, Number(data.allowedDiscount)), courseFee);
   const finalPayable = Math.max(0, courseFee - discount);
 
+  const phone = (data.phone || requestDoc?.studentPhone || "").trim();
+  const fullName = (data.fullName || requestDoc?.studentName || "Student").trim();
+  const email = (data.email || requestDoc?.studentEmail || "").trim().toLowerCase();
+
   let studentDoc = null;
   if (data.studentId && mongoose.Types.ObjectId.isValid(data.studentId)) {
     studentDoc = await Student.findById(data.studentId);
   }
-  if (!studentDoc && data.phone) {
-    studentDoc = await Student.findOne({ phone: data.phone.trim() });
+  if (!studentDoc && requestDoc?.student && mongoose.Types.ObjectId.isValid(String(requestDoc.student))) {
+    studentDoc = await Student.findById(requestDoc.student);
+  }
+  if (!studentDoc && phone) {
+    studentDoc = await Student.findOne({ phone });
   }
 
   if (!studentDoc) {
     const newStudentId = await getNextStudentId();
     studentDoc = await Student.create({
       studentId: newStudentId,
-      fullName: data.fullName?.trim() || "Student",
-      phone: data.phone?.trim() || "",
-      email: data.email?.trim().toLowerCase() || "",
+      fullName: fullName || "Student",
+      phone: phone || "01700000000",
+      email,
       status: "Active",
       admissionDate: new Date(),
     });
   } else {
     studentDoc.status = "Active";
-    if (data.fullName?.trim()) studentDoc.fullName = data.fullName.trim();
-    if (data.email?.trim()) studentDoc.email = data.email.trim().toLowerCase();
+    if (fullName) studentDoc.fullName = fullName;
+    if (email) studentDoc.email = email;
     await studentDoc.save();
   }
 
@@ -675,14 +687,13 @@ export async function allowDiscountAndActivateStudent(data: {
       finalPayableAmount: finalPayable,
       totalCollectedAmount: 0,
       remainingDue: finalPayable,
-      paymentStatus: "Pending",
-      status: "Enrolled",
-      admissionDate: new Date(),
       referrerType: "None",
       commissionRate: 0,
+      status: "Active",
       admittedBy: {
         email: actor.email,
-        name: actor.name,
+        name: actor.name || "",
+        userId: actor._id ? String(actor._id) : "",
       },
       notes: data.adminNotes?.trim() || `Discount ৳${discount.toLocaleString()} manually allowed by ${actor.name || actor.email}.`,
     });
@@ -697,11 +708,6 @@ export async function allowDiscountAndActivateStudent(data: {
     await enrollment.save();
   }
 
-  // Update discount request if provided or found
-  let requestDoc = null;
-  if (data.discountRequestId && mongoose.Types.ObjectId.isValid(data.discountRequestId)) {
-    requestDoc = await AdmissionDiscountRequest.findById(data.discountRequestId);
-  }
   if (!requestDoc) {
     requestDoc = await AdmissionDiscountRequest.findOne({
       $or: [
@@ -735,9 +741,13 @@ export async function allowDiscountAndActivateStudent(data: {
     details: `Allowed ৳${discount.toLocaleString()} manual discount for ${studentDoc.fullName} (${studentDoc.studentId}) in ${course.title} and set status to Active.`,
   });
 
-  revalidatePath("/students");
-  revalidatePath(`/students/${studentDoc._id}`);
-  revalidatePath(`/academic/batches/${batch._id}`);
+  try {
+    revalidatePath("/students");
+    revalidatePath(`/students/${String(studentDoc._id)}`);
+    revalidatePath(`/academic/batches/${String(batch._id)}`);
+  } catch (revalError) {
+    console.error("Path revalidation warning:", revalError);
+  }
 
   return JSON.parse(JSON.stringify({ success: true, student: studentDoc, enrollment }));
 }
