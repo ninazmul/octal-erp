@@ -549,11 +549,13 @@ export async function deletePayment(paymentId: string) {
     const delta = entry.type === "CREDIT" ? entry.amount : -entry.amount;
     netImpactByAccount.set(accountId, (netImpactByAccount.get(accountId) || 0) + delta);
   }
+  const accountBalances: Array<{ _id: string; currentBalance: number }> = [];
   for (const [accountId, netImpact] of netImpactByAccount) {
     const account = await Account.findById(accountId);
     if (account) {
       account.currentBalance -= netImpact;
       await account.save();
+      accountBalances.push({ _id: String(account._id), currentBalance: account.currentBalance });
     }
   }
 
@@ -570,13 +572,12 @@ export async function deletePayment(paymentId: string) {
     details: `Deleted payment ${payment.receiptNo} of ৳${payment.amount.toLocaleString()} for student ${payment.student}.`,
   });
 
-  revalidatePath("/payments");
   revalidatePath("/students");
   revalidatePath("/academic/batches");
   revalidatePath("/finance/accounts");
   revalidatePath("/finance/commissions");
   revalidatePath("/finance/settlements");
-  return { success: true };
+  return { success: true, accountBalances };
 }
 
 // Get active enrollments with pending dues for payment modal

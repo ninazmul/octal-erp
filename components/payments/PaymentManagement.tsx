@@ -23,7 +23,6 @@ import {
   Trash2,
 } from "lucide-react";
 import toast from "react-hot-toast";
-import { useRouter } from "next/navigation";
 
 interface PaymentManagementProps {
   initialPayments: PopulatedPayment[];
@@ -43,8 +42,9 @@ export default function PaymentManagement({
   preselectedEnrollmentId,
   preselectedStudentId,
 }: PaymentManagementProps) {
-  const router = useRouter();
   const [payments, setPayments] = useState<PopulatedPayment[]>(initialPayments);
+  const [currentAccounts, setCurrentAccounts] = useState(accounts);
+  const [currentEnrollmentsWithDues, setCurrentEnrollmentsWithDues] = useState(enrollmentsWithDues);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [methodFilter, setMethodFilter] = useState("all");
@@ -126,10 +126,21 @@ export default function PaymentManagement({
     if (!deletingPayment) return;
     setDeleting(true);
     try {
-      await deletePayment(deletingPayment._id);
+      const result = await deletePayment(deletingPayment._id);
       setPayments((current) => current.filter((item) => item._id !== deletingPayment._id));
+      if (deletingPayment.status === "confirmed") {
+        const enrollmentId = typeof deletingPayment.enrollment === "object" ? deletingPayment.enrollment?._id : deletingPayment.enrollment;
+        setCurrentEnrollmentsWithDues((current) => current.map((enrollment) => {
+          if (enrollment._id !== enrollmentId) return enrollment;
+          const totalCollectedAmount = Math.max(0, (enrollment.totalCollectedAmount || 0) - deletingPayment.amount);
+          return { ...enrollment, totalCollectedAmount, remainingDue: Math.max(0, enrollment.finalPayableAmount - totalCollectedAmount) };
+        }));
+      }
+      setCurrentAccounts((current) => current.map((account) => {
+        const refreshed = result.accountBalances.find((item) => item._id === account._id);
+        return refreshed ? { ...account, currentBalance: refreshed.currentBalance } : account;
+      }));
       setDeletingPayment(null);
-      router.refresh();
       toast.success(`Payment ${deletingPayment.receiptNo} deleted.`);
     } catch (error) {
       toast.error((error as Error).message || "Could not delete payment.");
@@ -406,8 +417,8 @@ export default function PaymentManagement({
       <CollectPaymentDialog
         open={isCollectOpen}
         onOpenChange={setIsCollectOpen}
-        enrollmentsWithDues={enrollmentsWithDues}
-        accounts={accounts}
+        enrollmentsWithDues={currentEnrollmentsWithDues}
+        accounts={currentAccounts}
         preselectedEnrollmentId={preselectedEnrollmentId}
         onPaymentSuccess={handlePaymentSuccess}
       />
