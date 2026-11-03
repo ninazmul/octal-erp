@@ -31,7 +31,6 @@ import {
   Users,
   Search,
   Plus,
-  ArrowRight,
   Phone,
   Mail,
   Receipt,
@@ -553,9 +552,17 @@ export default function StudentDirectory({
                   >
                     {/* Student Name & ID */}
                     <td className="py-3 px-4">
-                      <div className="font-semibold text-sm text-slate-900 dark:text-white truncate max-w-[200px]">
-                        {student.fullName}
-                      </div>
+                      {student.studentId !== "REQ-DISC" ? (
+                        <Link href={`/students/${student._id}`} className="group inline-block max-w-[200px]">
+                          <span className="block truncate font-semibold text-sm text-slate-900 transition-colors group-hover:text-indigo-600 group-hover:underline dark:text-white dark:group-hover:text-indigo-400">
+                            {student.fullName}
+                          </span>
+                        </Link>
+                      ) : (
+                        <div className="font-semibold text-sm text-slate-900 dark:text-white truncate max-w-[200px]">
+                          {student.fullName}
+                        </div>
+                      )}
                       <span className="font-mono text-[11px] font-medium text-indigo-600 dark:text-indigo-400">
                         {student.studentId}
                       </span>
@@ -672,15 +679,6 @@ export default function StudentDirectory({
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-44">
-                            {student.studentId !== "REQ-DISC" && (
-                              <DropdownMenuItem asChild>
-                                <Link href={`/students/${student._id}`} className="gap-2 cursor-pointer">
-                                  <ArrowRight className="w-3.5 h-3.5" />
-                                  View Profile
-                                </Link>
-                              </DropdownMenuItem>
-                            )}
-
                             {student.status === "Active" && (
                               <DropdownMenuItem asChild>
                                 <Link href={`/payments?studentId=${student._id}`} className="gap-2 cursor-pointer text-emerald-600">
@@ -770,9 +768,15 @@ export default function StudentDirectory({
                 {/* Top: Name, Status, Menu */}
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
-                    <div className="font-semibold text-sm text-slate-900 dark:text-white truncate">
-                      {student.fullName}
-                    </div>
+                    {student.studentId !== "REQ-DISC" ? (
+                      <Link href={`/students/${student._id}`} className="font-semibold text-sm text-slate-900 hover:text-indigo-600 hover:underline dark:text-white dark:hover:text-indigo-400">
+                        {student.fullName}
+                      </Link>
+                    ) : (
+                      <div className="font-semibold text-sm text-slate-900 dark:text-white truncate">
+                        {student.fullName}
+                      </div>
+                    )}
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className="font-mono text-[11px] font-medium text-indigo-600 dark:text-indigo-400">
                         {student.studentId}
@@ -799,14 +803,6 @@ export default function StudentDirectory({
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-44">
-                      {student.studentId !== "REQ-DISC" && (
-                        <DropdownMenuItem asChild>
-                          <Link href={`/students/${student._id}`} className="gap-2 cursor-pointer">
-                            <ArrowRight className="w-3.5 h-3.5" />
-                            View Profile
-                          </Link>
-                        </DropdownMenuItem>
-                      )}
                       {student.status === "Active" && (
                         <DropdownMenuItem asChild>
                           <Link href={`/payments?studentId=${student._id}`} className="gap-2 cursor-pointer text-emerald-600">
