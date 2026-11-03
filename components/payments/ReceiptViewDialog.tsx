@@ -38,9 +38,9 @@ export default function ReceiptViewDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl p-0 overflow-hidden print:m-0 print:p-0 print:border-none print:shadow-none">
+      <DialogContent className="receipt-dialog sm:max-w-xl p-0 overflow-hidden print:m-0 print:p-0 print:border-none print:shadow-none">
         {/* Printable Area */}
-        <div id="receipt-print-area" className="p-6 sm:p-8 bg-white dark:bg-slate-900 space-y-6">
+        <div id="receipt-print-area" className="receipt-print-area p-6 sm:p-8 bg-white text-slate-900 space-y-6">
           {/* Header */}
           <div className="flex items-start justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
             <div>
@@ -54,7 +54,7 @@ export default function ReceiptViewDialog({
                     className="object-contain"
                   />
                 </div>
-                <span className="font-extrabold text-base tracking-tight text-slate-900 dark:text-white">
+                <span className="font-extrabold text-base tracking-tight text-slate-900">
                   OCTAL ERP
                 </span>
               </div>
@@ -64,7 +64,7 @@ export default function ReceiptViewDialog({
             </div>
 
             <div className="text-right">
-              <span className="font-mono text-xs font-bold text-indigo-600 dark:text-indigo-400 block">
+              <span className="font-mono text-xs font-bold text-indigo-700 block">
                 {payment.receiptNo}
               </span>
               <span className="text-[11px] text-slate-400">
@@ -74,12 +74,12 @@ export default function ReceiptViewDialog({
           </div>
 
           {/* Student & Course Box */}
-          <div className="grid grid-cols-2 gap-4 text-xs bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
+          <div className="grid grid-cols-2 gap-4 text-xs bg-slate-50 p-4 rounded-xl border border-slate-200">
             <div>
               <span className="text-slate-400 text-[10px] uppercase font-bold block">
                 Student Details
               </span>
-              <span className="font-bold text-slate-900 dark:text-white text-sm block mt-0.5">
+              <span className="font-bold text-slate-900 text-sm block mt-0.5">
                 {student?.fullName || "Student"}
               </span>
               <span className="font-mono text-slate-500 block">
@@ -97,7 +97,7 @@ export default function ReceiptViewDialog({
               <span className="font-bold text-slate-900 dark:text-white text-sm block mt-0.5">
                 {course?.title || "Course"}
               </span>
-              <span className="text-slate-600 dark:text-slate-300 block">
+              <span className="text-slate-700 block">
                 Batch: {batch?.batchName} ({batch?.batchCode})
               </span>
               <span className="font-mono text-slate-400 text-[11px] block">
@@ -107,29 +107,29 @@ export default function ReceiptViewDialog({
           </div>
 
           {/* Payment Line Item Table */}
-          <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden text-xs">
-            <div className="grid grid-cols-3 bg-slate-100 dark:bg-slate-800 p-2.5 font-semibold text-slate-600 dark:text-slate-300">
+          <div className="border border-slate-300 rounded-xl overflow-hidden text-xs">
+            <div className="grid grid-cols-3 bg-slate-100 p-2.5 font-semibold text-slate-700">
               <span className="col-span-2">Description</span>
               <span className="text-right">Amount</span>
             </div>
-            <div className="grid grid-cols-3 p-3 border-t border-slate-200 dark:border-slate-800">
+            <div className="grid grid-cols-3 p-3 border-t border-slate-200">
               <span className="col-span-2">
                 Tuition Fee Installment
                 <span className="block text-[11px] text-slate-400">
                   Method: {payment.paymentMethod} {payment.transactionRef && `(Ref: ${payment.transactionRef})`}
                 </span>
               </span>
-              <span className="text-right font-mono font-bold text-slate-900 dark:text-white text-sm">
+                <span className="text-right font-mono font-bold text-slate-900 text-sm">
                 ৳{payment.amount?.toLocaleString()}
               </span>
             </div>
 
             {/* Total */}
-            <div className="grid grid-cols-3 p-3 bg-indigo-50/60 dark:bg-indigo-950/40 border-t border-indigo-100 dark:border-indigo-900/40 font-bold">
-              <span className="col-span-2 text-indigo-900 dark:text-indigo-200">
+            <div className="grid grid-cols-3 p-3 bg-indigo-50 border-t border-indigo-100 font-bold">
+              <span className="col-span-2 text-indigo-950">
                 Total Paid In Words: {payment.amount?.toLocaleString()} Taka Only
               </span>
-              <span className="text-right font-mono text-indigo-600 dark:text-indigo-400 text-base">
+              <span className="text-right font-mono text-indigo-700 text-base">
                 ৳{payment.amount?.toLocaleString()}
               </span>
             </div>
@@ -139,14 +139,14 @@ export default function ReceiptViewDialog({
           <div className="flex items-center justify-between text-xs pt-2">
             <div>
               <span className="text-slate-400 block text-[11px]">Remaining Batch Due</span>
-              <span className="font-bold font-mono text-amber-600 dark:text-amber-400 text-sm">
+              <span className="font-bold font-mono text-amber-700 text-sm">
                 ৳{enrollment?.remainingDue?.toLocaleString() || "0"}
               </span>
             </div>
 
             <div className="text-right">
               <span className="text-slate-400 block text-[11px]">Collected By</span>
-              <span className="font-semibold text-slate-700 dark:text-slate-300">
+              <span className="font-semibold text-slate-800">
                 {payment.collectedBy?.name || payment.collectedBy?.email}
               </span>
             </div>
