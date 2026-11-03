@@ -44,7 +44,7 @@ export default function ReceiptViewDialog({
         {/* Printable Area */}
         <div id="receipt-print-area" className="receipt-print-area bg-white text-slate-900">
           <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm print:rounded-none print:border-slate-300 print:shadow-none">
-            <div className="h-1.5 bg-indigo-600 print:bg-indigo-700" />
+            <div className="h-2 bg-black" />
             <div className="space-y-6 p-6 sm:p-8">
               <header className="flex items-start justify-between gap-4 border-b-2 border-black pb-5">
                 <div>
@@ -61,7 +61,7 @@ export default function ReceiptViewDialog({
               </header>
 
               <section className="rounded border border-black p-4">
-                <div className="mb-3 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500">
+                <div className="mb-3 -mx-4 -mt-4 flex items-center gap-2 border-b border-black bg-black px-4 py-2.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white">
                   <ReceiptText className="h-3.5 w-3.5" /> Payment received from
                 </div>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -79,15 +79,15 @@ export default function ReceiptViewDialog({
               </section>
 
               <section className="overflow-hidden rounded border border-black">
-                <div className="grid grid-cols-[1fr_auto] border-b border-black px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-black">
+                <div className="grid grid-cols-[1fr_auto] border-b border-black bg-black px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-white">
                   <span>Payment description</span><span>Amount</span>
                 </div>
                 <div className="grid grid-cols-[1fr_auto] items-center gap-4 px-4 py-4 text-black">
                   <div><p className="text-sm font-semibold text-slate-900">Tuition fee installment</p><p className="mt-1 text-xs text-slate-500">{payment.paymentMethod}{payment.transactionRef ? ` · Reference ${payment.transactionRef}` : ""}</p></div>
                   <p className="font-mono text-sm font-bold text-slate-900">৳{payment.amount?.toLocaleString()}</p>
                 </div>
-                <div className="grid grid-cols-[1fr_auto] items-center gap-4 border-t border-black px-4 py-4 text-black">
-                  <div><p className="text-xs font-bold uppercase tracking-wide">Amount received</p><p className="mt-1 text-[11px]">Thank you for your payment</p></div>
+                <div className="grid grid-cols-[1fr_auto] items-center gap-4 border-t border-black bg-black px-4 py-4 text-white">
+                  <div><p className="text-xs font-bold uppercase tracking-wide">Amount received</p><p className="mt-1 text-[11px] text-slate-300">Thank you for your payment</p></div>
                   <p className="font-mono text-xl font-extrabold">৳{payment.amount?.toLocaleString()}</p>
                 </div>
               </section>

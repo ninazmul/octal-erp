@@ -50,7 +50,47 @@
     color: #000 !important;
     border-color: #000 !important;
     box-shadow: none !important;
+  }
+
+  #receipt-print-area .bg-black {
+    color: #fff !important;
+    border-color: #000 !important;
+    background-color: #000 !important;
+  }
+
+  #receipt-print-area .bg-black * {
+    color: #fff !important;
+  }
+
+  #receipt-print-area .bg-white,
+  #receipt-print-area .bg-slate-50\/80 {
     background-color: #fff !important;
+  }
+
+  #receipt-print-area .text-white {
+    color: #fff !important;
+  }
+
+  #receipt-print-area .text-slate-300,
+  #receipt-print-area .text-slate-500,
+  #receipt-print-area .text-slate-600,
+  #receipt-print-area .text-slate-700 {
+    color: #333 !important;
+  }
+
+  #receipt-print-area .border-slate-200,
+  #receipt-print-area .border-slate-300 {
+    border-color: #666 !important;
+  }
+
+  #receipt-print-area .bg-indigo-50 {
+    background-color: #fff !important;
+  }
+
+  #receipt-print-area .text-indigo-900,
+  #receipt-print-area .text-indigo-700,
+  #receipt-print-area .text-indigo-800 {
+    color: #000 !important;
   }
 
   .receipt-dialog {
