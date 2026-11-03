@@ -33,6 +33,22 @@ async function getNextLedgerEntryNo(): Promise<string> {
   return `LED-${formatSL(counter.seq, 6)}`;
 }
 
+async function getPaymentWithCurrentBalance(paymentId: string) {
+  const payment = await Payment.findById(paymentId)
+    .populate("student", "fullName studentId phone email address")
+    .populate({
+      path: "enrollment",
+      populate: [
+        { path: "course", select: "title code defaultFee" },
+        { path: "referrer", select: "fullName employeeId" },
+      ],
+    })
+    .populate("batch", "batchCode batchName scheduleDescription")
+    .lean();
+  if (!payment) throw new Error("Payment not found after update.");
+  return JSON.parse(JSON.stringify(payment));
+}
+
 // ==========================================
 // GET PAYMENTS
 // ==========================================
@@ -123,7 +139,7 @@ export async function getPaymentById(id: string) {
     .lean();
 
   if (!payment) throw new Error("Payment not found");
-  return JSON.parse(JSON.stringify(payment));
+  return getPaymentWithCurrentBalance(String(payment._id));
 }
 
 // ==========================================
@@ -289,7 +305,7 @@ export async function recordPayment(data: {
   revalidatePath("/payments");
   revalidatePath("/students");
   revalidatePath("/academic/batches");
-  return JSON.parse(JSON.stringify(payment));
+  return getPaymentWithCurrentBalance(String(payment._id));
 }
 
 // ==========================================
@@ -402,7 +418,7 @@ export async function verifyPayment(paymentId: string) {
 
   revalidatePath("/payments");
   revalidatePath("/students");
-  return JSON.parse(JSON.stringify(payment));
+  return getPaymentWithCurrentBalance(String(payment._id));
 }
 
 // ==========================================

@@ -101,10 +101,11 @@ export default function PaymentManagement({
     if (!reason || !reason.trim()) return;
 
     try {
-      await reversePayment(pmt._id, reason.trim());
+      const reversedPayment = await reversePayment(pmt._id, reason.trim());
       setPayments((prev) =>
-        prev.map((item) => (item._id === pmt._id ? { ...item, status: "reversed" } : item))
+        prev.map((item) => (item._id === pmt._id ? { ...item, ...reversedPayment } : item))
       );
+      setSelectedReceiptPayment((current) => current?._id === pmt._id ? { ...current, ...reversedPayment } : current);
       toast.success(`Payment ${pmt.receiptNo} reversed.`);
     } catch (error: unknown) {
       const err = error as Error;
