@@ -14,6 +14,7 @@ import {
   logActivityAndNotify,
 } from "@/lib/auth-guard";
 import { revalidatePath } from "next/cache";
+import mongoose from "mongoose";
 
 async function getNextReceiptNo(): Promise<string> {
   const counter = await Counter.findByIdAndUpdate(
@@ -514,6 +515,68 @@ export async function reversePayment(paymentId: string, reason: string) {
   revalidatePath("/payments");
   revalidatePath("/students");
   return JSON.parse(JSON.stringify(payment));
+}
+
+export async function deletePayment(paymentId: string) {
+  const actor = await requirePermission("payments", "read");
+  if (actor.role !== "super_admin") {
+    throw new Error("Only a super admin can delete a payment.");
+  }
+  await connectToDatabase();
+
+  if (!mongoose.isValidObjectId(paymentId)) throw new Error("Invalid payment ID.");
+  const payment = await Payment.findById(paymentId);
+  if (!payment) throw new Error("Payment not found.");
+
+  const commissionEntries = await CommissionEntry.find({ payment: payment._id });
+  if (commissionEntries.some((entry) => entry.settlementId || entry.paidAmount > 0)) {
+    throw new Error("This payment has a settled or paid commission. Resolve the settlement before deleting the payment.");
+  }
+
+  const enrollment = await Enrollment.findById(payment.enrollment);
+  if (payment.status === "confirmed" && enrollment) {
+    enrollment.totalCollectedAmount = Math.max(0, enrollment.totalCollectedAmount - payment.amount);
+    enrollment.remainingDue = Math.max(0, enrollment.finalPayableAmount - enrollment.totalCollectedAmount);
+    await enrollment.save();
+  }
+
+  // Remove the payment's original ledger entry and any later reversal entry.
+  // Adjust every affected account by the net ledger impact before removing them.
+  const ledgerEntries = await Ledger.find({ sourceReferenceId: payment.receiptNo });
+  const netImpactByAccount = new Map<string, number>();
+  for (const entry of ledgerEntries) {
+    const accountId = String(entry.account);
+    const delta = entry.type === "CREDIT" ? entry.amount : -entry.amount;
+    netImpactByAccount.set(accountId, (netImpactByAccount.get(accountId) || 0) + delta);
+  }
+  for (const [accountId, netImpact] of netImpactByAccount) {
+    const account = await Account.findById(accountId);
+    if (account) {
+      account.currentBalance -= netImpact;
+      await account.save();
+    }
+  }
+
+  await CommissionEntry.deleteMany({ payment: payment._id });
+  await Ledger.deleteMany({ sourceReferenceId: payment.receiptNo });
+  await Payment.deleteOne({ _id: payment._id });
+
+  await logActivityAndNotify({
+    actor,
+    action: "DELETE_PAYMENT",
+    module: "payments",
+    resourceId: String(payment._id),
+    resourceName: payment.receiptNo,
+    details: `Deleted payment ${payment.receiptNo} of ৳${payment.amount.toLocaleString()} for student ${payment.student}.`,
+  });
+
+  revalidatePath("/payments");
+  revalidatePath("/students");
+  revalidatePath("/academic/batches");
+  revalidatePath("/finance/accounts");
+  revalidatePath("/finance/commissions");
+  revalidatePath("/finance/settlements");
+  return { success: true };
 }
 
 // Get active enrollments with pending dues for payment modal

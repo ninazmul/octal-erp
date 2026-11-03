@@ -5,20 +5,25 @@ import { IAccount, PopulatedPayment } from "@/types";
 import {
   verifyPayment,
   reversePayment,
+  deletePayment,
 } from "@/lib/actions/payment.actions";
 import CollectPaymentDialog from "./CollectPaymentDialog";
 import ReceiptViewDialog from "./ReceiptViewDialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { DeleteConfirmDialog } from "@/components/shared/DeleteConfirmDialog";
+import { usePermissions } from "@/components/providers/PermissionContext";
 import {
   Receipt,
   Search,
   Plus,
   Printer,
   RotateCcw,
+  Trash2,
 } from "lucide-react";
 import toast from "react-hot-toast";
+import { useRouter } from "next/navigation";
 
 interface PaymentManagementProps {
   initialPayments: PopulatedPayment[];
@@ -38,10 +43,14 @@ export default function PaymentManagement({
   preselectedEnrollmentId,
   preselectedStudentId,
 }: PaymentManagementProps) {
+  const router = useRouter();
   const [payments, setPayments] = useState<PopulatedPayment[]>(initialPayments);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [methodFilter, setMethodFilter] = useState("all");
+  const { isSuperAdmin } = usePermissions();
+  const [deletingPayment, setDeletingPayment] = useState<PopulatedPayment | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const [isCollectOpen, setIsCollectOpen] = useState(
     Boolean(preselectedEnrollmentId || preselectedStudentId)
@@ -110,6 +119,22 @@ export default function PaymentManagement({
     } catch (error: unknown) {
       const err = error as Error;
       toast.error(err.message || "Failed to reverse payment.");
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deletingPayment) return;
+    setDeleting(true);
+    try {
+      await deletePayment(deletingPayment._id);
+      setPayments((current) => current.filter((item) => item._id !== deletingPayment._id));
+      setDeletingPayment(null);
+      router.refresh();
+      toast.success(`Payment ${deletingPayment.receiptNo} deleted.`);
+    } catch (error) {
+      toast.error((error as Error).message || "Could not delete payment.");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -342,6 +367,18 @@ export default function PaymentManagement({
                           <RotateCcw className="w-3.5 h-3.5" />
                         </Button>
                       )}
+                      {isSuperAdmin && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setDeletingPayment(pmt)}
+                          className="h-7 px-1.5 text-[11px] text-rose-600 hover:text-rose-700"
+                          title="Delete Payment"
+                          aria-label={`Delete payment ${pmt.receiptNo}`}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -383,6 +420,14 @@ export default function PaymentManagement({
           payment={selectedReceiptPayment}
         />
       )}
+      <DeleteConfirmDialog
+        open={Boolean(deletingPayment)}
+        onOpenChange={(open) => !open && !deleting && setDeletingPayment(null)}
+        title="Delete payment permanently?"
+        description={`Delete receipt ${deletingPayment?.receiptNo || ""} for ৳${deletingPayment?.amount?.toLocaleString() || "0"}? The enrollment balance and linked financial records will be updated. Payments with settled or paid commissions cannot be deleted.`}
+        onConfirm={handleDelete}
+        isLoading={deleting}
+      />
     </div>
   );
 }
