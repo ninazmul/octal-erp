@@ -334,7 +334,7 @@ export default function BatchDetailsView({ batch }: BatchDetailsProps) {
                         {typeof comm.enrollment === "object" ? comm.enrollment.enrollmentId : "Admission"}
                       </td>
                       <td className="py-3 px-3 font-mono text-indigo-600 dark:text-indigo-400 font-bold">
-                        {comm.commissionRate > 0 ? `${comm.commissionRate}%` : "Fixed"}
+                        {comm.commissionRate > 0 ? `${comm.commissionRate}%` : "Fixed total"}
                       </td>
                       <td className="py-3 px-3 font-mono font-bold text-slate-900 dark:text-white">
                         ৳{comm.commissionEarned?.toLocaleString()}
@@ -362,7 +362,7 @@ export default function BatchDetailsView({ batch }: BatchDetailsProps) {
                   {batch.commissions.length === 0 && (
                     <tr>
                       <td colSpan={8} className="py-8 text-center text-slate-400">
-                        No batch earnings are due for this batch yet. Earnings are created once per admission when a payout is set on the batch.
+                        No batch earnings are due for this batch yet. Percentage earnings accrue per admission; a fixed payout is awarded once for the batch.
                       </td>
                     </tr>
                   )}

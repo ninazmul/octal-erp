@@ -388,7 +388,7 @@ export default function BatchManagement({
 
                 <p className="text-xs text-slate-600 dark:text-slate-300 flex items-center gap-1.5 mt-1 font-mono">
                   <span className="font-semibold text-indigo-600 dark:text-indigo-400">
-                    Instructor payout: {batch.instructorPayoutType === "percentage" ? `${batch.instructorPayoutValue ?? 0}% per admission` : batch.instructorPayoutType === "fixed" ? `৳${(batch.instructorPayoutValue ?? 0).toLocaleString()} per admission` : "monthly salary only"}
+                    Instructor payout: {batch.instructorPayoutType === "percentage" ? `${batch.instructorPayoutValue ?? 0}% per admission` : batch.instructorPayoutType === "fixed" ? `৳${(batch.instructorPayoutValue ?? 0).toLocaleString()} total for batch` : "monthly salary only"}
                   </span>
                 </p>
 
@@ -650,13 +650,13 @@ export default function BatchManagement({
                 >
                   <option value="none">No batch payout (monthly salary only)</option>
                   <option value="percentage">Percentage of student payable fee</option>
-                  <option value="fixed">Fixed amount per admitted student</option>
+                  <option value="fixed">Fixed total amount for this batch</option>
                 </select>
               </div>
               {instructorPayoutType !== "none" && <div>
-                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">{instructorPayoutType === "percentage" ? "Payout percentage (%)" : "Payout per admission (৳)"}</label>
+                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">{instructorPayoutType === "percentage" ? "Commission percentage (%)" : "Total batch payout (৳)"}</label>
                 <Input type="number" min="0" max={instructorPayoutType === "percentage" ? "100" : undefined} step="0.01" value={instructorPayoutValue} onChange={(e) => setInstructorPayoutValue(Number(e.target.value))} required />
-                <p className="mt-1 text-xs text-slate-500">Calculated once for each admitted student.</p>
+                <p className="mt-1 text-xs text-slate-500">{instructorPayoutType === "percentage" ? "Calculated from each admitted student’s final payable fee." : "Paid once for the whole batch when its first student is admitted."}</p>
               </div>}
 
               <div className="sm:col-span-2">

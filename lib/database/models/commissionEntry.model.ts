@@ -4,6 +4,7 @@ export interface ICommissionEntryDocument extends Document {
   payment?: mongoose.Types.ObjectId;
   enrollment: mongoose.Types.ObjectId;
   admissionKey?: mongoose.Types.ObjectId;
+  batchPayoutKey?: mongoose.Types.ObjectId;
   batch: mongoose.Types.ObjectId;
   referrer: mongoose.Types.ObjectId;
   collectedAmount: number;
@@ -39,6 +40,10 @@ const CommissionEntrySchema: Schema = new Schema(
       required: false,
     },
     admissionKey: {
+      type: Schema.Types.ObjectId,
+      default: undefined,
+    },
+    batchPayoutKey: {
       type: Schema.Types.ObjectId,
       default: undefined,
     },
@@ -110,6 +115,7 @@ CommissionEntrySchema.index({ createdAt: -1 });
 CommissionEntrySchema.index({ settlementId: 1 });
 CommissionEntrySchema.index({ status: 1 });
 CommissionEntrySchema.index({ admissionKey: 1 }, { unique: true, sparse: true });
+CommissionEntrySchema.index({ batchPayoutKey: 1 }, { unique: true, sparse: true });
 
 const CommissionEntry: Model<ICommissionEntryDocument> =
   mongoose.models.CommissionEntry ||

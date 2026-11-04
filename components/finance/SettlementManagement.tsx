@@ -333,7 +333,7 @@ export default function SettlementManagement({
             Instructor Batch Payouts & Settlements
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Track batch earnings per admission, prepare statements, approve them, and record instructor payouts.
+            Track instructor earnings generated from batch admissions, prepare statements, approve them, and record payouts.
           </p>
         </div>
 
@@ -644,7 +644,7 @@ export default function SettlementManagement({
                         {b.courseTitle}
                       </span>
                       <span className="text-[10px] font-semibold text-indigo-600 dark:text-indigo-400">
-                        {b.instructorPayoutType === "percentage" ? `${b.instructorPayoutValue}% per admission` : b.instructorPayoutType === "fixed" ? `৳${b.instructorPayoutValue.toLocaleString()} per admission` : "Monthly salary only"}
+                        {b.instructorPayoutType === "percentage" ? `${b.instructorPayoutValue}% per admission` : b.instructorPayoutType === "fixed" ? `৳${b.instructorPayoutValue.toLocaleString()} total batch payout` : "Monthly salary only"}
                       </span>
                     </td>
 
@@ -854,7 +854,7 @@ export default function SettlementManagement({
                     <option value="" disabled>Select Batch</option>
                     {batches.map((b) => (
                       <option key={b._id} value={b._id}>
-                        {b.batchName} ({b.batchCode}) — {b.instructorPayoutType === "percentage" ? `${b.instructorPayoutValue}% per admission` : b.instructorPayoutType === "fixed" ? `৳${b.instructorPayoutValue} per admission` : "monthly salary only"}
+                        {b.batchName} ({b.batchCode}) — {b.instructorPayoutType === "percentage" ? `${b.instructorPayoutValue}% per admission` : b.instructorPayoutType === "fixed" ? `৳${b.instructorPayoutValue} total batch payout` : "monthly salary only"}
                       </option>
                     ))}
                   </select>

@@ -53,7 +53,8 @@ async function createInstructorAdmissionEarning(enrollment: { _id: mongoose.Type
   } catch (error) {
     if ((error as { code?: number }).code !== 48) throw error;
   }
-  if (await CommissionEntry.exists({ admissionKey: enrollment._id })) return amount;
+  const payoutKey = type === "fixed" ? { batchPayoutKey: enrollment.batch } : { admissionKey: enrollment._id };
+  if (await CommissionEntry.exists(payoutKey)) return type === "fixed" ? 0 : amount;
 
   // Migrate the former non-sparse payment index so multiple admission earnings may omit payment.
   const indexes = await CommissionEntry.collection.indexes();
@@ -68,9 +69,13 @@ async function createInstructorAdmissionEarning(enrollment: { _id: mongoose.Type
   if (!admissionIndex) {
     await CommissionEntry.collection.createIndex({ admissionKey: 1 }, { unique: true, sparse: true });
   }
+  const batchPayoutIndex = indexes.find((index) => index.key?.batchPayoutKey === 1);
+  if (!batchPayoutIndex) {
+    await CommissionEntry.collection.createIndex({ batchPayoutKey: 1 }, { unique: true, sparse: true });
+  }
 
   await CommissionEntry.create({
-    admissionKey: enrollment._id,
+    ...(type === "fixed" ? { batchPayoutKey: enrollment.batch } : { admissionKey: enrollment._id }),
     enrollment: enrollment._id,
     batch: enrollment.batch,
     referrer: instructorId,

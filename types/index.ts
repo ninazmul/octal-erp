@@ -278,6 +278,7 @@ export interface ICommissionEntry {
   commissionRate: number;
   payoutType?: "percentage" | "fixed";
   payoutValue?: number;
+  batchPayoutKey?: string;
   commissionEarned: number; // (collectedAmount * commissionRate) / 100
   settlementId?: string | null;
   status: CommissionEntryStatus;
