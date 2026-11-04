@@ -11,14 +11,16 @@ export default async function AccountsPage() {
     getLedgerEntries({ limit: 100 }),
   ]);
 
-  const isSuperAdmin = profile?.role === "super_admin";
+  const canManageAccounts =
+    profile?.role === "super_admin" ||
+    Boolean(profile?.granularPermissions?.account_manage);
 
   return (
     <div className="p-4 sm:p-6 max-w-7xl mx-auto">
       <AccountManagement
         initialAccounts={accounts}
         initialLedgerEntries={ledgerEntries}
-        isSuperAdmin={isSuperAdmin}
+        canManageAccounts={canManageAccounts}
       />
     </div>
   );

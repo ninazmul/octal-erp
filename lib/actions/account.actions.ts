@@ -5,7 +5,7 @@ import Account from "@/lib/database/models/account.model";
 import Ledger from "@/lib/database/models/ledger.model";
 import {
   requirePermission,
-  requireSuperAdmin,
+  requireGranularPermission,
   logActivityAndNotify,
 } from "@/lib/auth-guard";
 import { revalidatePath } from "next/cache";
@@ -42,7 +42,7 @@ export async function createAccount(data: {
   isDefault?: boolean;
   notes?: string;
 }) {
-  const actor = await requireSuperAdmin();
+  const actor = await requireGranularPermission("account_manage");
   await connectToDatabase();
 
   const openingBalance = Math.max(0, Number(data.openingBalance || 0));
@@ -87,7 +87,7 @@ export async function updateAccount(
     notes?: string;
   }
 ) {
-  const actor = await requireSuperAdmin();
+  const actor = await requireGranularPermission("account_manage");
   await connectToDatabase();
   const account = await Account.findById(accountId);
   if (!account) throw new Error("Account not found.");
@@ -114,7 +114,7 @@ export async function updateAccount(
 }
 
 export async function deactivateAccount(accountId: string) {
-  const actor = await requireSuperAdmin();
+  const actor = await requireGranularPermission("account_manage");
   await connectToDatabase();
   const account = await Account.findById(accountId);
   if (!account) throw new Error("Account not found.");

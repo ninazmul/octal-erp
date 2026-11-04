@@ -33,6 +33,7 @@ const AdminSchema: Schema = new Schema(
         "super_admin",
         "admin",
         "instructor",
+        "pro",
         "receptionist",
         "accountant",
         "staff",
@@ -42,7 +43,7 @@ const AdminSchema: Schema = new Schema(
         "viewer",
         "custom",
       ],
-      default: "admin",
+      default: "custom",
     },
     employeeId: {
       type: String,

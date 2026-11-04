@@ -74,7 +74,7 @@ export function PermissionProvider({
   const isSuperAdmin = role === "super_admin";
   const isAdmin = role === "admin" || role === "super_admin";
   const isInstructor = role === "instructor";
-  const isAccountant = role === "accountant";
+  const isAccountant = role === "accountant" || role === "pro";
   const isReceptionist = role === "receptionist";
   const isEngineer = role === "engineer";
   const isStaff = role === "staff";

@@ -35,20 +35,19 @@ import {
   Plus,
   Trash2,
   ShieldCheck,
+  GraduationCap,
+  Wallet,
   ShieldAlert,
   Loader2,
   Edit2,
   Crown,
   KeyRound,
-  Lock,
-  UserCheck,
   Shield,
   CheckCircle2,
   XCircle,
   ChevronDown,
   ChevronUp,
   Info,
-  Terminal,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import {
@@ -91,186 +90,36 @@ export interface RoleDetail {
 
 const ROLE_OPTIONS: RoleDetail[] = [
   {
-    label: "Super Admin",
-    value: "super_admin",
-    badge: "Super Admin",
-    color: "text-amber-600 dark:text-amber-400",
-    border: "border-amber-500/30",
-    bgLight: "bg-amber-500/10",
-    summary: "Root Owner & System Administrator",
-    desc: "Unrestricted root access, academic management, financial controls, staff salaries, settlements, and audit logs.",
-    canDo: [
-      "Manage all courses, subjects, batches, and student admissions",
-      "Full access to payment collections, receivables, and receipts",
-      "Configure batch payouts, approve settlements & instructor payments",
-      "Manage all staff, configure confidential salaries & automated monthly payroll",
-      "Approve operational expenses, cash accounts, and ledger postings",
-      "Manage admin accounts, RBAC permissions, and view audit activity logs",
-    ],
+    label: "Super Admin", value: "super_admin", badge: "Super Admin",
+    color: "text-amber-600 dark:text-amber-400", border: "border-amber-500/30", bgLight: "bg-amber-500/10",
+    summary: "Full system control",
+    desc: "Unrestricted access to every module, user, setting, and financial action.",
+    canDo: ["Manage all academic and student records", "Control payments, payroll, expenses, and accounts", "Manage users, roles, settings, and audit activity"],
     cannotDo: [],
   },
   {
-    label: "Admin",
-    value: "admin",
-    badge: "Admin",
-    color: "text-sky-600 dark:text-sky-400",
-    border: "border-sky-500/30",
-    bgLight: "bg-sky-500/10",
-    summary: "Academic & Operations Administrator",
-    desc: "Manages student admissions, course batches, payment collections, and operational expenses.",
-    canDo: [
-      "Register students, manage enrollments, and assign batches",
-      "Record student payment collections and print official receipts",
-      "Manage staff directory records according to assigned permissions",
-      "Record operational expenses and submit for approval",
-      "View operational reports and batch performance",
-    ],
-    cannotDo: [
-      "Cannot configure batch payout rules without authorization",
-      "Cannot view executive confidential salary details",
-      "Cannot delete or modify admin users or core system settings",
-    ],
+    label: "Instructor", value: "instructor", badge: "Instructor",
+    color: "text-purple-600 dark:text-purple-400", border: "border-purple-500/30", bgLight: "bg-purple-500/10",
+    summary: "Assigned teaching access",
+    desc: "Access assigned courses, batches, enrolled students, and personal payout information.",
+    canDo: ["View assigned courses, batches, schedules, and students", "View personal salary and batch payout statements"],
+    cannotDo: ["Cannot access global financial records or unassigned student data", "Cannot manage admissions, payouts, or admin accounts"],
   },
   {
-    label: "Instructor",
-    value: "instructor",
-    badge: "Instructor",
-    color: "text-purple-600 dark:text-purple-400",
-    border: "border-purple-500/30",
-    bgLight: "bg-purple-500/10",
-    summary: "Faculty & Course Instructor",
-    desc: "Access assigned courses, batches, enrolled students, monthly salary, and batch payout statements.",
-    canDo: [
-      "View assigned subjects, courses, batches, and schedules",
-      "View students enrolled in assigned batches",
-      "Track students enrolled in assigned batches and batch earnings",
-      "View monthly salary and batch payout statements",
-    ],
-    cannotDo: [
-      "Cannot view other instructors' private records or salaries",
-      "Cannot access global company financial ledgers or unassigned student data",
-      "Cannot alter batch payout rules or approve payouts",
-    ],
+    label: "PRO", value: "pro", badge: "PRO",
+    color: "text-sky-600 dark:text-sky-400", border: "border-sky-500/30", bgLight: "bg-sky-500/10",
+    summary: "Admissions & accounts",
+    desc: "Admit students and manage collections, payroll, expenses, accounts, and financial reports.",
+    canDo: ["Register students and assign courses or batches", "Record and verify payments and manage batch settlements", "Manage payroll, expenses, accounts, and financial reports"],
+    cannotDo: ["Cannot manage administrator accounts or system permissions"],
   },
   {
-    label: "Receptionist",
-    value: "receptionist",
-    badge: "Receptionist",
-    color: "text-emerald-600 dark:text-emerald-400",
-    border: "border-emerald-500/30",
-    bgLight: "bg-emerald-500/10",
-    summary: "Front Desk & Admissions Officer",
-    desc: "Admit students, record installment payments, and issue receipts.",
-    canDo: [
-      "Admit new students, manage student profiles, and assign courses/batches",
-      "Collect tuition payments, installments, and print money receipts",
-      "View student directories and check admission statuses",
-    ],
-    cannotDo: [
-      "Cannot configure courses, fees, or batch payout rules",
-      "Cannot access staff payroll, expenses, or financial statements",
-    ],
-  },
-  {
-    label: "Accountant",
-    value: "accountant",
-    badge: "Accountant",
-    color: "text-blue-600 dark:text-blue-400",
-    border: "border-blue-500/30",
-    bgLight: "bg-blue-500/10",
-    summary: "Finance & Accounts Specialist",
-    desc: "Manage collections, payroll obligations, expenses, bank accounts, and financial reports.",
-    canDo: [
-      "Verify student collections and reconcile outstanding dues",
-      "Prepare batch payout settlements and process instructor disbursements",
-      "Manage monthly payroll obligations and record salary disbursements",
-      "Record and settle operational expenses across cash & bank accounts",
-      "Access all 14 financial and operational reports",
-    ],
-    cannotDo: [
-      "Cannot modify system permissions or admin accounts",
-    ],
-  },
-  {
-    label: "Staff",
-    value: "staff",
-    badge: "Staff",
-    color: "text-slate-600 dark:text-slate-400",
-    border: "border-slate-500/30",
-    bgLight: "bg-slate-500/10",
-    summary: "General Employee",
-    desc: "General employee account with access to directory and personal information.",
-    canDo: [
-      "View company directory and profile information",
-    ],
-    cannotDo: [
-      "Cannot access financial ledgers, admissions, or administrative functions",
-    ],
-  },
-  {
-    label: "Custom Access",
-    value: "custom",
-    badge: "Custom",
-    color: "text-indigo-600 dark:text-indigo-400",
-    border: "border-indigo-500/30",
-    bgLight: "bg-indigo-500/10",
-    summary: "Granular Tailored Access",
-    desc: "Granular per-section permissions customized individually.",
-    canDo: [
-      "Super admin configures custom access per module (None, Read, or Write)",
-      "Can be granted specific write access to one section while hiding others",
-    ],
-    cannotDo: [
-      "Access to unassigned sections is completely blocked and hidden from menu",
-    ],
-  },
-  {
-    label: "Engineer",
-    value: "engineer",
-    badge: "Engineer",
-    color: "text-indigo-600 dark:text-indigo-400",
-    border: "border-indigo-500/30",
-    bgLight: "bg-indigo-500/10",
-    summary: "Technical Operations",
-    desc: "Technical systems access and activity log inspection.",
-    canDo: ["Inspect audit activity logs and system events"],
-    cannotDo: ["Cannot manage payroll or finances"],
-  },
-  {
-    label: "Editor",
-    value: "editor",
-    badge: "Editor",
-    color: "text-emerald-600 dark:text-emerald-400",
-    border: "border-emerald-500/30",
-    bgLight: "bg-emerald-500/10",
-    summary: "Content & Academic Operator",
-    desc: "Can manage academic courses, subjects, and student records.",
-    canDo: ["Update course and batch information"],
-    cannotDo: ["Cannot approve payouts or manage users"],
-  },
-  {
-    label: "Moderator",
-    value: "moderator",
-    badge: "Moderator",
-    color: "text-blue-600 dark:text-blue-400",
-    border: "border-blue-500/30",
-    bgLight: "bg-blue-500/10",
-    summary: "Admissions Moderator",
-    desc: "Can view student directory and manage student records.",
-    canDo: ["Manage student admission records"],
-    cannotDo: ["Cannot manage finances or system settings"],
-  },
-  {
-    label: "Viewer",
-    value: "viewer",
-    badge: "Viewer",
-    color: "text-slate-600 dark:text-slate-400",
-    border: "border-slate-500/30",
-    bgLight: "bg-slate-500/10",
-    summary: "Read-Only Access",
-    desc: "The Super Admin chooses which sections are visible; all access is read-only.",
-    canDo: ["View only sections explicitly authorized by the Super Admin"],
-    cannotDo: ["Cannot create, edit, or delete records"],
+    label: "Custom Access", value: "custom", badge: "Custom",
+    color: "text-indigo-600 dark:text-indigo-400", border: "border-indigo-500/30", bgLight: "bg-indigo-500/10",
+    summary: "Tailored permissions",
+    desc: "Choose module access and individual actions for this account.",
+    canDo: ["Set each module to no access, read only, or read and write", "Grant specific actions for admissions, finance, payroll, and administration"],
+    cannotDo: ["Only explicitly granted access is available"],
   },
 ];
 
@@ -510,13 +359,11 @@ function AddAdminFormFields({
         );
       })()}
 
-      {/* Module Permissions (admin / viewer / custom only) */}
-      {["admin", "viewer", "custom"].includes(newRole) && (
+      {/* Custom module permissions */}
+      {newRole === "custom" && (
         <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 space-y-2">
           <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
-            {newRole === "viewer"
-              ? "Viewer Section Access"
-              : "Module Permissions"}
+            Module Permissions
           </span>
           <div className="grid grid-cols-1 gap-2">
             {ALL_APP_MODULES.map((mod) => (
@@ -542,9 +389,7 @@ function AddAdminFormFields({
                   <SelectContent className="rounded-xl text-xs">
                     <SelectItem value="none">None</SelectItem>
                     <SelectItem value="read">Read Only</SelectItem>
-                    {newRole !== "viewer" && (
-                      <SelectItem value="write">Read & Write</SelectItem>
-                    )}
+                    <SelectItem value="write">Read & Write</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -563,13 +408,17 @@ function AddAdminFormFields({
               all modules and actions.
             </span>
           </div>
-        ) : (
+        ) : newRole === "custom" ? (
           <GranularPermissionsEditor
             perms={newGranularPerms}
             onChange={(key, val) =>
               setNewGranularPerms((prev) => ({ ...prev, [key]: val }))
             }
           />
+        ) : (
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 rounded-xl border border-slate-200 dark:border-slate-800 px-3 py-2">
+            This role uses its standard access profile. Choose Custom Access to tailor permissions.
+          </p>
         ))}
     </>
   );
@@ -597,26 +446,26 @@ export default function AdminsClient({
   // Form states for Add Admin
   const [newEmail, setNewEmail] = useState("");
   const [newName, setNewName] = useState("");
-  const [newRole, setNewRole] = useState<AdminRole>("admin");
+  const [newRole, setNewRole] = useState<AdminRole>("custom");
   const [customPerms, setCustomPerms] = useState<ModulePermissions>({
-    ...DEFAULT_ROLE_PERMISSIONS.admin,
+    ...DEFAULT_ROLE_PERMISSIONS.custom,
   });
   const [newGranularPerms, setNewGranularPerms] = useState<
     Record<GranularPermissionKey, boolean>
   >({
-    ...DEFAULT_GRANULAR_PERMISSIONS.admin,
+    ...DEFAULT_GRANULAR_PERMISSIONS.custom,
   });
 
   // Form states for Edit Admin
   const [editName, setEditName] = useState("");
   const [editRole, setEditRole] = useState<AdminRole>("admin");
   const [editPerms, setEditPerms] = useState<ModulePermissions>({
-    ...DEFAULT_ROLE_PERMISSIONS.admin,
+    ...DEFAULT_ROLE_PERMISSIONS.custom,
   });
   const [editGranularPerms, setEditGranularPerms] = useState<
     Record<GranularPermissionKey, boolean>
   >({
-    ...DEFAULT_GRANULAR_PERMISSIONS.admin,
+    ...DEFAULT_GRANULAR_PERMISSIONS.custom,
   });
 
   const loadAdmins = useCallback(async () => {
@@ -654,17 +503,16 @@ export default function AdminsClient({
         email: newEmail.trim(),
         name: newName.trim(),
         role: newRole,
-        permissions: ["admin", "viewer", "custom"].includes(newRole)
-          ? customPerms
-          : undefined,
+        permissions: newRole === "custom" ? customPerms : undefined,
         granularPermissions:
-          newRole === "super_admin" ? undefined : newGranularPerms,
+          newRole === "custom" ? newGranularPerms : undefined,
       });
       toast.success("Administrator added successfully");
       setNewEmail("");
       setNewName("");
-      setNewRole("admin");
-      setNewGranularPerms({ ...DEFAULT_GRANULAR_PERMISSIONS.admin });
+      setNewRole("custom");
+      setCustomPerms({ ...DEFAULT_ROLE_PERMISSIONS.custom });
+      setNewGranularPerms({ ...DEFAULT_GRANULAR_PERMISSIONS.custom });
       setIsAddOpen(false);
       loadAdmins();
     } catch (error) {
@@ -679,16 +527,16 @@ export default function AdminsClient({
   const openEditModal = (admin: IAdminUser) => {
     setEditingAdmin(admin);
     setEditName(admin.name || "");
-    setEditRole(admin.role);
+    const visibleRole = ROLE_OPTIONS.some((option) => option.value === admin.role)
+      ? admin.role
+      : "custom";
+    setEditRole(visibleRole);
     setEditPerms({
-      ...DEFAULT_ROLE_PERMISSIONS[admin.role],
+      ...DEFAULT_ROLE_PERMISSIONS[visibleRole],
       ...(admin.permissions || {}),
     });
     setEditGranularPerms(
-      resolveEffectiveGranularPermissions(
-        admin.role,
-        admin.granularPermissions,
-      ),
+      resolveEffectiveGranularPermissions(admin.role, admin.granularPermissions),
     );
   };
 
@@ -701,11 +549,9 @@ export default function AdminsClient({
       await updateAdminRoleAndPermissions(editingAdmin._id, {
         name: editName.trim(),
         role: editRole,
-        permissions: ["admin", "viewer", "custom"].includes(editRole)
-          ? editPerms
-          : undefined,
+        permissions: editRole === "custom" ? editPerms : undefined,
         granularPermissions:
-          editRole === "super_admin" ? undefined : editGranularPerms,
+          editRole === "custom" ? editGranularPerms : undefined,
       });
       toast.success("Role & permissions updated successfully");
       setEditingAdmin(null);
@@ -763,50 +609,17 @@ export default function AdminsClient({
   }
 
   const getRoleBadge = (role: AdminRole) => {
-    switch (role) {
-      case "super_admin":
-        return (
-          <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
-            <Crown className="w-3 h-3 text-rose-500" /> Super Admin
-          </span>
-        );
-      case "engineer":
-        return (
-          <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
-            <Terminal className="w-3 h-3 text-indigo-500" /> Engineer
-          </span>
-        );
-      case "admin":
-        return (
-          <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
-            <ShieldCheck className="w-3 h-3 text-blue-500" /> Admin
-          </span>
-        );
-      case "editor":
-        return (
-          <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-            <KeyRound className="w-3 h-3 text-emerald-500" /> Editor
-          </span>
-        );
-      case "moderator":
-        return (
-          <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-            <KeyRound className="w-3 h-3 text-amber-500" /> Moderator
-          </span>
-        );
-      case "viewer":
-        return (
-          <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-500/10 text-slate-600 dark:text-slate-400 border border-slate-500/20">
-            <Lock className="w-3 h-3 text-slate-400" /> Viewer
-          </span>
-        );
-      case "custom":
-        return (
-          <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
-            <KeyRound className="w-3 h-3 text-purple-500" /> Custom
-          </span>
-        );
-    }
+    const visibleRole = ROLE_OPTIONS.some((option) => option.value === role)
+      ? role
+      : "custom";
+    const config = {
+      super_admin: { label: "Super Admin", Icon: Crown, classes: "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20" },
+      instructor: { label: "Instructor", Icon: GraduationCap, classes: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20" },
+      pro: { label: "PRO", Icon: Wallet, classes: "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20" },
+      custom: { label: "Custom", Icon: KeyRound, classes: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20" },
+    }[visibleRole as "super_admin" | "instructor" | "pro" | "custom"];
+    const Icon = config.Icon;
+    return <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full border ${config.classes}`}><Icon className="w-3 h-3" />{config.label}</span>;
   };
 
   return (
@@ -1012,20 +825,11 @@ export default function AdminsClient({
                     {role.value === "super_admin" && (
                       <Crown className="w-3.5 h-3.5" />
                     )}
-                    {role.value === "engineer" && (
-                      <Terminal className="w-3.5 h-3.5" />
+                    {role.value === "pro" && (
+                      <Wallet className="w-3.5 h-3.5" />
                     )}
-                    {role.value === "admin" && (
-                      <ShieldCheck className="w-3.5 h-3.5" />
-                    )}
-                    {role.value === "editor" && (
-                      <Edit2 className="w-3.5 h-3.5" />
-                    )}
-                    {role.value === "moderator" && (
-                      <UserCheck className="w-3.5 h-3.5" />
-                    )}
-                    {role.value === "viewer" && (
-                      <Lock className="w-3.5 h-3.5" />
+                    {role.value === "instructor" && (
+                      <GraduationCap className="w-3.5 h-3.5" />
                     )}
                     {role.value === "custom" && (
                       <KeyRound className="w-3.5 h-3.5" />
@@ -1053,20 +857,11 @@ export default function AdminsClient({
                         {activeRole.value === "super_admin" && (
                           <Crown className="w-5 h-5" />
                         )}
-                        {activeRole.value === "engineer" && (
-                          <Terminal className="w-5 h-5" />
+                        {activeRole.value === "pro" && (
+                          <Wallet className="w-5 h-5" />
                         )}
-                        {activeRole.value === "admin" && (
-                          <ShieldCheck className="w-5 h-5" />
-                        )}
-                        {activeRole.value === "editor" && (
-                          <Edit2 className="w-5 h-5" />
-                        )}
-                        {activeRole.value === "moderator" && (
-                          <UserCheck className="w-5 h-5" />
-                        )}
-                        {activeRole.value === "viewer" && (
-                          <Lock className="w-5 h-5" />
+                        {activeRole.value === "instructor" && (
+                          <GraduationCap className="w-5 h-5" />
                         )}
                         {activeRole.value === "custom" && (
                           <KeyRound className="w-5 h-5" />
@@ -1270,11 +1065,6 @@ export default function AdminsClient({
                           </span>
                         ) : (
                           <div className="flex flex-col gap-1">
-                            {["engineer", "editor"].includes(admin.role) && (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-indigo-600 dark:text-indigo-400">
-                                <Terminal className="w-3 h-3" /> Technical Operations
-                              </span>
-                            )}
                             <div className="flex flex-wrap gap-1">
                               {ALL_APP_MODULES.map((mod) => {
                                 const lvl =
@@ -1455,12 +1245,10 @@ export default function AdminsClient({
                 );
               })()}
 
-              {["admin", "viewer", "custom"].includes(editRole) && (
+              {editRole === "custom" && (
                 <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 space-y-2">
                   <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
-                    {editRole === "viewer"
-                      ? "Viewer Section Access"
-                      : "Module Permissions Matrix"}
+                    Module Permissions Matrix
                   </span>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-56 overflow-y-auto pr-1">
                     {ALL_APP_MODULES.map((mod) => (
@@ -1486,11 +1274,7 @@ export default function AdminsClient({
                           <SelectContent className="rounded-xl text-xs">
                             <SelectItem value="none">None</SelectItem>
                             <SelectItem value="read">Read Only</SelectItem>
-                            {editRole !== "viewer" && (
-                              <SelectItem value="write">
-                                Read & Write
-                              </SelectItem>
-                            )}
+                            <SelectItem value="write">Read & Write</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -1509,13 +1293,17 @@ export default function AdminsClient({
                       across all modules and actions.
                     </span>
                   </div>
-                ) : (
+                ) : editRole === "custom" ? (
                   <GranularPermissionsEditor
                     perms={editGranularPerms}
                     onChange={(key, val) =>
                       setEditGranularPerms((prev) => ({ ...prev, [key]: val }))
                     }
                   />
+                ) : (
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 rounded-xl border border-slate-200 dark:border-slate-800 px-3 py-2">
+                    This role uses its standard access profile. Choose Custom Access to tailor permissions.
+                  </p>
                 ))}
 
               <div className="pt-2 border-t border-slate-100 dark:border-slate-800">

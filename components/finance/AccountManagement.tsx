@@ -27,13 +27,13 @@ import toast from "react-hot-toast";
 interface AccountManagementProps {
   initialAccounts: IAccount[];
   initialLedgerEntries: ILedgerEntry[];
-  isSuperAdmin: boolean;
+  canManageAccounts: boolean;
 }
 
 export default function AccountManagement({
   initialAccounts,
   initialLedgerEntries,
-  isSuperAdmin,
+  canManageAccounts,
 }: AccountManagementProps) {
   const [accounts, setAccounts] = useState<IAccount[]>(initialAccounts);
   const [ledgerEntries] = useState<ILedgerEntry[]>(initialLedgerEntries);
@@ -125,7 +125,7 @@ export default function AccountManagement({
         </div>
 
         <div className="flex items-center gap-3">
-          {isSuperAdmin && (
+          {canManageAccounts && (
             <Button
               onClick={() => {
                 setEditingAccount(null);
@@ -196,7 +196,7 @@ export default function AccountManagement({
 
             <div className="pt-3 mt-3 border-t border-slate-100 dark:border-slate-800 text-[11px] text-slate-400 flex items-center justify-between">
               <span>Opening: ৳{acc.openingBalance?.toLocaleString()}</span>
-              {isSuperAdmin ? (
+              {canManageAccounts ? (
                 <div className="flex items-center gap-1">
                   <Button size="sm" variant="ghost" onClick={() => openEdit(acc)} className="h-8 px-2 text-[11px] gap-1"><Edit2 className="w-3 h-3" /> Edit</Button>
                   {acc.isActive && <Button size="sm" variant="ghost" onClick={() => setDeactivatingAccount(acc)} className="h-8 px-2 text-[11px] text-rose-600"><Trash2 className="w-3.5 h-3.5" /></Button>}

@@ -34,7 +34,7 @@ export const getAllAdmins = async (): Promise<{ success: boolean; admins: IAdmin
     const rawAdmins = await Admin.find({}).sort({ createdAt: -1 }).lean();
 
     const admins: IAdminUser[] = rawAdmins.map((a) => {
-      const role = (a.role as AdminRole) || "admin";
+      const role = (a.role as AdminRole) || "custom";
       return {
         _id: String(a._id),
         email: a.email,
@@ -70,14 +70,17 @@ export const addAdmin = async (data: {
     const existingAdmin = await Admin.findOne({ email: normalizedEmail });
     if (existingAdmin) throw new Error("Administrator with this email already exists");
 
-    const role: AdminRole = data.role || "admin";
+    const role: AdminRole = data.role || "custom";
+    if (!["super_admin", "instructor", "pro", "custom"].includes(role)) {
+      throw new Error("Choose one of the supported administrator roles.");
+    }
 
     const newAdmin = await Admin.create({
       email: normalizedEmail,
       name: data.name?.trim() || "",
       role,
-      permissions: role === "super_admin" ? {} : data.permissions || {},
-      granularPermissions: role === "super_admin" ? {} : data.granularPermissions || {},
+      permissions: role === "custom" ? data.permissions || {} : {},
+      granularPermissions: role === "custom" ? data.granularPermissions || {} : {},
       isActive: true,
     });
 
@@ -114,6 +117,9 @@ export const updateAdminRoleAndPermissions = async (
 
     const targetAdmin = await Admin.findById(adminId);
     if (!targetAdmin) throw new Error("Administrator not found");
+    if (!["super_admin", "instructor", "pro", "custom"].includes(data.role)) {
+      throw new Error("Choose one of the supported administrator roles.");
+    }
 
     // Safeguard: Check if demoting the last super admin
     if (targetAdmin.role === "super_admin" && data.role !== "super_admin") {
@@ -125,7 +131,7 @@ export const updateAdminRoleAndPermissions = async (
 
     if (data.name !== undefined) targetAdmin.name = data.name.trim();
     targetAdmin.role = data.role;
-    if (data.role === "super_admin") {
+    if (data.role !== "custom") {
       targetAdmin.permissions = {};
       targetAdmin.granularPermissions = {};
     } else {

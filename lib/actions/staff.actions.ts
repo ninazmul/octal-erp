@@ -52,7 +52,7 @@ export async function getEmployees(params?: {
 
   const isAuthorizedForSalary =
     profile.role === "super_admin" ||
-    profile.role === "accountant" ||
+    profile.role === "accountant" || profile.role === "pro" ||
     Boolean(profile.granularPermissions?.payroll_view_confidential);
 
   const employees = await Employee.find(query)
@@ -85,7 +85,7 @@ export async function getEmployeeById(id: string) {
 
   const isAuthorizedForSalary =
     profile.role === "super_admin" ||
-    profile.role === "accountant" ||
+    profile.role === "accountant" || profile.role === "pro" ||
     Boolean(profile.granularPermissions?.payroll_view_confidential);
 
   let payrollHistory: unknown[] = [];

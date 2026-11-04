@@ -6,6 +6,7 @@ export type AdminRole =
   | "super_admin"
   | "admin"
   | "instructor"
+  | "pro"
   | "receptionist"
   | "accountant"
   | "staff"

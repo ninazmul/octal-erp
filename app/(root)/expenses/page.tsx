@@ -15,7 +15,9 @@ export default async function ExpensesPage() {
   const isAuthorized =
     profile?.role === "super_admin" ||
     profile?.role === "admin" ||
-    profile?.role === "accountant";
+    profile?.role === "accountant" ||
+    profile?.role === "pro" ||
+    Boolean(profile?.granularPermissions?.expense_record);
 
   return (
     <div className="p-4 sm:p-6 max-w-7xl mx-auto">

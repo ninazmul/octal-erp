@@ -59,9 +59,7 @@ export const ACCOUNT_TYPES = [
 
 export const USER_ROLES = [
   { value: "super_admin", label: "Super Admin", description: "Unrestricted access across all ERP modules" },
-  { value: "admin", label: "Admin", description: "Full operational access, academic & staff management" },
   { value: "instructor", label: "Instructor", description: "Assigned courses, batches, and own commission tracking" },
-  { value: "receptionist", label: "Receptionist", description: "Front desk, student admission & payment collection" },
-  { value: "accountant", label: "Accountant", description: "Payment records, expenses, ledger & financial statements" },
-  { value: "staff", label: "General Staff", description: "Standard operational staff access" },
+  { value: "pro", label: "PRO", description: "Student admissions and accountant level finance access" },
+  { value: "custom", label: "Custom", description: "Permissions selected by a Super Admin" },
 ] as const;
