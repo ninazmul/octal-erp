@@ -427,7 +427,7 @@ export default function OctalDashboardClient({
               </Button>
             </Link>
             <Link href="/reports">
-              <Button variant="outline" className="rounded-xl text-slate-200 border-slate-700 hover:bg-slate-800 text-xs sm:text-sm">
+              <Button variant="outline" className="rounded-xl border-white/30 bg-white/10 text-white hover:bg-white/20 hover:text-white text-xs sm:text-sm">
                 Reports
               </Button>
             </Link>
