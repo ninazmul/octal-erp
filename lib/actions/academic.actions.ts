@@ -188,6 +188,14 @@ export async function createCourse(data: {
   if (actor.role === "instructor") {
     throw new Error("Forbidden: Instructors are not permitted to add courses.");
   }
+  const durationMonths = Number(data.durationMonths);
+  const defaultFee = Number(data.defaultFee);
+  if (!Number.isFinite(durationMonths) || durationMonths < 0.5 || durationMonths > 48 || Math.abs(durationMonths * 2 - Math.round(durationMonths * 2)) > 1e-8) {
+    throw new Error("Course duration must be between 0.5 and 48 months in half-month increments.");
+  }
+  if (!Number.isFinite(defaultFee) || defaultFee < 0) {
+    throw new Error("Course fee must be a valid non-negative amount.");
+  }
   await connectToDatabase();
 
   const existing = await Course.findOne({ code: data.code.trim().toUpperCase() });
@@ -200,8 +208,8 @@ export async function createCourse(data: {
     code: data.code.trim().toUpperCase(),
     subject: data.subjectId,
     description: data.description?.trim() || "",
-    durationMonths: data.durationMonths || 3,
-    defaultFee: data.defaultFee || 0,
+    durationMonths,
+    defaultFee,
     instructors: data.instructors || [],
     isActive: data.isActive !== undefined ? data.isActive : true,
   });

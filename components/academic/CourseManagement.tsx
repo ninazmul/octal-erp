@@ -402,7 +402,8 @@ export default function CourseManagement({
                 </label>
                 <Input
                   type="number"
-                  min="1"
+                  min="0.5"
+                  step="0.5"
                   max="48"
                   value={durationMonths}
                   onChange={(e) => setDurationMonths(Number(e.target.value))}
@@ -417,7 +418,7 @@ export default function CourseManagement({
                 <Input
                   type="number"
                   min="0"
-                  step="500"
+                  step="1"
                   value={defaultFee}
                   onChange={(e) => setDefaultFee(Number(e.target.value))}
                   required
