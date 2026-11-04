@@ -322,12 +322,12 @@ export async function getReportData(reportKey: string, params?: {
               { $match: { referrer: { $in: instructorIds }, enrollment: { $ne: null } } },
               {
                 $group: {
-                  _id: { instructor: "$referrer", enrollment: "$enrollment" },
+                  _id: { instructor: "$referrer", batch: "$batch" },
                   totalEarned: { $sum: { $ifNull: ["$commissionEarned", 0] } },
                   totalPaid: { $sum: { $ifNull: ["$paidAmount", 0] } },
                 },
               },
-              { $group: { _id: "$_id.instructor", admissionsCount: { $sum: 1 }, totalEarned: { $sum: "$totalEarned" }, totalPaid: { $sum: "$totalPaid" } } },
+              { $group: { _id: "$_id.instructor", batchesCount: { $sum: 1 }, totalEarned: { $sum: "$totalEarned" }, totalPaid: { $sum: "$totalPaid" } } },
             ]),
           ])
         : [[]];
@@ -340,7 +340,7 @@ export async function getReportData(reportKey: string, params?: {
         const totalPaid = commission?.totalPaid || 0;
         return {
           instructor,
-          admissionsCount: commission?.admissionsCount || 0,
+          batchesCount: commission?.batchesCount || 0,
           totalEarned,
           totalPaid,
           remainingDue: Math.max(0, totalEarned - totalPaid),

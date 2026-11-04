@@ -44,17 +44,13 @@ async function createInstructorAdmissionEarning(enrollment: { _id: mongoose.Type
   const instructorId = batch.instructors?.[0];
   const type = batch.instructorPayoutType || "none";
   const value = Math.max(0, Number(batch.instructorPayoutValue || 0));
-  const amount = type === "percentage"
-    ? Math.round((enrollment.finalPayableAmount * value / 100) * 100) / 100
-    : type === "fixed" ? value : 0;
-  if (!instructorId || amount <= 0) return amount;
+  if (!instructorId || type === "none" || value <= 0) return 0;
   try {
     await CommissionEntry.createCollection();
   } catch (error) {
     if ((error as { code?: number }).code !== 48) throw error;
   }
-  const payoutKey = type === "fixed" ? { batchPayoutKey: enrollment.batch } : { admissionKey: enrollment._id };
-  if (await CommissionEntry.exists(payoutKey)) return type === "fixed" ? 0 : amount;
+  if (type === "fixed" && await CommissionEntry.exists({ batchPayoutKey: enrollment.batch })) return 0;
 
   // Migrate the former non-sparse payment index so multiple admission earnings may omit payment.
   const indexes = await CommissionEntry.collection.indexes();
@@ -74,6 +70,40 @@ async function createInstructorAdmissionEarning(enrollment: { _id: mongoose.Type
     await CommissionEntry.collection.createIndex({ batchPayoutKey: 1 }, { unique: true, sparse: true });
   }
 
+  let amount = value;
+  if (type === "percentage") {
+    const [feeTotals, existingEntries] = await Promise.all([
+      Enrollment.aggregate([
+        { $match: { batch: enrollment.batch, status: { $ne: "Dropped" } } },
+        { $group: { _id: null, totalPayable: { $sum: "$finalPayableAmount" } } },
+      ]),
+      CommissionEntry.find({ batch: enrollment.batch, payoutType: "percentage" })
+        .select("commissionEarned")
+        .lean(),
+    ]);
+    const targetTotal = Math.round(((feeTotals[0]?.totalPayable || 0) * value / 100) * 100) / 100;
+    const earnedSoFar = existingEntries.reduce((sum, entry) => sum + (entry.commissionEarned || 0), 0);
+    amount = Math.round((targetTotal - earnedSoFar) * 100) / 100;
+    if (amount === 0) return 0;
+
+    const pendingEntry = await CommissionEntry.findOne({
+      batch: enrollment.batch,
+      payoutType: "percentage",
+      settlementId: null,
+      paidAmount: 0,
+      status: "earned",
+    });
+    if (pendingEntry) {
+      pendingEntry.commissionEarned = Math.max(0, pendingEntry.commissionEarned + amount);
+      pendingEntry.remainingCommission = Math.max(0, pendingEntry.commissionEarned - pendingEntry.paidAmount);
+      pendingEntry.commissionRate = value;
+      pendingEntry.payoutValue = value;
+      await pendingEntry.save();
+      return Math.max(0, amount);
+    }
+    if (amount < 0) return 0;
+  }
+
   await CommissionEntry.create({
     ...(type === "fixed" ? { batchPayoutKey: enrollment.batch } : { admissionKey: enrollment._id }),
     enrollment: enrollment._id,
@@ -81,7 +111,7 @@ async function createInstructorAdmissionEarning(enrollment: { _id: mongoose.Type
     referrer: instructorId,
     collectedAmount: 0,
     commissionRate: type === "percentage" ? value : 0,
-    payoutType: type === "none" ? undefined : type,
+    payoutType: type,
     payoutValue: value,
     commissionEarned: amount,
     status: "earned",
@@ -954,13 +984,32 @@ export async function updateEnrollment(
   await enrollment.save();
 
   if (data.discount !== undefined) {
-    const earning = await CommissionEntry.findOne({ admissionKey: enrollment._id });
-    if (earning?.payoutType === "percentage" && !earning.settlementId && earning.paidAmount === 0) {
-      earning.commissionEarned = Math.round(
-        (enrollment.finalPayableAmount * Number(earning.payoutValue || 0)) / 100 * 100
-      ) / 100;
-      earning.remainingCommission = earning.commissionEarned;
-      await earning.save();
+    const batch = await Batch.findById(enrollment.batch).select("instructorPayoutType instructorPayoutValue").lean();
+    if (batch?.instructorPayoutType === "percentage") {
+      const [[feeTotals], existingEntries] = await Promise.all([
+        Enrollment.aggregate([
+          { $match: { batch: enrollment.batch, status: { $ne: "Dropped" } } },
+          { $group: { _id: null, totalPayable: { $sum: "$finalPayableAmount" } } },
+        ]),
+        CommissionEntry.find({ batch: enrollment.batch, payoutType: "percentage" })
+          .select("commissionEarned")
+          .lean(),
+      ]);
+      const targetTotal = Math.round(((feeTotals?.totalPayable || 0) * batch.instructorPayoutValue / 100) * 100) / 100;
+      const earnedSoFar = existingEntries.reduce((sum, entry) => sum + (entry.commissionEarned || 0), 0);
+      const delta = Math.round((targetTotal - earnedSoFar) * 100) / 100;
+      const pendingEntry = delta !== 0 ? await CommissionEntry.findOne({
+        batch: enrollment.batch,
+        payoutType: "percentage",
+        settlementId: null,
+        paidAmount: 0,
+        status: "earned",
+      }) : null;
+      if (pendingEntry) {
+        pendingEntry.commissionEarned = Math.max(0, pendingEntry.commissionEarned + delta);
+        pendingEntry.remainingCommission = Math.max(0, pendingEntry.commissionEarned - pendingEntry.paidAmount);
+        await pendingEntry.save();
+      }
     }
   }
 

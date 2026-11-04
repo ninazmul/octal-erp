@@ -63,7 +63,7 @@ const BatchSchema: Schema = new Schema(
     },
     maxCapacity: {
       type: Number,
-      default: 30,
+      default: 12,
       min: 1,
     },
     status: {

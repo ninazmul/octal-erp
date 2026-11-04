@@ -68,7 +68,7 @@ export default function BatchManagement({
   );
   const [endDate, setEndDate] = useState("");
   const [scheduleDescription, setScheduleDescription] = useState("");
-  const [maxCapacity, setMaxCapacity] = useState(30);
+  const [maxCapacity, setMaxCapacity] = useState(12);
   const [instructorPayoutType, setInstructorPayoutType] = useState<"none" | "percentage" | "fixed">("none");
   const [instructorPayoutValue, setInstructorPayoutValue] = useState(0);
   const [status, setStatus] = useState<
@@ -133,7 +133,7 @@ export default function BatchManagement({
     setStartDate(new Date().toISOString().split("T")[0]);
     setEndDate("");
     setScheduleDescription("Sun, Tue, Thu | 7:00 PM - 9:00 PM");
-    setMaxCapacity(30);
+    setMaxCapacity(12);
     setInstructorPayoutType("none");
     setInstructorPayoutValue(0);
     setStatus("Upcoming");
@@ -164,7 +164,7 @@ export default function BatchManagement({
       batch.endDate ? new Date(batch.endDate).toISOString().split("T")[0] : ""
     );
     setScheduleDescription(batch.scheduleDescription || "");
-    setMaxCapacity(batch.maxCapacity || 30);
+    setMaxCapacity(batch.maxCapacity || 12);
     setInstructorPayoutType(batch.instructorPayoutType || "none");
     setInstructorPayoutValue(batch.instructorPayoutValue || 0);
     setStatus(batch.status);
@@ -388,7 +388,7 @@ export default function BatchManagement({
 
                 <p className="text-xs text-slate-600 dark:text-slate-300 flex items-center gap-1.5 mt-1 font-mono">
                   <span className="font-semibold text-indigo-600 dark:text-indigo-400">
-                    Instructor payout: {batch.instructorPayoutType === "percentage" ? `${batch.instructorPayoutValue ?? 0}% per admission` : batch.instructorPayoutType === "fixed" ? `৳${(batch.instructorPayoutValue ?? 0).toLocaleString()} total for batch` : "monthly salary only"}
+                    Instructor payout: {batch.instructorPayoutType === "percentage" ? `${batch.instructorPayoutValue ?? 0}% of total batch fees` : batch.instructorPayoutType === "fixed" ? `৳${(batch.instructorPayoutValue ?? 0).toLocaleString()} total for batch` : "monthly salary only"}
                   </span>
                 </p>
 
@@ -649,14 +649,14 @@ export default function BatchManagement({
                   onChange={(e) => setInstructorPayoutType(e.target.value as "none" | "percentage" | "fixed")}
                 >
                   <option value="none">No batch payout (monthly salary only)</option>
-                  <option value="percentage">Percentage of student payable fee</option>
+                  <option value="percentage">Percentage of total batch payable fees</option>
                   <option value="fixed">Fixed total amount for this batch</option>
                 </select>
               </div>
               {instructorPayoutType !== "none" && <div>
                 <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">{instructorPayoutType === "percentage" ? "Commission percentage (%)" : "Total batch payout (৳)"}</label>
                 <Input type="number" min="0" max={instructorPayoutType === "percentage" ? "100" : undefined} step="0.01" value={instructorPayoutValue} onChange={(e) => setInstructorPayoutValue(Number(e.target.value))} required />
-                <p className="mt-1 text-xs text-slate-500">{instructorPayoutType === "percentage" ? "Calculated from each admitted student’s final payable fee." : "Paid once for the whole batch when its first student is admitted."}</p>
+                <p className="mt-1 text-xs text-slate-500">{instructorPayoutType === "percentage" ? "Calculated from the combined final payable fees of all admitted students." : "Paid once for the whole batch when its first student is admitted."}</p>
               </div>}
 
               <div className="sm:col-span-2">

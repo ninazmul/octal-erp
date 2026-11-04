@@ -165,7 +165,7 @@ export default function OctalDashboardClient({
               <thead>
                 <tr className="border-b border-slate-100 dark:border-slate-800 text-slate-400 font-semibold uppercase text-[10px]">
                   <th className="pb-3 px-3">Batch</th>
-                  <th className="pb-3 px-3">Student Fee</th>
+                  <th className="pb-3 px-3">Payout Basis</th>
                   <th className="pb-3 px-3">Payout Rule</th>
                   <th className="pb-3 px-3">Earned (৳)</th>
                   <th className="pb-3 px-3">Paid (৳)</th>
@@ -184,7 +184,7 @@ export default function OctalDashboardClient({
                         {batchName}
                       </td>
                       <td className="py-2.5 px-3 font-mono">
-                        ৳{(comm.enrollment && typeof comm.enrollment === "object" ? comm.enrollment.finalPayableAmount : 0)?.toLocaleString()}
+                        {comm.payoutType === "percentage" || (!comm.payoutType && comm.commissionRate > 0) ? `${comm.payoutValue ?? comm.commissionRate}% of batch fees` : comm.payoutType === "fixed" ? "Fixed batch total" : "Historical earning"}
                       </td>
                       <td className="py-2.5 px-3 font-mono font-bold text-indigo-600">
                         {comm.commissionRate > 0 ? `${comm.commissionRate}%` : "Fixed"}

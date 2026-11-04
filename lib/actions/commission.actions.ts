@@ -175,7 +175,7 @@ export async function getBatchSettlementStatement(batchId: string, instructorId:
   const batchPayoutValue = Number(batch.instructorPayoutValue || 0);
 
   // Eligible confirmed commission entries for this instructor and batch
-  const eligibleEntries = await CommissionEntry.find({
+  const [eligibleEntries, [admissionTotals]] = await Promise.all([CommissionEntry.find({
     batch: batchId,
     referrer: instructorId,
     settlementId: null,
@@ -186,14 +186,12 @@ export async function getBatchSettlementStatement(batchId: string, instructorId:
       path: "enrollment",
       populate: { path: "student", select: "fullName studentId" },
     })
-    .lean();
+    .lean(), Enrollment.aggregate([
+      { $match: { batch: batch._id, status: { $ne: "Dropped" } } },
+      { $group: { _id: null, count: { $sum: 1 }, totalPayable: { $sum: "$finalPayableAmount" } } },
+    ])]);
 
-  const admissions = new Map<string, number>();
-  eligibleEntries.forEach((entry) => {
-    const enrollment = entry.enrollment as unknown as { _id?: unknown; finalPayableAmount?: number };
-    if (enrollment?._id) admissions.set(String(enrollment._id), Number(enrollment.finalPayableAmount) || 0);
-  });
-  const totalEligibleCollections = Array.from(admissions.values()).reduce((sum, amount) => sum + amount, 0);
+  const totalEligibleCollections = admissionTotals?.totalPayable || 0;
   const grossCommission = eligibleEntries.reduce(
     (sum, e) => sum + (e.commissionEarned || 0),
     0
@@ -211,8 +209,8 @@ export async function getBatchSettlementStatement(batchId: string, instructorId:
       batchPayoutType,
       batchPayoutValue,
       eligibleEntries,
-      eligibleAdmissionsCount: admissions.size,
-      eligibleCollectionsCount: admissions.size,
+      eligibleAdmissionsCount: admissionTotals?.count || 0,
+      eligibleCollectionsCount: admissionTotals?.count || 0,
       totalEligibleCollections,
       grossCommission,
       alreadyPaid,

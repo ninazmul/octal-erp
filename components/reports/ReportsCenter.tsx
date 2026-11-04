@@ -348,7 +348,7 @@ export default function ReportsCenter({
                     <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-400 font-semibold uppercase text-[10px]">
                       <th className="pb-3 px-3">Instructor</th>
                       <th className="pb-3 px-3">Department</th>
-                      <th className="pb-3 px-3">Admissions With Payout</th>
+                      <th className="pb-3 px-3">Batches With Payout</th>
                       <th className="pb-3 px-3">Batch Earnings</th>
                       <th className="pb-3 px-3">Paid Out</th>
                       <th className="pb-3 px-3">Remaining Payable</th>
@@ -364,7 +364,7 @@ export default function ReportsCenter({
                           </span>
                         </td>
                         <td className="py-2.5 px-3">{item.instructor?.department}</td>
-                        <td className="py-2.5 px-3 font-bold">{item.admissionsCount}</td>
+                        <td className="py-2.5 px-3 font-bold">{item.batchesCount}</td>
                         <td className="py-2.5 px-3 font-mono font-bold text-indigo-600">
                           ৳{item.totalEarned?.toLocaleString()}
                         </td>

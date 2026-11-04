@@ -465,7 +465,7 @@ export async function createBatch(data: {
     startDate: new Date(data.startDate),
     endDate: data.endDate ? new Date(data.endDate) : undefined,
     scheduleDescription: data.scheduleDescription?.trim() || "",
-    maxCapacity: data.maxCapacity || 30,
+    maxCapacity: data.maxCapacity || 12,
     status: "Upcoming",
     financialStatus: "Open",
     notes: data.notes?.trim() || "",

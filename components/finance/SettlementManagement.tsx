@@ -644,7 +644,7 @@ export default function SettlementManagement({
                         {b.courseTitle}
                       </span>
                       <span className="text-[10px] font-semibold text-indigo-600 dark:text-indigo-400">
-                        {b.instructorPayoutType === "percentage" ? `${b.instructorPayoutValue}% per admission` : b.instructorPayoutType === "fixed" ? `৳${b.instructorPayoutValue.toLocaleString()} total batch payout` : "Monthly salary only"}
+                        {b.instructorPayoutType === "percentage" ? `${b.instructorPayoutValue}% of total batch fees` : b.instructorPayoutType === "fixed" ? `৳${b.instructorPayoutValue.toLocaleString()} total batch payout` : "Monthly salary only"}
                       </span>
                     </td>
 
@@ -854,7 +854,7 @@ export default function SettlementManagement({
                     <option value="" disabled>Select Batch</option>
                     {batches.map((b) => (
                       <option key={b._id} value={b._id}>
-                        {b.batchName} ({b.batchCode}) — {b.instructorPayoutType === "percentage" ? `${b.instructorPayoutValue}% per admission` : b.instructorPayoutType === "fixed" ? `৳${b.instructorPayoutValue} total batch payout` : "monthly salary only"}
+                        {b.batchName} ({b.batchCode}) — {b.instructorPayoutType === "percentage" ? `${b.instructorPayoutValue}% of total batch fees` : b.instructorPayoutType === "fixed" ? `৳${b.instructorPayoutValue} total batch payout` : "monthly salary only"}
                       </option>
                     ))}
                   </select>
@@ -943,9 +943,9 @@ export default function SettlementManagement({
                       <table className="w-full text-left text-[11px]">
                         <thead className="bg-slate-100 dark:bg-slate-800 text-slate-500 sticky top-0">
                           <tr>
-                            <th className="py-1 px-2">Student</th>
-                            <th className="py-1 px-2">Enrollment</th>
-                            <th className="py-1 px-2 text-right">Student Fee</th>
+                            <th className="py-1 px-2">Basis</th>
+                            <th className="py-1 px-2">Batch Payout</th>
+                            <th className="py-1 px-2 text-right">Total Batch Fees</th>
                             <th className="py-1 px-2 text-right">Payout Rule</th>
                             <th className="py-1 px-2 text-right">Earning</th>
                           </tr>
@@ -953,14 +953,10 @@ export default function SettlementManagement({
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                           {statementData.eligibleEntries.map((e, idx) => (
                             <tr key={idx} className="hover:bg-slate-100/50 dark:hover:bg-slate-800/50">
-                              <td className="py-1 px-2 font-medium">
-                                {(e.enrollment as unknown as { student?: { fullName?: string } })?.student?.fullName || "Student"}
-                              </td>
-                              <td className="py-1 px-2 font-mono text-slate-500">
-                                {(e.enrollment as unknown as { enrollmentId?: string })?.enrollmentId || "—"}
-                              </td>
+                              <td className="py-1 px-2 font-medium">Whole batch</td>
+                              <td className="py-1 px-2 font-mono text-slate-500">{e.payoutType === "percentage" || (!e.payoutType && e.commissionRate > 0) ? "Percentage" : e.payoutType === "fixed" ? "Fixed total" : "Historical"}</td>
                               <td className="py-1 px-2 font-mono text-right">
-                                ৳{(e.enrollment as unknown as { finalPayableAmount?: number })?.finalPayableAmount?.toLocaleString() || "0"}
+                                ৳{statementData.totalEligibleCollections.toLocaleString()}
                               </td>
                               <td className="py-1 px-2 font-mono text-right text-indigo-600 dark:text-indigo-400 font-semibold">
                                 {statementData.batchPayoutType === "percentage" ? `${statementData.batchPayoutValue}%` : "Fixed"}

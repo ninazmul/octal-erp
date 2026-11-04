@@ -310,7 +310,7 @@ export default function BatchDetailsView({ batch }: BatchDetailsProps) {
                 <thead>
                   <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-400 font-semibold uppercase tracking-wider text-[10px]">
                     <th className="pb-3 px-3">Instructor</th>
-                    <th className="pb-3 px-3">Admission</th>
+                    <th className="pb-3 px-3">Basis</th>
                     <th className="pb-3 px-3">Payout Rule</th>
                     <th className="pb-3 px-3">Batch Earning</th>
                     <th className="pb-3 px-3">Paid Amount</th>
@@ -331,10 +331,10 @@ export default function BatchDetailsView({ batch }: BatchDetailsProps) {
                         </span>
                       </td>
                       <td className="py-3 px-3 font-mono text-slate-700 dark:text-slate-300">
-                        {typeof comm.enrollment === "object" ? comm.enrollment.enrollmentId : "Admission"}
+                        Whole batch
                       </td>
                       <td className="py-3 px-3 font-mono text-indigo-600 dark:text-indigo-400 font-bold">
-                        {comm.commissionRate > 0 ? `${comm.commissionRate}%` : "Fixed total"}
+                        {comm.payoutType === "percentage" || (!comm.payoutType && comm.commissionRate > 0) ? `${comm.payoutValue ?? comm.commissionRate}% of batch fees` : comm.payoutType === "fixed" ? "Fixed batch total" : "Historical earning"}
                       </td>
                       <td className="py-3 px-3 font-mono font-bold text-slate-900 dark:text-white">
                         ৳{comm.commissionEarned?.toLocaleString()}
