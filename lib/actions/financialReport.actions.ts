@@ -27,8 +27,8 @@ import {
 
 export async function getFinancialDashboardStats(): Promise<OctalFinancialDashboardStats> {
   const profile = await requirePermission("dashboard", "read");
-  if (profile.role === "instructor") {
-    throw new Error("Forbidden: Instructor accounts cannot access organization-wide financial totals.");
+  if (!["super_admin", "pro", "accountant"].includes(profile.role)) {
+    throw new Error("Forbidden: This role cannot access organization-wide financial dashboard totals.");
   }
   await connectToDatabase();
 

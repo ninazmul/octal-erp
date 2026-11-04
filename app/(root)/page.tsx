@@ -5,6 +5,7 @@ import {
 } from "@/lib/actions/financialReport.actions";
 import OctalDashboardClient from "@/components/dashboard/OctalDashboardClient";
 import { getCurrentAdminProfile } from "@/lib/auth-guard";
+import { resolveEffectivePermissions } from "@/lib/rbac-utils";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,7 @@ export default async function DashboardPage() {
 
   if (profile.role === "instructor" && profile.employeeId) {
     instructorStats = await getInstructorDashboardStats(profile.employeeId);
-  } else {
+  } else if (profile.role === "super_admin" || profile.role === "pro") {
     stats = await getFinancialDashboardStats();
   }
 
@@ -28,6 +29,7 @@ export default async function DashboardPage() {
         instructorStats={instructorStats}
         role={profile.role}
         userName={profile.name || profile.email}
+        permissions={resolveEffectivePermissions(profile.role, profile.permissions)}
       />
     </div>
   );

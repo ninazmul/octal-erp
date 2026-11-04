@@ -1,6 +1,6 @@
 "use client";
 
-import { OctalFinancialDashboardStats, InstructorDashboardStats, AdminRole } from "@/types";
+import { OctalFinancialDashboardStats, InstructorDashboardStats, AdminRole, AppModule, ModulePermissions } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,6 +14,13 @@ import {
   ArrowRight,
   UserPlus,
   AlertTriangle,
+  BookOpen,
+  Users,
+  FileBarChart2,
+  Settings,
+  ShieldCheck,
+  ClipboardList,
+  GraduationCap,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -22,13 +29,36 @@ interface DashboardClientProps {
   instructorStats: InstructorDashboardStats | null;
   role: AdminRole;
   userName: string;
+  permissions: ModulePermissions;
 }
+
+const MODULE_LINKS: Array<{
+  module: AppModule;
+  label: string;
+  description: string;
+  href: string;
+  icon: typeof Layers;
+}> = [
+  { module: "academic", label: "Courses & batches", description: "Review your available academic workspace.", href: "/academic/courses", icon: BookOpen },
+  { module: "students", label: "Students & admissions", description: "Open the student directory and admission tools.", href: "/students", icon: Users },
+  { module: "payments", label: "Payments", description: "Review collections and payment records.", href: "/payments", icon: Receipt },
+  { module: "commissions", label: "Instructor payouts", description: "Review batch earnings and settlements.", href: "/finance/commissions", icon: Percent },
+  { module: "staff", label: "Staff directory", description: "View staff profiles and assignments.", href: "/staff", icon: GraduationCap },
+  { module: "payroll", label: "Payroll", description: "Review salary obligations and payroll activity.", href: "/payroll", icon: Wallet },
+  { module: "expenses", label: "Expenses", description: "Review operational costs and approvals.", href: "/expenses", icon: CreditCard },
+  { module: "finance", label: "Accounts & ledger", description: "Manage accounts and review ledger activity.", href: "/finance/accounts", icon: Building },
+  { module: "reports", label: "Reports", description: "Open reports available to your account.", href: "/reports", icon: FileBarChart2 },
+  { module: "admins", label: "User access", description: "Review administrator accounts and access.", href: "/admins", icon: ShieldCheck },
+  { module: "activity_logs", label: "Activity logs", description: "Review recorded system activity.", href: "/activity-logs", icon: ClipboardList },
+  { module: "settings", label: "Settings", description: "View organization settings.", href: "/settings", icon: Settings },
+];
 
 export default function OctalDashboardClient({
   stats,
   instructorStats,
   role,
   userName,
+  permissions,
 }: DashboardClientProps) {
   const isInstructor = role === "instructor";
 
@@ -219,6 +249,147 @@ export default function OctalDashboardClient({
     );
   }
 
+  if (isInstructor && !instructorStats) {
+    return (
+      <div className="rounded-3xl border border-indigo-200/70 dark:border-indigo-900 bg-gradient-to-br from-white to-indigo-50 dark:from-slate-900 dark:to-indigo-950/40 p-8 text-center shadow-sm">
+        <GraduationCap className="mx-auto h-9 w-9 text-indigo-500" />
+        <h1 className="mt-3 text-xl font-extrabold text-slate-900 dark:text-white">Instructor profile is not linked</h1>
+        <p className="mx-auto mt-2 max-w-md text-sm text-slate-500 dark:text-slate-400">Ask a Super Admin to link your account to your instructor profile to see assigned courses and batches.</p>
+      </div>
+    );
+  }
+
+  if (role === "custom" || (!stats && !isInstructor)) {
+    const availableModules = MODULE_LINKS.filter(
+      ({ module }) => permissions[module] !== "none" &&
+        (role === "super_admin" || !["admins", "activity_logs", "settings"].includes(module)),
+    );
+    return (
+      <div className="space-y-6">
+        <section className="relative overflow-hidden rounded-3xl border border-indigo-200/70 dark:border-indigo-900 bg-gradient-to-br from-white via-indigo-50 to-sky-100 dark:from-slate-900 dark:via-indigo-950/70 dark:to-slate-900 p-6 sm:p-9 shadow-sm">
+          <div className="absolute -right-10 -top-16 h-48 w-48 rounded-full bg-indigo-400/10 blur-3xl" />
+          <div className="relative flex flex-col sm:flex-row sm:items-end sm:justify-between gap-5">
+            <div>
+              <Badge variant="outline" className="mb-3 border-indigo-200 bg-white/70 text-indigo-700 dark:border-indigo-800 dark:bg-slate-900/70 dark:text-indigo-300">
+                Custom workspace
+              </Badge>
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+                Welcome, {userName}
+              </h1>
+              <p className="mt-2 max-w-xl text-sm text-slate-600 dark:text-slate-300">
+                Your dashboard is built around the modules and actions assigned to your account.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 rounded-2xl border border-white/80 dark:border-slate-700 bg-white/70 dark:bg-slate-900/70 px-4 py-3 shadow-sm">
+              <ShieldCheck className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+              <div>
+                <p className="text-[10px] uppercase tracking-wider font-bold text-slate-400">Access profile</p>
+                <p className="text-sm font-bold text-slate-800 dark:text-slate-100">Custom permissions</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="space-y-3">
+          <div className="flex items-end justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">Your workspace</h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Choose a section to continue.</p>
+            </div>
+            <span className="text-xs font-semibold text-slate-400">{availableModules.length} available sections</span>
+          </div>
+          {availableModules.length ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+              {availableModules.map(({ module, label, description, href, icon: Icon }) => (
+                <Link key={module} href={href} className="group rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-300 dark:hover:border-indigo-800 hover:shadow-md">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-3">
+                      <span className="rounded-xl bg-indigo-50 dark:bg-indigo-950/60 p-2.5 text-indigo-600 dark:text-indigo-400"><Icon className="h-4 w-4" /></span>
+                      <div>
+                        <h3 className="text-sm font-bold text-slate-900 dark:text-white">{label}</h3>
+                        <p className="mt-1 text-xs leading-relaxed text-slate-500 dark:text-slate-400">{description}</p>
+                      </div>
+                    </div>
+                    <span className={`shrink-0 rounded-full px-2 py-1 text-[9px] font-bold uppercase tracking-wide ${permissions[module] === "write" ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300" : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-300"}`}>
+                      {permissions[module] === "write" ? "Manage" : "View"}
+                    </span>
+                  </div>
+                  <div className="mt-4 flex items-center justify-end text-xs font-semibold text-indigo-600 dark:text-indigo-400 opacity-80 group-hover:opacity-100">
+                    Open section <ArrowRight className="ml-1 h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+                  </div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 bg-white/70 dark:bg-slate-900/60 p-8 text-center">
+              <ShieldCheck className="mx-auto h-8 w-8 text-slate-400" />
+              <p className="mt-3 text-sm font-semibold text-slate-700 dark:text-slate-200">No modules assigned yet</p>
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Ask a Super Admin to assign the sections you need.</p>
+            </div>
+          )}
+        </section>
+      </div>
+    );
+  }
+
+  if (role === "pro" && stats) {
+    const workAreas = MODULE_LINKS.filter(({ module }) =>
+      ["students", "payments", "commissions", "payroll", "expenses", "finance", "reports"].includes(module),
+    );
+    return (
+      <div className="space-y-6">
+        <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-sky-700 via-indigo-700 to-violet-800 p-6 sm:p-9 text-white shadow-lg">
+          <div className="absolute -right-10 -top-20 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
+          <div className="relative flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
+            <div>
+              <Badge className="mb-3 border border-white/20 bg-white/10 text-white hover:bg-white/10">PRO · Admissions & Accounts</Badge>
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Welcome, {userName}</h1>
+              <p className="mt-2 max-w-xl text-sm text-sky-100">
+                Your daily workspace for student admissions, collections, accounts, and financial operations.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Link href="/students/new"><Button className="rounded-xl bg-white text-indigo-800 hover:bg-sky-50 font-semibold"><UserPlus className="mr-2 h-4 w-4" />New admission</Button></Link>
+              <Link href="/payments"><Button variant="outline" className="rounded-xl border-white/30 bg-white/10 text-white hover:bg-white/20"><Receipt className="mr-2 h-4 w-4" />Record payment</Button></Link>
+              <Link href="/finance/accounts"><Button variant="outline" className="rounded-xl border-white/30 bg-white/10 text-white hover:bg-white/20"><Building className="mr-2 h-4 w-4" />Accounts</Button></Link>
+            </div>
+          </div>
+        </section>
+
+        <section className="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
+          {[
+            { label: "Active students", value: stats.activeStudentsCount.toLocaleString(), note: "Currently enrolled", icon: Users, color: "text-indigo-600 dark:text-indigo-400" },
+            { label: "Student collections", value: `৳${stats.totalStudentCollections.toLocaleString()}`, note: "Confirmed payments", icon: Receipt, color: "text-emerald-600 dark:text-emerald-400" },
+            { label: "Outstanding dues", value: `৳${stats.totalStudentDues.toLocaleString()}`, note: "Remaining student balances", icon: AlertTriangle, color: "text-amber-600 dark:text-amber-400" },
+            { label: "Available cash", value: `৳${stats.closingCashBalance.toLocaleString()}`, note: "Cash, bank and MFS", icon: Building, color: "text-sky-600 dark:text-sky-400" },
+          ].map(({ label, value, note, icon: Icon, color }) => (
+            <div key={label} className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 sm:p-5 shadow-sm">
+              <div className="flex items-center justify-between gap-2"><span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400">{label}</span><Icon className={`h-4 w-4 ${color}`} /></div>
+              <p className={`mt-3 text-xl sm:text-2xl font-extrabold tracking-tight ${color}`}>{value}</p>
+              <p className="mt-1 text-[10px] sm:text-xs text-slate-500 dark:text-slate-400">{note}</p>
+            </div>
+          ))}
+        </section>
+
+        <section className="space-y-3">
+          <div>
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white">Operations</h2>
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Admissions and finance tools assigned to the PRO role.</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+            {workAreas.map(({ module, label, description, href, icon: Icon }) => (
+              <Link key={module} href={href} className="group flex items-center gap-3 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm transition hover:border-indigo-300 dark:hover:border-indigo-800 hover:shadow-md">
+                <span className="rounded-xl bg-indigo-50 dark:bg-indigo-950/60 p-3 text-indigo-600 dark:text-indigo-400"><Icon className="h-4 w-4" /></span>
+                <span className="min-w-0 flex-1"><span className="block text-sm font-bold text-slate-900 dark:text-white">{label}</span><span className="mt-1 block text-xs text-slate-500 dark:text-slate-400">{description}</span></span>
+                <ArrowRight className="h-4 w-4 shrink-0 text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-indigo-500" />
+              </Link>
+            ))}
+          </div>
+        </section>
+      </div>
+    );
+  }
+
   // GLOBAL EXECUTIVE DASHBOARD (SUPER ADMIN & ADMIN)
   if (!stats) return null;
 
@@ -231,14 +402,16 @@ export default function OctalDashboardClient({
             <div className="flex items-center gap-2 mb-1">
               <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
               <span className="text-xs uppercase tracking-wider font-semibold text-indigo-200">
-                Operational ERP • Real-Time Financial Position
+                {role === "pro" ? "Admissions & Accounts • Daily Operations" : "Executive Overview • Organization-wide Operations"}
               </span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-              Octal Management Dashboard
+              {role === "pro" ? "PRO Operations Dashboard" : "Octal Executive Dashboard"}
             </h1>
             <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-xl">
-              Centralized view of academic admissions, student collections, instructor settlements, monthly payroll, and net cashflow reserves.
+              {role === "pro"
+                ? "Manage student admissions, collections, accounts, expenses, and payroll from one focused workspace."
+                : "A complete view of academic admissions, student collections, instructor settlements, payroll, and organization finances."}
             </p>
           </div>
 
