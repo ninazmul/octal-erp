@@ -191,6 +191,13 @@ npm install
 ```
 
 ### 2. Configure Environment
+
+The sample Clerk keys below are **for local development only**. The hosted
+production environment must use Clerk production keys (`pk_live_...` and
+`sk_live_...`) and the production MongoDB connection string. Store these values
+in the hosting provider's encrypted environment settings; never commit them to
+the repository.
+
 Copy `.env.local.example` to `.env.local`:
 ```env
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
