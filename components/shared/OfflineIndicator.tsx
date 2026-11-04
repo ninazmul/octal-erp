@@ -7,10 +7,42 @@ export default function OfflineIndicator() {
   const [isOffline, setIsOffline] = useState(false);
 
   useEffect(() => {
-    // Register service worker if supported
+    let registration: ServiceWorkerRegistration | undefined;
+    let hadController = false;
+    let isReloadingForUpdate = false;
+
+    const reloadForUpdatedWorker = () => {
+      if (!hadController || isReloadingForUpdate) return;
+      isReloadingForUpdate = true;
+      window.location.reload();
+    };
+
+    const checkForWorkerUpdate = () => {
+      if (document.visibilityState === "visible") {
+        registration?.update().catch(() => {});
+      }
+    };
+
+    // Keep long-open tabs on the same build as their Server Actions. The worker
+    // activates updates immediately, so reload once it takes control.
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js").catch(() => {});
+      hadController = Boolean(navigator.serviceWorker.controller);
+      navigator.serviceWorker.addEventListener(
+        "controllerchange",
+        reloadForUpdatedWorker,
+      );
+      navigator.serviceWorker
+        .register("/sw.js")
+        .then((nextRegistration) => {
+          registration = nextRegistration;
+          checkForWorkerUpdate();
+        })
+        .catch(() => {});
+      window.addEventListener("focus", checkForWorkerUpdate);
+      document.addEventListener("visibilitychange", checkForWorkerUpdate);
     }
+
+    const updateCheck = window.setInterval(checkForWorkerUpdate, 5 * 60 * 1000);
 
     const handleOnline = () => setIsOffline(false);
     const handleOffline = () => setIsOffline(true);
@@ -21,6 +53,15 @@ export default function OfflineIndicator() {
     if (!navigator.onLine) setIsOffline(true);
 
     return () => {
+      window.clearInterval(updateCheck);
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.removeEventListener(
+          "controllerchange",
+          reloadForUpdatedWorker,
+        );
+        window.removeEventListener("focus", checkForWorkerUpdate);
+        document.removeEventListener("visibilitychange", checkForWorkerUpdate);
+      }
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
     };
