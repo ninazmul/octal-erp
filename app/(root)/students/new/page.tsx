@@ -4,6 +4,8 @@ import {
 } from "@/lib/actions/academic.actions";
 import NewAdmissionForm from "@/components/students/NewAdmissionForm";
 import { getAdmissionDiscountRequestForUse } from "@/lib/actions/student.actions";
+import { getCurrentAdminProfile } from "@/lib/auth-guard";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +16,16 @@ interface NewStudentPageProps {
 export default async function NewAdmissionPage({
   searchParams,
 }: NewStudentPageProps) {
+  const profile = await getCurrentAdminProfile();
+  if (!profile) redirect("/sign-in");
+  if (
+    profile.permissions?.students === "none" ||
+    profile.permissions?.academic === "none" ||
+    !profile.granularPermissions?.student_admit
+  ) {
+    redirect("/access-denied");
+  }
+
   const { batchId, discountRequestId } = await searchParams;
 
   const [courses, batches, discountRequest] = await Promise.all([

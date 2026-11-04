@@ -1,6 +1,8 @@
 import { getStudents } from "@/lib/actions/student.actions";
 import { getCourses, getBatches } from "@/lib/actions/academic.actions";
 import StudentDirectory from "@/components/students/StudentDirectory";
+import { getCurrentAdminProfile } from "@/lib/auth-guard";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
@@ -9,13 +11,17 @@ interface StudentsPageProps {
 }
 
 export default async function StudentsPage({ searchParams }: StudentsPageProps) {
+  const profile = await getCurrentAdminProfile();
+  if (!profile) redirect("/sign-in");
+
   const resolvedParams = searchParams ? await searchParams : {};
   const status = resolvedParams?.status;
+  const canReadAcademic = profile.permissions?.academic !== "none";
 
   const [data, courses, batches] = await Promise.all([
     getStudents(),
-    getCourses({ status: "active" }),
-    getBatches(),
+    canReadAcademic ? getCourses({ status: "active" }) : Promise.resolve([]),
+    canReadAcademic ? getBatches() : Promise.resolve([]),
   ]);
 
   return (

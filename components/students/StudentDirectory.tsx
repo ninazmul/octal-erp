@@ -62,7 +62,7 @@ export default function StudentDirectory({
   batches = [],
 }: StudentDirectoryProps) {
   const [students, setStudents] = useState<IStudent[]>(initialStudents);
-  const { canWrite, isAdmin } = usePermissions();
+  const { canWrite, canRead, canAdmitStudents, isAdmin } = usePermissions();
   const [search, setSearch] = useState("");
 
   const resolvedInitialStatus =
@@ -371,6 +371,7 @@ export default function StudentDirectory({
           </p>
         </div>
 
+        {canAdmitStudents && canRead("academic") && (
         <div className="flex items-center gap-3">
           <Link href="/students/new">
             <Button className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs sm:text-sm gap-2 shadow-sm">
@@ -379,6 +380,7 @@ export default function StudentDirectory({
             </Button>
           </Link>
         </div>
+        )}
       </div>
 
       {/* Discount Request Pending Alert Banner */}
