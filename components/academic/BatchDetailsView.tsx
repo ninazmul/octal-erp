@@ -16,7 +16,6 @@ interface BatchDetailsProps {
     enrollments: Array<
       IEnrollment & {
         student: IStudent;
-        referrer?: IEmployee;
       }
     >;
     commissions: Array<
@@ -135,7 +134,7 @@ export default function BatchDetailsView({ batch }: BatchDetailsProps) {
 
         <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm col-span-2 lg:col-span-1">
           <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
-            Commission Earned
+            Instructor Batch Earnings
           </span>
           <div className="text-xl font-bold text-indigo-600 dark:text-indigo-400 mt-1">
             ৳{batch.totalCommissionEarned.toLocaleString()}
@@ -178,7 +177,7 @@ export default function BatchDetailsView({ batch }: BatchDetailsProps) {
         </div>
       </div>
 
-      {/* Tabs: Enrolled Students vs Commissions */}
+      {/* Tabs: Enrolled Students vs instructor batch payouts */}
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 overflow-hidden shadow-sm">
         <div className="flex items-center border-b border-slate-200/80 dark:border-slate-800 px-4 pt-2">
           <button
@@ -199,7 +198,7 @@ export default function BatchDetailsView({ batch }: BatchDetailsProps) {
                 : "border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
             }`}
           >
-            <Percent className="w-4 h-4" /> Commission Entries ({batch.commissions.length})
+            <Percent className="w-4 h-4" /> Instructor Payouts ({batch.commissions.length})
           </button>
         </div>
 
@@ -216,7 +215,7 @@ export default function BatchDetailsView({ batch }: BatchDetailsProps) {
                     <th className="pb-3 px-3">Final Payable</th>
                     <th className="pb-3 px-3">Collected</th>
                     <th className="pb-3 px-3">Due</th>
-                    <th className="pb-3 px-3">Referrer</th>
+                    <th className="pb-3 px-3">Instructor Payout</th>
                     <th className="pb-3 px-3">Status</th>
                     <th className="pb-3 px-3 text-right">Actions</th>
                   </tr>
@@ -264,18 +263,7 @@ export default function BatchDetailsView({ batch }: BatchDetailsProps) {
                           </span>
                         </td>
                         <td className="py-3 px-3">
-                          {enr.referrer ? (
-                            <div>
-                              <span className="font-medium text-slate-700 dark:text-slate-300 block">
-                                {enr.referrer.fullName}
-                              </span>
-                              <span className="text-[10px] text-indigo-500 font-mono">
-                                ({enr.commissionRate}%)
-                              </span>
-                            </div>
-                          ) : (
-                            <span className="text-slate-400 text-[11px]">—</span>
-                          )}
+                          <span className="text-slate-400 text-[11px]">Batch instructor</span>
                         </td>
                         <td className="py-3 px-3">
                           <Badge
@@ -321,10 +309,10 @@ export default function BatchDetailsView({ batch }: BatchDetailsProps) {
               <table className="w-full text-left text-xs">
                 <thead>
                   <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-400 font-semibold uppercase tracking-wider text-[10px]">
-                    <th className="pb-3 px-3">Referrer / Instructor</th>
-                    <th className="pb-3 px-3">Collected Amount</th>
-                    <th className="pb-3 px-3">Rate</th>
-                    <th className="pb-3 px-3">Earned Commission</th>
+                    <th className="pb-3 px-3">Instructor</th>
+                    <th className="pb-3 px-3">Admission</th>
+                    <th className="pb-3 px-3">Payout Rule</th>
+                    <th className="pb-3 px-3">Batch Earning</th>
                     <th className="pb-3 px-3">Paid Amount</th>
                     <th className="pb-3 px-3">Remaining</th>
                     <th className="pb-3 px-3">Status</th>
@@ -343,10 +331,10 @@ export default function BatchDetailsView({ batch }: BatchDetailsProps) {
                         </span>
                       </td>
                       <td className="py-3 px-3 font-mono text-slate-700 dark:text-slate-300">
-                        ৳{comm.collectedAmount?.toLocaleString()}
+                        {typeof comm.enrollment === "object" ? comm.enrollment.enrollmentId : "Admission"}
                       </td>
                       <td className="py-3 px-3 font-mono text-indigo-600 dark:text-indigo-400 font-bold">
-                        {comm.commissionRate}%
+                        {comm.commissionRate > 0 ? `${comm.commissionRate}%` : "Fixed"}
                       </td>
                       <td className="py-3 px-3 font-mono font-bold text-slate-900 dark:text-white">
                         ৳{comm.commissionEarned?.toLocaleString()}
@@ -374,7 +362,7 @@ export default function BatchDetailsView({ batch }: BatchDetailsProps) {
                   {batch.commissions.length === 0 && (
                     <tr>
                       <td colSpan={8} className="py-8 text-center text-slate-400">
-                        No commissions generated for this batch yet. Commissions are created automatically when referred student payments are confirmed.
+                        No batch earnings are due for this batch yet. Earnings are created once per admission when a payout is set on the batch.
                       </td>
                     </tr>
                   )}

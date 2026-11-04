@@ -34,7 +34,7 @@ interface QuickAction {
 const QUICK_ACTIONS: QuickAction[] = [
   {
     title: "New Student Admission",
-    subtitle: "Register student, calculate fees, assign batch & referrer",
+    subtitle: "Register student, calculate fees, and assign a batch",
     url: "/students/new",
     icon: Users,
     category: "Students",

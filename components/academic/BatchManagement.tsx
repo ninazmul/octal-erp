@@ -69,7 +69,8 @@ export default function BatchManagement({
   const [endDate, setEndDate] = useState("");
   const [scheduleDescription, setScheduleDescription] = useState("");
   const [maxCapacity, setMaxCapacity] = useState(30);
-  const [commissionRate, setCommissionRate] = useState(20);
+  const [instructorPayoutType, setInstructorPayoutType] = useState<"none" | "percentage" | "fixed">("none");
+  const [instructorPayoutValue, setInstructorPayoutValue] = useState(0);
   const [status, setStatus] = useState<
     "Upcoming" | "Ongoing" | "Completed" | "Cancelled"
   >("Upcoming");
@@ -96,7 +97,6 @@ export default function BatchManagement({
         typeof i === "string" ? i : (i as IEmployee)._id
       );
       setSelectedInstructors(instIds.slice(0, 1));
-      setCommissionRate(courseObj.defaultCommissionRate ?? 20);
     }
   };
 
@@ -134,7 +134,8 @@ export default function BatchManagement({
     setEndDate("");
     setScheduleDescription("Sun, Tue, Thu | 7:00 PM - 9:00 PM");
     setMaxCapacity(30);
-    setCommissionRate(firstCourse?.defaultCommissionRate ?? 20);
+    setInstructorPayoutType("none");
+    setInstructorPayoutValue(0);
     setStatus("Upcoming");
     setFinancialStatus("Open");
     setNotes("");
@@ -164,8 +165,8 @@ export default function BatchManagement({
     );
     setScheduleDescription(batch.scheduleDescription || "");
     setMaxCapacity(batch.maxCapacity || 30);
-    const crsComm = typeof batch.course === "object" ? batch.course?.defaultCommissionRate : 20;
-    setCommissionRate(batch.commissionRate ?? crsComm ?? 20);
+    setInstructorPayoutType(batch.instructorPayoutType || "none");
+    setInstructorPayoutValue(batch.instructorPayoutValue || 0);
     setStatus(batch.status);
     setFinancialStatus(batch.financialStatus);
     setNotes(batch.notes || "");
@@ -189,7 +190,8 @@ export default function BatchManagement({
           endDate: endDate || undefined,
           scheduleDescription,
           maxCapacity: Number(maxCapacity),
-          commissionRate: Number(commissionRate),
+          instructorPayoutType,
+          instructorPayoutValue: Number(instructorPayoutValue),
           status,
           financialStatus,
           notes,
@@ -209,7 +211,8 @@ export default function BatchManagement({
           endDate: endDate || undefined,
           scheduleDescription,
           maxCapacity: Number(maxCapacity),
-          commissionRate: Number(commissionRate),
+          instructorPayoutType,
+          instructorPayoutValue: Number(instructorPayoutValue),
           notes,
         });
         setBatches((prev) => [created, ...prev]);
@@ -385,7 +388,7 @@ export default function BatchManagement({
 
                 <p className="text-xs text-slate-600 dark:text-slate-300 flex items-center gap-1.5 mt-1 font-mono">
                   <span className="font-semibold text-indigo-600 dark:text-indigo-400">
-                    Batch Commission: {batch.commissionRate ?? (typeof batch.course === "object" ? batch.course?.defaultCommissionRate : 20) ?? 20}%
+                    Instructor payout: {batch.instructorPayoutType === "percentage" ? `${batch.instructorPayoutValue ?? 0}% per admission` : batch.instructorPayoutType === "fixed" ? `৳${(batch.instructorPayoutValue ?? 0).toLocaleString()} per admission` : "monthly salary only"}
                   </span>
                 </p>
 
@@ -638,18 +641,23 @@ export default function BatchManagement({
 
               <div>
                 <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                  Batch Commission Rate (%) *
+                  Instructor payout per admission
                 </label>
-                <Input
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="0.5"
-                  value={commissionRate}
-                  onChange={(e) => setCommissionRate(Number(e.target.value))}
-                  required
-                />
+                <select
+                  className="w-full h-10 px-3 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  value={instructorPayoutType}
+                  onChange={(e) => setInstructorPayoutType(e.target.value as "none" | "percentage" | "fixed")}
+                >
+                  <option value="none">No batch payout (monthly salary only)</option>
+                  <option value="percentage">Percentage of student payable fee</option>
+                  <option value="fixed">Fixed amount per admitted student</option>
+                </select>
               </div>
+              {instructorPayoutType !== "none" && <div>
+                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">{instructorPayoutType === "percentage" ? "Payout percentage (%)" : "Payout per admission (৳)"}</label>
+                <Input type="number" min="0" max={instructorPayoutType === "percentage" ? "100" : undefined} step="0.01" value={instructorPayoutValue} onChange={(e) => setInstructorPayoutValue(Number(e.target.value))} required />
+                <p className="mt-1 text-xs text-slate-500">Calculated once for each admitted student.</p>
+              </div>}
 
               <div className="sm:col-span-2">
                 <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">

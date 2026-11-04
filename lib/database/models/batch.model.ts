@@ -13,7 +13,8 @@ export interface IBatchDocument extends Document {
   status: "Upcoming" | "Ongoing" | "Completed" | "Cancelled";
   financialStatus: "Open" | "Settling" | "Settled";
   notes?: string;
-  commissionRate?: number;
+  instructorPayoutType: "none" | "percentage" | "fixed";
+  instructorPayoutValue: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -80,11 +81,15 @@ const BatchSchema: Schema = new Schema(
       trim: true,
       default: "",
     },
-    commissionRate: {
+    instructorPayoutType: {
+      type: String,
+      enum: ["none", "percentage", "fixed"],
+      default: "none",
+    },
+    instructorPayoutValue: {
       type: Number,
-      default: 20,
+      default: 0,
       min: 0,
-      max: 100,
     },
   },
   {

@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     template: "%s | Octal ERP",
   },
   description:
-    "Integrated academic operations, student admissions, batch management, referral tracking, payment collections, instructor commissions, staff management, payroll, and financial management for Octal.",
+    "Integrated academic operations, student admissions, batch management, payment collections, instructor batch payouts, staff management, payroll, and financial management for Octal.",
   icons: {
     icon: [
       { url: "/erp-logo.png", type: "image/png" },
@@ -38,7 +38,7 @@ export const metadata: Metadata = {
     siteName: "Octal ERP",
     title: "Octal ERP",
     description:
-      "Integrated academic operations, student admissions, batch management, referral tracking, payment collections, instructor commissions, staff management, payroll, and financial management for Octal.",
+      "Integrated academic operations, student admissions, batch management, payment collections, instructor batch payouts, staff management, payroll, and financial management for Octal.",
   },
 };
 

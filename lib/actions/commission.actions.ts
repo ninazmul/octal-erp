@@ -1,7 +1,6 @@
 "use server";
 
 import { connectToDatabase } from "@/lib/database";
-import CommissionRule from "@/lib/database/models/commissionRule.model";
 import CommissionEntry from "@/lib/database/models/commissionEntry.model";
 import Settlement from "@/lib/database/models/settlement.model";
 import Payout from "@/lib/database/models/payout.model";
@@ -11,7 +10,6 @@ import Account from "@/lib/database/models/account.model";
 import Ledger from "@/lib/database/models/ledger.model";
 import Counter from "@/lib/database/models/counter.model";
 import Enrollment from "@/lib/database/models/enrollment.model";
-import Payment from "@/lib/database/models/payment.model";
 import { formatSL } from "@/lib/utils";
 import {
   requirePermission,
@@ -48,83 +46,7 @@ async function getNextLedgerEntryNo(): Promise<string> {
   return `LED-${formatSL(counter.seq, 6)}`;
 }
 
-// ==========================================
-// COMMISSION RULES CONFIGURATION
-// ==========================================
-
-export async function getCommissionRules() {
-  const profile = await requirePermission("commissions", "read");
-  await connectToDatabase();
-
-  const query = profile.role === "instructor"
-    ? { referrer: profile.employeeId || null }
-    : {};
-  if (profile.role === "instructor" && !profile.employeeId) return [];
-  const rules = await CommissionRule.find(query)
-    .populate("referrer", "fullName employeeId email phone")
-    .populate("course", "title code")
-    .sort({ createdAt: -1 })
-    .lean();
-
-  return JSON.parse(JSON.stringify(rules));
-}
-
-export async function saveCommissionRule(data: {
-  ruleId?: string;
-  referrerId: string;
-  courseId?: string | null;
-  percentage: number;
-  calculationBasis?: "collections" | "enrollment_fee";
-  notes?: string;
-}) {
-  const actor = await requireSuperAdmin();
-  await connectToDatabase();
-
-  const percentage = Math.max(0, Math.min(100, Number(data.percentage)));
-  const referrer = await Employee.findById(data.referrerId);
-  if (!referrer) throw new Error("Instructor / referrer not found");
-
-  const query: Record<string, unknown> = { referrer: data.referrerId };
-  if (data.courseId) query.course = data.courseId;
-  else query.course = null;
-
-  let rule = data.ruleId ? await CommissionRule.findById(data.ruleId) : await CommissionRule.findOne(query);
-  if (data.ruleId && !rule) throw new Error("Commission rule not found.");
-  const duplicate = await CommissionRule.findOne({ ...query, _id: { $ne: rule?._id } });
-  if (duplicate) throw new Error("A rule already exists for this instructor and course.");
-  if (rule) {
-    rule.referrer = data.referrerId as unknown as typeof rule.referrer;
-    rule.course = data.courseId ? data.courseId as unknown as typeof rule.course : null;
-    rule.percentage = percentage;
-    if (data.notes !== undefined) rule.notes = data.notes.trim();
-    rule.isActive = true;
-    await rule.save();
-  } else {
-    rule = await CommissionRule.create({
-      referrer: data.referrerId,
-      course: data.courseId || null,
-      percentage,
-      calculationBasis: data.calculationBasis || "collections",
-      effectiveFrom: new Date(),
-      isActive: true,
-      notes: data.notes?.trim() || "",
-    });
-  }
-
-  await logActivityAndNotify({
-    actor,
-    action: "CONFIGURE_COMMISSION_RULE",
-    module: "commissions",
-    resourceId: String(rule._id),
-    resourceName: referrer.fullName,
-    details: `Configured commission rate ${percentage}% for ${referrer.fullName} (${referrer.employeeId}) ${data.courseId ? "on specific course" : "globally"}`,
-  });
-
-  revalidatePath("/finance/commissions");
-  return JSON.parse(JSON.stringify(rule));
-}
-
-export async function updateCommissionEntry(entryId: string, data: { commissionRate: number; reason: string }) {
+export async function updateCommissionEntry(entryId: string, data: { commissionAmount: number; reason: string }) {
   const actor = await requireSuperAdmin();
   await connectToDatabase();
   const entry = await CommissionEntry.findById(entryId);
@@ -133,14 +55,14 @@ export async function updateCommissionEntry(entryId: string, data: { commissionR
     throw new Error("Only unpaid, unsettled commission entries can be edited.");
   }
   if (!data.reason?.trim()) throw new Error("A reason is required for commission corrections.");
-  const commissionRate = Number(data.commissionRate);
-  if (!Number.isFinite(commissionRate) || commissionRate < 0 || commissionRate > 100) throw new Error("Commission rate must be between 0 and 100.");
-  entry.commissionRate = commissionRate;
-  entry.commissionEarned = Math.round((entry.collectedAmount * commissionRate / 100) * 100) / 100;
+  const commissionAmount = Number(data.commissionAmount);
+  if (!Number.isFinite(commissionAmount) || commissionAmount < 0) throw new Error("Batch earning must be a valid non-negative amount.");
+  entry.commissionRate = 0;
+  entry.commissionEarned = commissionAmount;
   entry.remainingCommission = entry.commissionEarned;
   entry.status = "earned";
   await entry.save();
-  await logActivityAndNotify({ actor, action: "UPDATE_COMMISSION_ENTRY", module: "commissions", resourceId: String(entry._id), resourceName: String(entry.payment), details: `Corrected commission entry. Reason: ${data.reason.trim()}. New rate ${commissionRate}%, earned ৳${entry.commissionEarned}.` });
+  await logActivityAndNotify({ actor, action: "UPDATE_COMMISSION_ENTRY", module: "commissions", resourceId: String(entry._id), resourceName: String(entry.enrollment), details: `Corrected batch earning. Reason: ${data.reason.trim()}. New amount ৳${entry.commissionEarned}.` });
   revalidatePath("/finance/commissions");
   revalidatePath("/finance/settlements");
   return JSON.parse(JSON.stringify(entry));
@@ -161,25 +83,6 @@ export async function voidCommissionEntry(entryId: string, reason: string) {
   await logActivityAndNotify({ actor, action: "VOID_COMMISSION_ENTRY", module: "commissions", resourceId: String(entry._id), resourceName: String(entry.payment), details: `Voided commission entry. Reason: ${reason.trim()}.` });
   revalidatePath("/finance/commissions");
   return JSON.parse(JSON.stringify(entry));
-}
-
-export async function deactivateCommissionRule(ruleId: string) {
-  const actor = await requireSuperAdmin();
-  await connectToDatabase();
-  const rule = await CommissionRule.findById(ruleId);
-  if (!rule) throw new Error("Commission rule not found.");
-  rule.isActive = false;
-  await rule.save();
-  await logActivityAndNotify({
-    actor,
-    action: "DEACTIVATE_COMMISSION_RULE",
-    module: "commissions",
-    resourceId: String(rule._id),
-    resourceName: String(rule.referrer),
-    details: "Deactivated a commission rule. Existing commission entries remain unchanged.",
-  });
-  revalidatePath("/finance/commissions");
-  return JSON.parse(JSON.stringify(rule));
 }
 
 // ==========================================
@@ -255,7 +158,7 @@ export async function getBatchSettlementStatement(batchId: string, instructorId:
   }
 
   const batch = await Batch.findById(batchId)
-    .populate("course", "title code defaultCommissionRate")
+    .populate("course", "title code")
     .lean();
   if (!batch) throw new Error("Batch not found");
 
@@ -268,55 +171,14 @@ export async function getBatchSettlementStatement(batchId: string, instructorId:
     throw new Error("Forbidden: You are not assigned to this batch.");
   }
 
-  // Get commission rate directly from batch commission (falling back to course default, then 20)
-  const batchCommissionRate =
-    batch.commissionRate !== undefined && batch.commissionRate !== null
-      ? Number(batch.commissionRate)
-      : (batch.course as unknown as { defaultCommissionRate?: number })?.defaultCommissionRate ?? 20;
-
-  // Find all confirmed payments for this batch
-  const confirmedPayments = await Payment.find({
-    batch: batchId,
-    status: "confirmed",
-  }).lean();
-
-  // Ensure every confirmed payment has a CommissionEntry reflecting the batch commission rate
-  for (const p of confirmedPayments) {
-    const existingEntry = await CommissionEntry.findOne({ payment: p._id });
-    if (!existingEntry) {
-      const commEarned = Math.round(((p.amount * batchCommissionRate) / 100) * 100) / 100;
-      await CommissionEntry.create({
-        payment: p._id,
-        enrollment: p.enrollment,
-        batch: batchId,
-        referrer: instructorId,
-        collectedAmount: p.amount,
-        commissionRate: batchCommissionRate,
-        commissionEarned: commEarned,
-        status: "earned",
-        paidAmount: 0,
-        remainingCommission: commEarned,
-      });
-    } else if (
-      ["earned", "awaiting_settlement"].includes(existingEntry.status) &&
-      existingEntry.commissionRate !== batchCommissionRate
-    ) {
-      // Synchronize commission rate from batch commission
-      existingEntry.commissionRate = batchCommissionRate;
-      existingEntry.commissionEarned =
-        Math.round(((existingEntry.collectedAmount * batchCommissionRate) / 100) * 100) / 100;
-      existingEntry.remainingCommission = Math.max(
-        0,
-        existingEntry.commissionEarned - existingEntry.paidAmount
-      );
-      await existingEntry.save();
-    }
-  }
+  const batchPayoutType = batch.instructorPayoutType || "none";
+  const batchPayoutValue = Number(batch.instructorPayoutValue || 0);
 
   // Eligible confirmed commission entries for this instructor and batch
   const eligibleEntries = await CommissionEntry.find({
     batch: batchId,
     referrer: instructorId,
+    settlementId: null,
     status: { $in: ["earned", "awaiting_settlement", "approved_payable"] },
   })
     .populate("payment", "receiptNo amount paymentDate")
@@ -326,10 +188,12 @@ export async function getBatchSettlementStatement(batchId: string, instructorId:
     })
     .lean();
 
-  const totalEligibleCollections = eligibleEntries.reduce(
-    (sum, e) => sum + (e.collectedAmount || 0),
-    0
-  );
+  const admissions = new Map<string, number>();
+  eligibleEntries.forEach((entry) => {
+    const enrollment = entry.enrollment as unknown as { _id?: unknown; finalPayableAmount?: number };
+    if (enrollment?._id) admissions.set(String(enrollment._id), Number(enrollment.finalPayableAmount) || 0);
+  });
+  const totalEligibleCollections = Array.from(admissions.values()).reduce((sum, amount) => sum + amount, 0);
   const grossCommission = eligibleEntries.reduce(
     (sum, e) => sum + (e.commissionEarned || 0),
     0
@@ -344,9 +208,11 @@ export async function getBatchSettlementStatement(batchId: string, instructorId:
     JSON.stringify({
       batch,
       instructor,
-      batchCommissionRate,
+      batchPayoutType,
+      batchPayoutValue,
       eligibleEntries,
-      eligibleCollectionsCount: eligibleEntries.length,
+      eligibleAdmissionsCount: admissions.size,
+      eligibleCollectionsCount: admissions.size,
       totalEligibleCollections,
       grossCommission,
       alreadyPaid,
@@ -429,6 +295,7 @@ export async function createSettlement(data: {
     {
       batch: data.batchId,
       referrer: data.instructorId,
+      settlementId: null,
       status: { $in: ["earned", "awaiting_settlement"] },
     },
     {
@@ -664,7 +531,7 @@ export async function disburseCommissionPayout(data: {
     module: "commissions",
     resourceId: String(payout._id),
     resourceName: payoutNo,
-    details: `Disbursed ৳${amount.toLocaleString()} commission payout (${payoutNo}) to ${instructorObj.fullName} for batch ${batchObj.batchName}. Remaining settlement balance: ৳${settlement.dueAmount.toLocaleString()}`,
+    details: `Disbursed ৳${amount.toLocaleString()} instructor batch payout (${payoutNo}) to ${instructorObj.fullName} for batch ${batchObj.batchName}. Remaining settlement balance: ৳${settlement.dueAmount.toLocaleString()}`,
   });
 
   revalidatePath("/finance/settlements");
@@ -781,7 +648,7 @@ export async function getCommissionTracking() {
   const batchTracking = batches.map((b) => {
     const stats = batchStatsMap.get(String(b._id));
     const settle = batchSettlementsMap.get(String(b._id));
-    const crs = b.course as unknown as { title?: string; code?: string; defaultCommissionRate?: number } | null;
+    const crs = b.course as unknown as { title?: string; code?: string } | null;
     const instList = (b.instructors || []) as unknown as Array<{ _id: string; fullName: string; employeeId: string }>;
 
     return {
@@ -790,7 +657,8 @@ export async function getCommissionTracking() {
       batchName: b.batchName,
       status: b.status,
       courseTitle: crs?.title || "",
-      defaultCommissionRate: b.commissionRate ?? crs?.defaultCommissionRate ?? 20,
+      instructorPayoutType: b.instructorPayoutType || "none",
+      instructorPayoutValue: b.instructorPayoutValue || 0,
       instructors: instList.map((i) => ({
         _id: String(i._id),
         fullName: i.fullName || "",

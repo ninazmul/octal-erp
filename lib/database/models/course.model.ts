@@ -8,7 +8,6 @@ export interface ICourseDocument extends Document {
   durationMonths: number;
   defaultFee: number;
   instructors: mongoose.Types.ObjectId[];
-  defaultCommissionRate?: number;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -56,12 +55,6 @@ const CourseSchema: Schema = new Schema(
         ref: "Employee",
       },
     ],
-    defaultCommissionRate: {
-      type: Number,
-      default: 20,
-      min: 0,
-      max: 100,
-    },
     isActive: {
       type: Boolean,
       default: true,

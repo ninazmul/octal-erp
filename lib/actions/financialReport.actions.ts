@@ -171,24 +171,9 @@ export async function getInstructorDashboardStats(
 
   const assignedBatchIds = assignedBatches.map((b) => b._id);
 
-  const [assignedStudentsCount, referredStudentsCount, [referralCollections], [commissionTotals], commissions] =
+  const [assignedStudentsCount, [commissionTotals], commissions] =
     await Promise.all([
       Enrollment.countDocuments({ batch: { $in: assignedBatchIds } }),
-      Enrollment.countDocuments({ referrer: instructorEmployeeId }),
-      Payment.aggregate([
-        { $match: { status: "confirmed" } },
-        {
-          $lookup: {
-            from: Enrollment.collection.name,
-            localField: "enrollment",
-            foreignField: "_id",
-            as: "enrollmentDoc",
-          },
-        },
-        { $unwind: "$enrollmentDoc" },
-        { $match: { "enrollmentDoc.referrer": employee._id } },
-        { $group: { _id: null, total: { $sum: "$amount" } } },
-      ]),
       CommissionEntry.aggregate([
         { $match: { referrer: employee._id } },
         {
@@ -202,12 +187,12 @@ export async function getInstructorDashboardStats(
       ]),
       CommissionEntry.find({ referrer: employee._id })
         .populate("batch", "batchCode batchName")
+        .populate("enrollment", "enrollmentId finalPayableAmount")
         .sort({ createdAt: -1 })
         .limit(10)
         .lean(),
     ]);
 
-  const totalReferralCollections = referralCollections?.total || 0;
   const totalCommissionEarned = commissionTotals?.earned || 0;
   const totalCommissionPaid = commissionTotals?.paid || 0;
   const pendingSettlementAmount = commissionTotals?.remaining || 0;
@@ -217,8 +202,7 @@ export async function getInstructorDashboardStats(
       instructorName,
       assignedBatchesCount: assignedBatches.length,
       assignedStudentsCount,
-      referredStudentsCount,
-      totalReferralCollections,
+      monthlySalary: employee.basicSalary || 0,
       totalCommissionEarned,
       totalCommissionPaid,
       pendingSettlementAmount,
@@ -325,37 +309,30 @@ export async function getReportData(reportKey: string, params?: {
       return JSON.parse(JSON.stringify(enrollments));
     }
 
-    // Report 5: Referral Performance Report
+    // Report 5: Instructor batch earnings
     case "referral_performance": {
       const instructors = await Employee.find({
         $or: [{ isInstructor: true }, { department: "Academic" }],
       }).lean();
 
       const instructorIds = instructors.map((instructor) => instructor._id);
-      const [referralSummaries, commissionSummaries] = instructorIds.length
+      const commissionSummaries = instructorIds.length
         ? await Promise.all([
-            Enrollment.aggregate([
-              { $match: { referrer: { $in: instructorIds } } },
-              { $group: { _id: "$referrer", referralsCount: { $sum: 1 } } },
-            ]),
             CommissionEntry.aggregate([
-              { $match: { referrer: { $in: instructorIds } } },
+              { $match: { referrer: { $in: instructorIds }, enrollment: { $ne: null } } },
               {
                 $group: {
-                  _id: "$referrer",
-                  totalCollections: { $sum: { $ifNull: ["$collectedAmount", 0] } },
+                  _id: { instructor: "$referrer", enrollment: "$enrollment" },
                   totalEarned: { $sum: { $ifNull: ["$commissionEarned", 0] } },
                   totalPaid: { $sum: { $ifNull: ["$paidAmount", 0] } },
                 },
               },
+              { $group: { _id: "$_id.instructor", admissionsCount: { $sum: 1 }, totalEarned: { $sum: "$totalEarned" }, totalPaid: { $sum: "$totalPaid" } } },
             ]),
           ])
-        : [[], []];
-      const referralsByInstructor = new Map(
-        referralSummaries.map((summary) => [String(summary._id), summary])
-      );
+        : [[]];
       const commissionsByInstructor = new Map(
-        commissionSummaries.map((summary) => [String(summary._id), summary])
+        commissionSummaries[0].map((summary) => [String(summary._id), summary])
       );
       const performance = instructors.map((instructor) => {
         const commission = commissionsByInstructor.get(String(instructor._id));
@@ -363,8 +340,7 @@ export async function getReportData(reportKey: string, params?: {
         const totalPaid = commission?.totalPaid || 0;
         return {
           instructor,
-          referralsCount: referralsByInstructor.get(String(instructor._id))?.referralsCount || 0,
-          totalCollections: commission?.totalCollections || 0,
+          admissionsCount: commission?.admissionsCount || 0,
           totalEarned,
           totalPaid,
           remainingDue: Math.max(0, totalEarned - totalPaid),

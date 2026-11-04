@@ -102,7 +102,7 @@ const ROLE_OPTIONS: RoleDetail[] = [
     canDo: [
       "Manage all courses, subjects, batches, and student admissions",
       "Full access to payment collections, receivables, and receipts",
-      "Configure instructor commission rules, approve settlements & payouts",
+      "Configure batch payouts, approve settlements & instructor payments",
       "Manage all staff, configure confidential salaries & automated monthly payroll",
       "Approve operational expenses, cash accounts, and ledger postings",
       "Manage admin accounts, RBAC permissions, and view audit activity logs",
@@ -126,7 +126,7 @@ const ROLE_OPTIONS: RoleDetail[] = [
       "View operational reports and batch performance",
     ],
     cannotDo: [
-      "Cannot configure instructor commission percentages without authorization",
+      "Cannot configure batch payout rules without authorization",
       "Cannot view executive confidential salary details",
       "Cannot delete or modify admin users or core system settings",
     ],
@@ -139,17 +139,17 @@ const ROLE_OPTIONS: RoleDetail[] = [
     border: "border-purple-500/30",
     bgLight: "bg-purple-500/10",
     summary: "Faculty & Course Instructor",
-    desc: "Access assigned courses, batches, referred students, and commission payout statements.",
+    desc: "Access assigned courses, batches, enrolled students, monthly salary, and batch payout statements.",
     canDo: [
       "View assigned subjects, courses, batches, and schedules",
       "View students enrolled in assigned batches",
-      "Track personally referred students and eligible earnings",
-      "View commission payout statements and settlement history",
+      "Track students enrolled in assigned batches and batch earnings",
+      "View monthly salary and batch payout statements",
     ],
     cannotDo: [
-      "Cannot view other instructors' private records, commissions, or salaries",
+      "Cannot view other instructors' private records or salaries",
       "Cannot access global company financial ledgers or unassigned student data",
-      "Cannot alter commission rates or approve payouts",
+      "Cannot alter batch payout rules or approve payouts",
     ],
   },
   {
@@ -167,7 +167,7 @@ const ROLE_OPTIONS: RoleDetail[] = [
       "View student directories and check admission statuses",
     ],
     cannotDo: [
-      "Cannot configure courses, fees, or commission percentages",
+      "Cannot configure courses, fees, or batch payout rules",
       "Cannot access staff payroll, expenses, or financial statements",
     ],
   },
@@ -182,7 +182,7 @@ const ROLE_OPTIONS: RoleDetail[] = [
     desc: "Manage collections, payroll obligations, expenses, bank accounts, and financial reports.",
     canDo: [
       "Verify student collections and reconcile outstanding dues",
-      "Prepare commission settlements and process instructor disbursements",
+      "Prepare batch payout settlements and process instructor disbursements",
       "Manage monthly payroll obligations and record salary disbursements",
       "Record and settle operational expenses across cash & bank accounts",
       "Access all 14 financial and operational reports",
@@ -279,7 +279,7 @@ const MODULE_LABELS: Record<AppModule, string> = {
   academic: "Academic (Courses & Batches)",
   students: "Student Directory & Admissions",
   payments: "Payment Collections & Receipts",
-  commissions: "Instructor Commissions",
+  commissions: "Instructor Batch Payouts",
   staff: "Staff & Employee Directory",
   payroll: "Monthly Payroll",
   expenses: "Operational Expenses",

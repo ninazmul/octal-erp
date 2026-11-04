@@ -95,7 +95,6 @@ export interface ICourse {
   durationMonths: number;
   defaultFee: number;
   instructors: Array<IEmployee | string>;
-  defaultCommissionRate?: number;
   isActive: boolean;
   createdAt?: Date | string;
   updatedAt?: Date | string;
@@ -118,7 +117,8 @@ export interface IBatch {
   status: BatchStatus;
   financialStatus: BatchFinancialStatus;
   notes?: string;
-  commissionRate?: number;
+  instructorPayoutType?: "none" | "percentage" | "fixed";
+  instructorPayoutValue?: number;
   // Computed / aggregated runtime fields
   totalEnrollments?: number;
   totalAgreedFees?: number;
@@ -135,7 +135,6 @@ export interface IBatch {
 
 export type StudentStatus = "Active" | "Inactive" | "Archived" | "Discount Requested";
 export type EnrollmentStatus = "Active" | "Completed" | "Dropped" | "Suspended";
-export type ReferrerType = "Instructor" | "Staff" | "External" | "None";
 
 export interface IStudent {
   _id: string;
@@ -177,10 +176,6 @@ export interface IEnrollment {
   finalPayableAmount: number; // agreedFee - discount
   totalCollectedAmount: number;
   remainingDue: number; // finalPayableAmount - totalCollectedAmount
-  referrerType: ReferrerType;
-  referrer?: IEmployee | string | null;
-  referrerName?: string;
-  commissionRate: number; // % applied to this enrollment collections
   status: EnrollmentStatus;
   admittedBy: {
     email: string;
@@ -275,12 +270,14 @@ export type CommissionEntryStatus =
 
 export interface ICommissionEntry {
   _id: string;
-  payment: IPayment | string;
+  payment?: IPayment | string;
   enrollment: IEnrollment | string;
   batch: IBatch | string;
   referrer: IEmployee | string;
   collectedAmount: number;
   commissionRate: number;
+  payoutType?: "percentage" | "fixed";
+  payoutValue?: number;
   commissionEarned: number; // (collectedAmount * commissionRate) / 100
   settlementId?: string | null;
   status: CommissionEntryStatus;
@@ -341,7 +338,8 @@ export type PopulatedSettlement = ISettlement & {
 export interface IBatchSettlementStatement {
   batch: IBatch;
   instructor: IEmployee;
-  batchCommissionRate?: number;
+  batchPayoutType: "none" | "percentage" | "fixed";
+  batchPayoutValue: number;
   eligibleEntries: PopulatedCommissionEntry[];
   eligibleCollectionsCount: number;
   totalEligibleCollections: number;
@@ -356,7 +354,8 @@ export interface IBatchCommissionTracking {
   batchName: string;
   status: string;
   courseTitle: string;
-  defaultCommissionRate?: number;
+  instructorPayoutType: "none" | "percentage" | "fixed";
+  instructorPayoutValue: number;
   instructors: Array<{ _id: string; fullName: string; employeeId: string }>;
   totalEnrollments: number;
   totalCollected: number;
@@ -650,8 +649,7 @@ export interface InstructorDashboardStats {
   instructorName: string;
   assignedBatchesCount: number;
   assignedStudentsCount: number;
-  referredStudentsCount: number;
-  totalReferralCollections: number;
+  monthlySalary: number;
   totalCommissionEarned: number;
   totalCommissionPaid: number;
   pendingSettlementAmount: number;

@@ -58,7 +58,6 @@ export default function CourseManagement({
   const [description, setDescription] = useState("");
   const [durationMonths, setDurationMonths] = useState(3);
   const [defaultFee, setDefaultFee] = useState(15000);
-  const [defaultCommissionRate, setDefaultCommissionRate] = useState(20);
   const [selectedInstructors, setSelectedInstructors] = useState<string[]>([]);
   const [isActive, setIsActive] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -86,7 +85,6 @@ export default function CourseManagement({
     setDescription("");
     setDurationMonths(3);
     setDefaultFee(15000);
-    setDefaultCommissionRate(20);
     setSelectedInstructors([]);
     setIsActive(true);
     setIsDialogOpen(true);
@@ -102,7 +100,6 @@ export default function CourseManagement({
     setDescription(course.description || "");
     setDurationMonths(course.durationMonths || 3);
     setDefaultFee(course.defaultFee || 0);
-    setDefaultCommissionRate(course.defaultCommissionRate ?? 20);
     const instIds = (course.instructors || []).map((i) =>
       typeof i === "string" ? i : (i as IEmployee)._id
     );
@@ -128,7 +125,6 @@ export default function CourseManagement({
           description,
           durationMonths: Number(durationMonths),
           defaultFee: Number(defaultFee),
-          defaultCommissionRate: Number(defaultCommissionRate),
           instructors: selectedInstructors,
           isActive,
         });
@@ -144,7 +140,6 @@ export default function CourseManagement({
           description,
           durationMonths: Number(durationMonths),
           defaultFee: Number(defaultFee),
-          defaultCommissionRate: Number(defaultCommissionRate),
           instructors: selectedInstructors,
           isActive,
         });
@@ -206,7 +201,7 @@ export default function CourseManagement({
             Courses
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Manage course curriculum, default fees, assigned instructors, and default commission rates.
+            Manage course curriculum, default fees, and assigned instructors. Set instructor payouts on each batch.
           </p>
         </div>
 
@@ -309,12 +304,6 @@ export default function CourseManagement({
                   <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300">
                     <Users className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
                     <span className="line-clamp-1">{assignedInstructorNames.length ? assignedInstructorNames.join(", ") : "No instructor assigned"}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300">
-                    <span className="font-bold text-indigo-600 dark:text-indigo-400">
-                      {course.defaultCommissionRate ?? 20}%
-                    </span>
-                    <span>Commission</span>
                   </div>
                 </div>
               </div>
@@ -433,23 +422,6 @@ export default function CourseManagement({
                   onChange={(e) => setDefaultFee(Number(e.target.value))}
                   required
                 />
-              </div>
-
-              <div className="sm:col-span-2">
-                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                  Default Commission Rate (%)
-                </label>
-                <Input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={defaultCommissionRate}
-                  onChange={(e) => setDefaultCommissionRate(Number(e.target.value))}
-                  required
-                />
-                <span className="text-[11px] text-slate-400 mt-0.5 block">
-                  Default percentage earned by referring instructors for this course.
-                </span>
               </div>
 
               <div className="sm:col-span-2">

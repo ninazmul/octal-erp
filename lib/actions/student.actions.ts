@@ -6,7 +6,7 @@ import Enrollment from "@/lib/database/models/enrollment.model";
 import Payment from "@/lib/database/models/payment.model";
 import Course from "@/lib/database/models/course.model";
 import Batch from "@/lib/database/models/batch.model";
-import CommissionRule from "@/lib/database/models/commissionRule.model";
+import CommissionEntry from "@/lib/database/models/commissionEntry.model";
 import Counter from "@/lib/database/models/counter.model";
 import Admin from "@/lib/database/models/admin.model";
 import Notification from "@/lib/database/models/notification.model";
@@ -38,6 +38,52 @@ async function getNextEnrollmentId(): Promise<string> {
     { new: true, upsert: true }
   );
   return `OCT-ENR-${formatSL(counter.seq, 4)}`;
+}
+
+async function createInstructorAdmissionEarning(enrollment: { _id: mongoose.Types.ObjectId; batch: mongoose.Types.ObjectId; finalPayableAmount: number }, batch: { instructors?: mongoose.Types.ObjectId[]; instructorPayoutType?: "none" | "percentage" | "fixed"; instructorPayoutValue?: number }) {
+  const instructorId = batch.instructors?.[0];
+  const type = batch.instructorPayoutType || "none";
+  const value = Math.max(0, Number(batch.instructorPayoutValue || 0));
+  const amount = type === "percentage"
+    ? Math.round((enrollment.finalPayableAmount * value / 100) * 100) / 100
+    : type === "fixed" ? value : 0;
+  if (!instructorId || amount <= 0) return amount;
+  try {
+    await CommissionEntry.createCollection();
+  } catch (error) {
+    if ((error as { code?: number }).code !== 48) throw error;
+  }
+  if (await CommissionEntry.exists({ admissionKey: enrollment._id })) return amount;
+
+  // Migrate the former non-sparse payment index so multiple admission earnings may omit payment.
+  const indexes = await CommissionEntry.collection.indexes();
+  const paymentIndex = indexes.find((index) => index.key?.payment === 1);
+  if (paymentIndex && (!paymentIndex.unique || !paymentIndex.sparse)) {
+    await CommissionEntry.collection.dropIndex(paymentIndex.name!);
+  }
+  if (!paymentIndex || !paymentIndex.sparse || !paymentIndex.unique) {
+    await CommissionEntry.collection.createIndex({ payment: 1 }, { unique: true, sparse: true });
+  }
+  const admissionIndex = indexes.find((index) => index.key?.admissionKey === 1);
+  if (!admissionIndex) {
+    await CommissionEntry.collection.createIndex({ admissionKey: 1 }, { unique: true, sparse: true });
+  }
+
+  await CommissionEntry.create({
+    admissionKey: enrollment._id,
+    enrollment: enrollment._id,
+    batch: enrollment.batch,
+    referrer: instructorId,
+    collectedAmount: 0,
+    commissionRate: type === "percentage" ? value : 0,
+    payoutType: type === "none" ? undefined : type,
+    payoutValue: value,
+    commissionEarned: amount,
+    status: "earned",
+    paidAmount: 0,
+    remainingCommission: amount,
+  });
+  return amount;
 }
 
 // ==========================================
@@ -270,7 +316,6 @@ export async function getStudentById(id: string) {
   const enrollments = await Enrollment.find({ student: id })
     .populate("course", "title code durationMonths defaultFee")
     .populate("batch", "batchCode batchName startDate endDate status scheduleDescription")
-    .populate("referrer", "fullName employeeId email")
     .sort({ createdAt: -1 })
     .lean();
 
@@ -323,9 +368,6 @@ export async function admitStudent(data: {
   courseId: string;
   batchId: string;
 
-  // Referral Attribution
-  referrerType?: "Instructor" | "Staff" | "External" | "None";
-  referrerId?: string; // Employee ID
   discountRequestId?: string;
 }) {
   const currentProfile = await getCurrentAdminProfile();
@@ -427,36 +469,7 @@ export async function admitStudent(data: {
   const totalCollectedAmount = 0;
   const remainingDue = finalPayableAmount;
 
-  // 4. Resolve Referrer Commission Rate
-  let commissionRate = 0;
-  let referrerEmployeeId = null;
-
-  const referrerType = isInstructorAdmission ? "Instructor" : (data.referrerType || "None");
-  const selectedReferrerId = isInstructorAdmission ? actor.employeeId : data.referrerId;
-  if (referrerType === "Instructor" && selectedReferrerId) {
-    referrerEmployeeId = selectedReferrerId;
-    // Check if custom rule exists for this referrer & course
-    const specificRule = await CommissionRule.findOne({
-      referrer: selectedReferrerId,
-      course: course._id,
-      isActive: true,
-    });
-    if (specificRule) {
-      commissionRate = specificRule.percentage;
-    } else {
-      const globalRule = await CommissionRule.findOne({
-        referrer: selectedReferrerId,
-        course: null,
-        isActive: true,
-      });
-      commissionRate =
-        globalRule?.percentage ??
-        course.defaultCommissionRate ??
-        20;
-    }
-  }
-
-  // 5. Create Enrollment
+  // 4. Create Enrollment. Instructor earnings are attached to the batch, never an admission referrer.
   const generatedEnrollmentId = await getNextEnrollmentId();
   const enrollment = await Enrollment.create({
     enrollmentId: generatedEnrollmentId,
@@ -468,9 +481,6 @@ export async function admitStudent(data: {
     finalPayableAmount,
     totalCollectedAmount,
     remainingDue,
-    referrerType,
-    referrer: referrerEmployeeId,
-    commissionRate,
     status: "Active",
     admittedBy: {
       email: actor.email,
@@ -479,6 +489,8 @@ export async function admitStudent(data: {
     },
     notes: data.notes?.trim() || "",
   });
+
+  const commissionEarned = await createInstructorAdmissionEarning(enrollment, batch);
 
   if (approvedDiscountRequest) {
     approvedDiscountRequest.status = "Used";
@@ -493,7 +505,7 @@ export async function admitStudent(data: {
     module: "students",
     resourceId: String(studentDoc._id),
     resourceName: studentDoc.fullName,
-    details: `Admitted student ${studentDoc.fullName} (${studentDoc.studentId}) to batch ${batch.batchName}. Final payable: ৳${finalPayableAmount}. Referrer: ${referrerType} (${commissionRate}%)`,
+    details: `Admitted student ${studentDoc.fullName} (${studentDoc.studentId}) to batch ${batch.batchName}. Final payable: ৳${finalPayableAmount}. Instructor batch earning: ৳${commissionEarned}.`,
   });
 
   revalidatePath("/students");
@@ -687,8 +699,6 @@ export async function allowDiscountAndActivateStudent(data: {
       finalPayableAmount: finalPayable,
       totalCollectedAmount: 0,
       remainingDue: finalPayable,
-      referrerType: "None",
-      commissionRate: 0,
       status: "Active",
       admittedBy: {
         email: actor.email,
@@ -707,6 +717,7 @@ export async function allowDiscountAndActivateStudent(data: {
     }
     await enrollment.save();
   }
+  await createInstructorAdmissionEarning(enrollment, batch);
 
   if (!requestDoc) {
     requestDoc = await AdmissionDiscountRequest.findOne({
@@ -900,16 +911,13 @@ export async function deleteStudent(id: string) {
 }
 
 // ==========================================
-// UPDATE ENROLLMENT (DISCOUNT/REFERRER CORRECTION)
+// UPDATE ENROLLMENT (DISCOUNT CORRECTION)
 // ==========================================
 
 export async function updateEnrollment(
   enrollmentId: string,
   data: {
     discount?: number;
-    referrerType?: "Instructor" | "Staff" | "External" | "None";
-    referrerId?: string;
-    commissionRate?: number;
     status?: "Active" | "Completed" | "Dropped" | "Suspended";
     correctionReason: string;
   }
@@ -936,16 +944,20 @@ export async function updateEnrollment(
     );
   }
 
-  if (data.referrerType !== undefined) enrollment.referrerType = data.referrerType;
-  if (data.referrerId !== undefined) {
-    enrollment.referrer = data.referrerId ? (data.referrerId as unknown as mongoose.Types.ObjectId) : undefined;
-  }
-  if (data.commissionRate !== undefined) {
-    enrollment.commissionRate = Math.max(0, Math.min(100, Number(data.commissionRate)));
-  }
   if (data.status !== undefined) enrollment.status = data.status;
 
   await enrollment.save();
+
+  if (data.discount !== undefined) {
+    const earning = await CommissionEntry.findOne({ admissionKey: enrollment._id });
+    if (earning?.payoutType === "percentage" && !earning.settlementId && earning.paidAmount === 0) {
+      earning.commissionEarned = Math.round(
+        (enrollment.finalPayableAmount * Number(earning.payoutValue || 0)) / 100 * 100
+      ) / 100;
+      earning.remainingCommission = earning.commissionEarned;
+      await earning.save();
+    }
+  }
 
   await logActivityAndNotify({
     actor,

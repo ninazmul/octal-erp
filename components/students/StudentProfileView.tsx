@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { IStudent, IEnrollment, IPayment, ICourse, IBatch, IEmployee } from "@/types";
+import { IStudent, IEnrollment, IPayment, ICourse, IBatch } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,7 +20,6 @@ interface StudentProfileViewProps {
       IEnrollment & {
         course: ICourse;
         batch: IBatch;
-        referrer?: IEmployee;
       }
     >;
     payments: Array<
@@ -238,11 +237,6 @@ export default function StudentProfileView({
                         <span>
                           Batch: <strong>{batch?.batchName}</strong> ({batch?.batchCode})
                         </span>
-                        {enr.referrer && (
-                          <span className="text-indigo-600 dark:text-indigo-400">
-                            Referrer: {enr.referrer.fullName} ({enr.commissionRate}%)
-                          </span>
-                        )}
                       </div>
                     </div>
 

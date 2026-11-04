@@ -10,9 +10,6 @@ export interface IEnrollmentDocument extends Document {
   finalPayableAmount: number;
   totalCollectedAmount: number;
   remainingDue: number;
-  referrerType: "Instructor" | "Staff" | "External" | "None";
-  referrer?: mongoose.Types.ObjectId;
-  commissionRate: number;
   status: "Active" | "Completed" | "Dropped" | "Suspended";
   admittedBy: {
     email: string;
@@ -75,22 +72,6 @@ const EnrollmentSchema: Schema = new Schema(
       default: 0,
       min: 0,
     },
-    referrerType: {
-      type: String,
-      enum: ["Instructor", "Staff", "External", "None"],
-      default: "None",
-    },
-    referrer: {
-      type: Schema.Types.ObjectId,
-      ref: "Employee",
-      default: null,
-    },
-    commissionRate: {
-      type: Number,
-      default: 0,
-      min: 0,
-      max: 100,
-    },
     status: {
       type: String,
       enum: ["Active", "Completed", "Dropped", "Suspended"],
@@ -116,7 +97,6 @@ EnrollmentSchema.index({ student: 1, batch: 1 }, { unique: true }); // Prevent d
 EnrollmentSchema.index({ student: 1, createdAt: -1 });
 EnrollmentSchema.index({ batch: 1, createdAt: -1 });
 EnrollmentSchema.index({ course: 1 });
-EnrollmentSchema.index({ referrer: 1 });
 EnrollmentSchema.index({ status: 1 });
 
 const Enrollment: Model<IEnrollmentDocument> =

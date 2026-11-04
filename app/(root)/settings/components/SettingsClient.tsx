@@ -144,7 +144,7 @@ export default function SettingsClient() {
               Commissions & Accounts
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-              Configure default instructor commission percentages, batch settlement reconciliation rules, and multi-channel cash/bank accounts.
+              Configure batch payout access, settlement approvals, and multi-channel cash/bank accounts.
             </p>
           </div>
           <div className="pt-4 flex flex-col sm:flex-row gap-2">

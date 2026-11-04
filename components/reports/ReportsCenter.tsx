@@ -28,8 +28,8 @@ const REPORT_DEFINITIONS = [
   { id: "student_directory", name: "2. Student Directory & Enrollment History", icon: GraduationCap },
   { id: "batch_enrollments", name: "3. Course & Batch-Wise Enrollment", icon: Layers },
   { id: "collections_dues", name: "4. Student Collection & Due Report", icon: Receipt },
-  { id: "referral_performance", name: "5. Referral Performance Report", icon: Users },
-  { id: "instructor_commissions", name: "6. Instructor Commission & Earnings", icon: Percent },
+  { id: "referral_performance", name: "5. Instructor Batch Earnings", icon: Users },
+  { id: "instructor_commissions", name: "6. Instructor Batch Earnings", icon: Percent },
   { id: "batch_settlements", name: "7. Batch Settlement Statements", icon: FileSpreadsheet },
   { id: "staff_payroll_summary", name: "8. Staff Directory & Payroll Summary", icon: Briefcase },
   { id: "employee_salary_history", name: "9. Employee-Wise Salary History", icon: Briefcase },
@@ -131,7 +131,7 @@ export default function ReportsCenter({
             Operational & Financial Reports Center
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Generate and export official statements across admissions, collections, payroll, instructor commissions, and liabilities.
+            Generate and export official statements across admissions, collections, payroll, instructor batch earnings, and liabilities.
           </p>
         </div>
 
@@ -341,16 +341,15 @@ export default function ReportsCenter({
                 </table>
               )}
 
-              {/* Report 5: Referral Performance */}
+              {/* Report 5: Instructor Batch Earnings */}
               {activeReportId === "referral_performance" && Array.isArray(data) && (
                 <table className="w-full text-left">
                   <thead>
                     <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-400 font-semibold uppercase text-[10px]">
                       <th className="pb-3 px-3">Instructor</th>
                       <th className="pb-3 px-3">Department</th>
-                      <th className="pb-3 px-3">Referred Students</th>
-                      <th className="pb-3 px-3">Attributed Collections</th>
-                      <th className="pb-3 px-3">Total Commission Earned</th>
+                      <th className="pb-3 px-3">Admissions With Payout</th>
+                      <th className="pb-3 px-3">Batch Earnings</th>
                       <th className="pb-3 px-3">Paid Out</th>
                       <th className="pb-3 px-3">Remaining Payable</th>
                     </tr>
@@ -365,10 +364,7 @@ export default function ReportsCenter({
                           </span>
                         </td>
                         <td className="py-2.5 px-3">{item.instructor?.department}</td>
-                        <td className="py-2.5 px-3 font-bold">{item.referralsCount}</td>
-                        <td className="py-2.5 px-3 font-mono font-medium">
-                          ৳{item.totalCollections?.toLocaleString()}
-                        </td>
+                        <td className="py-2.5 px-3 font-bold">{item.admissionsCount}</td>
                         <td className="py-2.5 px-3 font-mono font-bold text-indigo-600">
                           ৳{item.totalEarned?.toLocaleString()}
                         </td>

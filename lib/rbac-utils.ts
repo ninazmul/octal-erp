@@ -446,15 +446,15 @@ export const GRANULAR_PERMISSIONS_LIST: GranularPermissionMeta[] = [
   },
   {
     key: "commission_configure",
-    label: "Configure Commissions",
+    label: "Configure Batch Payouts",
     category: "Finance & Payroll",
-    description: "Set commission rates and rules for instructors",
+    description: "Set percentage or fixed per admission amounts on batches",
   },
   {
     key: "commission_settle",
-    label: "Settle Commissions",
+    label: "Settle Instructor Payouts",
     category: "Finance & Payroll",
-    description: "Prepare and approve batch settlements and payouts",
+    description: "Prepare and approve batch payout settlements",
   },
   {
     key: "staff_manage",

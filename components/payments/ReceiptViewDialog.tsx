@@ -1,6 +1,6 @@
 "use client";
 
-import { IPayment, IEnrollment, IStudent, IBatch, ICourse, IEmployee } from "@/types";
+import { IPayment, IEnrollment, IStudent, IBatch, ICourse } from "@/types";
 import {
   Dialog,
   DialogContent,
@@ -13,7 +13,6 @@ interface ReceiptViewDialogProps {
     student?: IStudent;
     enrollment?: IEnrollment & {
       course?: ICourse;
-      referrer?: IEmployee;
     };
     batch?: IBatch;
   };

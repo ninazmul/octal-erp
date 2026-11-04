@@ -182,7 +182,6 @@ export async function createCourse(data: {
   durationMonths: number;
   defaultFee: number;
   instructors?: string[];
-  defaultCommissionRate?: number;
   isActive?: boolean;
 }) {
   const actor = await requirePermission("academic", "write");
@@ -204,7 +203,6 @@ export async function createCourse(data: {
     durationMonths: data.durationMonths || 3,
     defaultFee: data.defaultFee || 0,
     instructors: data.instructors || [],
-    defaultCommissionRate: data.defaultCommissionRate ?? 20,
     isActive: data.isActive !== undefined ? data.isActive : true,
   });
 
@@ -231,7 +229,6 @@ export async function updateCourse(
     durationMonths?: number;
     defaultFee?: number;
     instructors?: string[];
-    defaultCommissionRate?: number;
     isActive?: boolean;
   }
 ) {
@@ -260,8 +257,6 @@ export async function updateCourse(
   if (data.defaultFee !== undefined) course.defaultFee = data.defaultFee;
   if (data.instructors !== undefined)
     course.instructors = (data.instructors || []) as unknown as mongoose.Types.ObjectId[];
-  if (data.defaultCommissionRate !== undefined)
-    course.defaultCommissionRate = data.defaultCommissionRate;
   if (data.isActive !== undefined) course.isActive = data.isActive;
 
   await course.save();
@@ -389,7 +384,6 @@ export async function getBatchById(id: string) {
   // Fetch enrollments for this batch
   const enrollments = await Enrollment.find({ batch: id })
     .populate("student", "fullName studentId phone email status")
-    .populate("referrer", "fullName employeeId")
     .sort({ createdAt: -1 })
     .lean();
 
@@ -400,6 +394,7 @@ export async function getBatchById(id: string) {
 
   const commissions = await CommissionEntry.find({ batch: id })
     .populate("referrer", "fullName employeeId")
+    .populate("enrollment", "enrollmentId finalPayableAmount")
     .sort({ createdAt: -1 })
     .lean();
 
@@ -438,7 +433,8 @@ export async function createBatch(data: {
   scheduleDescription?: string;
   maxCapacity?: number;
   notes?: string;
-  commissionRate?: number;
+  instructorPayoutType?: "none" | "percentage" | "fixed";
+  instructorPayoutValue?: number;
 }) {
   const actor = await requirePermission("academic", "write");
   if (actor.role === "instructor") {
@@ -454,10 +450,10 @@ export async function createBatch(data: {
     throw new Error(`Batch code "${data.batchCode}" is already in use.`);
   }
 
-  let commRate = data.commissionRate;
-  if (commRate === undefined || isNaN(Number(commRate))) {
-    const courseDoc = await Course.findById(data.courseId).select("defaultCommissionRate");
-    commRate = courseDoc?.defaultCommissionRate ?? 20;
+  const payoutType = data.instructorPayoutType || "none";
+  const payoutValue = payoutType === "none" ? 0 : Number(data.instructorPayoutValue || 0);
+  if (!Number.isFinite(payoutValue) || payoutValue < 0 || (payoutType === "percentage" && payoutValue > 100)) {
+    throw new Error("Instructor batch payout must be a valid non-negative amount (percentage up to 100).");
   }
 
   const batch = await Batch.create({
@@ -473,7 +469,8 @@ export async function createBatch(data: {
     status: "Upcoming",
     financialStatus: "Open",
     notes: data.notes?.trim() || "",
-    commissionRate: Math.max(0, Math.min(100, Number(commRate))),
+    instructorPayoutType: payoutType,
+    instructorPayoutValue: payoutValue,
   });
 
   await logActivityAndNotify({
@@ -501,7 +498,8 @@ export async function updateBatch(
     status?: "Upcoming" | "Ongoing" | "Completed" | "Cancelled";
     financialStatus?: "Open" | "Settling" | "Settled";
     notes?: string;
-    commissionRate?: number;
+    instructorPayoutType?: "none" | "percentage" | "fixed";
+    instructorPayoutValue?: number;
   }
 ) {
   const actor = await requirePermission("academic", "write");
@@ -517,8 +515,16 @@ export async function updateBatch(
   if (!batch) throw new Error("Batch not found");
 
   if (data.batchName !== undefined) batch.batchName = data.batchName.trim();
-  if (data.commissionRate !== undefined && !isNaN(Number(data.commissionRate))) {
-    batch.commissionRate = Math.max(0, Math.min(100, Number(data.commissionRate)));
+  if (data.instructorPayoutType !== undefined) {
+    batch.instructorPayoutType = data.instructorPayoutType;
+  }
+  if (data.instructorPayoutValue !== undefined) {
+    const value = Number(data.instructorPayoutValue);
+    const type = data.instructorPayoutType || batch.instructorPayoutType;
+    if (!Number.isFinite(value) || value < 0 || (type === "percentage" && value > 100)) {
+      throw new Error("Instructor batch payout must be a valid non-negative amount (percentage up to 100).");
+    }
+    batch.instructorPayoutValue = value;
   }
   if (data.instructors !== undefined)
     batch.instructors = (data.instructors || []) as unknown as mongoose.Types.ObjectId[];

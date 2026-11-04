@@ -47,7 +47,7 @@ export default function OctalDashboardClient({
                 Welcome, {instructorStats.instructorName || userName}
               </h1>
               <p className="text-xs sm:text-sm text-indigo-100/80 mt-1 max-w-xl">
-                Track your assigned batches, student performance, student referral attribution, and commission settlements.
+                Track your assigned batches, student performance, monthly salary, and batch payout statements.
               </p>
             </div>
 
@@ -77,19 +77,19 @@ export default function OctalDashboardClient({
 
           <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm">
             <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
-              Referred Students
+              Monthly Salary
             </span>
             <div className="text-2xl font-bold text-indigo-600 dark:text-indigo-400 mt-1">
-              {instructorStats.referredStudentsCount}
+              ৳{instructorStats.monthlySalary.toLocaleString()}
             </div>
             <span className="text-[11px] text-slate-400 mt-1 block">
-              ৳{instructorStats.totalReferralCollections.toLocaleString()} collected
+              Fixed monthly payroll amount
             </span>
           </div>
 
           <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm">
             <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
-              Total Commission Earned
+              Batch Earnings Earned
             </span>
             <div className="text-2xl font-bold text-slate-900 dark:text-white mt-1">
               ৳{instructorStats.totalCommissionEarned.toLocaleString()}
@@ -154,10 +154,10 @@ export default function OctalDashboardClient({
           </div>
         </div>
 
-        {/* Recent Commission Entries */}
+        {/* Recent batch earnings */}
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 sm:p-6 shadow-sm overflow-hidden">
           <h2 className="text-base font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-            <Percent className="w-5 h-5 text-indigo-600" /> Recent Referral Earnings
+            <Percent className="w-5 h-5 text-indigo-600" /> Recent Batch Earnings
           </h2>
 
           <div className="overflow-x-auto">
@@ -165,8 +165,8 @@ export default function OctalDashboardClient({
               <thead>
                 <tr className="border-b border-slate-100 dark:border-slate-800 text-slate-400 font-semibold uppercase text-[10px]">
                   <th className="pb-3 px-3">Batch</th>
-                  <th className="pb-3 px-3">Student Collection</th>
-                  <th className="pb-3 px-3">Commission %</th>
+                  <th className="pb-3 px-3">Student Fee</th>
+                  <th className="pb-3 px-3">Payout Rule</th>
                   <th className="pb-3 px-3">Earned (৳)</th>
                   <th className="pb-3 px-3">Paid (৳)</th>
                   <th className="pb-3 px-3">Status</th>
@@ -184,10 +184,10 @@ export default function OctalDashboardClient({
                         {batchName}
                       </td>
                       <td className="py-2.5 px-3 font-mono">
-                        ৳{comm.collectedAmount?.toLocaleString()}
+                        ৳{(comm.enrollment && typeof comm.enrollment === "object" ? comm.enrollment.finalPayableAmount : 0)?.toLocaleString()}
                       </td>
                       <td className="py-2.5 px-3 font-mono font-bold text-indigo-600">
-                        {comm.commissionRate}%
+                        {comm.commissionRate > 0 ? `${comm.commissionRate}%` : "Fixed"}
                       </td>
                       <td className="py-2.5 px-3 font-mono font-bold text-slate-900 dark:text-white">
                         ৳{comm.commissionEarned?.toLocaleString()}
@@ -207,7 +207,7 @@ export default function OctalDashboardClient({
                 {instructorStats.recentCommissions.length === 0 && (
                   <tr>
                     <td colSpan={6} className="py-6 text-center text-slate-400">
-                      No referral commission entries recorded yet.
+                      No batch earnings recorded yet.
                     </td>
                   </tr>
                 )}
@@ -364,11 +364,11 @@ export default function OctalDashboardClient({
           </div>
         </div>
 
-        {/* Quadrant 2: Instructor Commissions & Settlements */}
+        {/* Quadrant 2: Instructor batch payouts & settlements */}
         <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
           <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
             <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <Percent className="w-4 h-4 text-indigo-600" /> Instructor Commissions & Payouts
+              <Percent className="w-4 h-4 text-indigo-600" /> Instructor Batch Payouts
             </h2>
             <Link href="/finance/settlements" className="text-xs text-indigo-600 hover:underline">
               Batch Settlements →
@@ -378,7 +378,7 @@ export default function OctalDashboardClient({
           <div className="grid grid-cols-2 gap-4">
             <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
               <span className="text-[11px] text-slate-400 block uppercase font-semibold">
-                Commissions Earned
+                Batch Earnings
               </span>
               <span className="text-xl font-bold font-mono text-slate-800 dark:text-slate-200 mt-0.5 block">
                 ৳{stats.instructorCommissionsEarned.toLocaleString()}
@@ -402,7 +402,7 @@ export default function OctalDashboardClient({
           </div>
 
           <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
-            <span>Pending Commission Payouts:</span>
+            <span>Pending Instructor Payouts:</span>
             <span className="font-bold text-amber-600 dark:text-amber-400 font-mono">
               ৳{stats.approvedUnpaidCommissions.toLocaleString()}
             </span>

@@ -304,7 +304,7 @@ export default function EmployeeFormDialog({
                 htmlFor="isInstructorCheckbox"
                 className="text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer"
               >
-                Is Course Instructor (Eligible for Batch assignments and Referral Commissions)
+                Is Course Instructor (Eligible for batch assignments and batch payouts)
               </label>
             </div>
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ICourse, IBatch, IEmployee } from "@/types";
+import { ICourse, IBatch } from "@/types";
 import { admitStudent, requestAdmissionDiscount } from "@/lib/actions/student.actions";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -21,20 +21,14 @@ import toast from "react-hot-toast";
 interface NewAdmissionFormProps {
   courses: ICourse[];
   batches: IBatch[];
-  instructors: IEmployee[];
   preselectedBatchId?: string;
-  isInstructor?: boolean;
-  currentEmployeeId?: string;
   approvedDiscountRequest?: { _id: string; studentName: string; studentPhone: string; studentEmail?: string; course: { _id: string }; batch: { _id: string } } | null;
 }
 
 export default function NewAdmissionForm({
   courses,
   batches,
-  instructors,
   preselectedBatchId,
-  isInstructor = false,
-  currentEmployeeId,
   approvedDiscountRequest,
 }: NewAdmissionFormProps) {
   const router = useRouter();
@@ -52,11 +46,6 @@ export default function NewAdmissionForm({
   const [selectedCourseId, setSelectedCourseId] = useState(approvedDiscountRequest?.course?._id || "");
   const [selectedBatchId, setSelectedBatchId] = useState(approvedDiscountRequest?.batch?._id || preselectedBatchId || "");
 
-  // Referral Fields
-  const [referrerType, setReferrerType] = useState<
-    "Instructor" | "Staff" | "External" | "None"
-  >("None");
-  const [referrerId, setReferrerId] = useState("");
 
   const [submitting, setSubmitting] = useState(false);
   const [discountRequestOpen, setDiscountRequestOpen] = useState(false);
@@ -64,14 +53,6 @@ export default function NewAdmissionForm({
   const [discountReason, setDiscountReason] = useState("");
   const [requestingDiscount, setRequestingDiscount] = useState(false);
   const [discountRequestSent, setDiscountRequestSent] = useState(false);
-
-  // Lock referral attribution to the signed-in instructor.
-  useEffect(() => {
-    if (isInstructor && currentEmployeeId) {
-      setReferrerType("Instructor");
-      setReferrerId(currentEmployeeId);
-    }
-  }, [isInstructor, currentEmployeeId]);
 
   // Auto-select course and pre-populate fee if preselectedBatchId is passed.
   useEffect(() => {
@@ -134,8 +115,6 @@ export default function NewAdmissionForm({
         notes: studentNotes || undefined,
         courseId: selectedCourseId,
         batchId: selectedBatchId,
-        referrerType,
-        referrerId: referrerType === "Instructor" ? referrerId : undefined,
         discountRequestId: approvedDiscountRequest?._id,
       });
 
@@ -378,77 +357,11 @@ export default function NewAdmissionForm({
           </div>
         </div>
 
-        {/* Section 3: Referral Attribution */}
+        {/* Section 3: Admission Notes */}
         <div className="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
-          <h2 className="text-sm font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 flex items-center gap-2">
-            <Users className="w-4 h-4" /> 3. Referral Attribution
-          </h2>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Referrer Attribution */}
-            {isInstructor ? (
-              <div className="sm:col-span-2 rounded-xl border border-indigo-200 bg-indigo-50/70 p-3 dark:border-indigo-900 dark:bg-indigo-950/30">
-                <span className="text-xs font-semibold text-slate-700 dark:text-slate-200 block mb-1">Referral Attribution</span>
-                <p className="text-sm font-semibold text-indigo-700 dark:text-indigo-300">
-                  {instructors.find((instructor) => instructor._id === currentEmployeeId)?.fullName || "Your instructor account"} · Instructor Referral
-                </p>
-                <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">Your referral is added automatically. The applicable commission rule will set the rate.</p>
-              </div>
-            ) : <div>
-              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                Referral Attribution
-              </label>
-              <select
-                value={referrerType}
-                onChange={(e) =>
-                  setReferrerType(
-                    e.target.value as "Instructor" | "Staff" | "External" | "None"
-                  )
-                }
-                aria-label="Referral Attribution"
-                className="w-full h-10 px-3 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                <option value="None">None / Direct Admission</option>
-                <option value="Instructor">Instructor Referral</option>
-                <option value="Staff">Staff Referral</option>
-                <option value="External">External Referrer</option>
-              </select>
-            </div>}
-
-            {!isInstructor && referrerType === "Instructor" && (
-              <div>
-                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                  Referring Instructor *
-                </label>
-                <select
-                  value={referrerId}
-                  onChange={(e) => setReferrerId(e.target.value)}
-                  required={referrerType === "Instructor"}
-                  aria-label="Referring Instructor"
-                  className="w-full h-10 px-3 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                >
-                  <option value="" disabled>Select Instructor</option>
-                  {instructors.map((inst) => (
-                    <option key={inst._id} value={inst._id}>
-                      {inst.fullName} ({inst.employeeId})
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            <div className="sm:col-span-3">
-              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                Admission Notes / Payment Agreement Terms
-              </label>
-              <Textarea
-                placeholder="e.g. 50% paid on admission, remaining 50% due by 2nd week..."
-                value={studentNotes}
-                onChange={(e) => setStudentNotes(e.target.value)}
-                rows={2}
-              />
-            </div>
-          </div>
+          <h2 className="text-sm font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">3. Admission Notes</h2>
+          <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">Admission Notes / Payment Agreement Terms</label>
+          <Textarea placeholder="e.g. 50% paid on admission, remaining 50% due by 2nd week..." value={studentNotes} onChange={(e) => setStudentNotes(e.target.value)} rows={2} />
         </div>
 
         {/* Submit Actions */}

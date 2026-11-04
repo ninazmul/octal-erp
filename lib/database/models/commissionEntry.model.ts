@@ -1,12 +1,15 @@
 import mongoose, { Schema, Document, Model } from "mongoose";
 
 export interface ICommissionEntryDocument extends Document {
-  payment: mongoose.Types.ObjectId;
+  payment?: mongoose.Types.ObjectId;
   enrollment: mongoose.Types.ObjectId;
+  admissionKey?: mongoose.Types.ObjectId;
   batch: mongoose.Types.ObjectId;
   referrer: mongoose.Types.ObjectId;
   collectedAmount: number;
   commissionRate: number;
+  payoutType?: "percentage" | "fixed";
+  payoutValue?: number;
   commissionEarned: number;
   settlementId?: mongoose.Types.ObjectId | null;
   status:
@@ -28,23 +31,26 @@ const CommissionEntrySchema: Schema = new Schema(
     payment: {
       type: Schema.Types.ObjectId,
       ref: "Payment",
-      required: true,
-      unique: true, // Exactly one commission entry generated per payment
+      required: false,
     },
     enrollment: {
       type: Schema.Types.ObjectId,
       ref: "Enrollment",
-      required: true,
+      required: false,
+    },
+    admissionKey: {
+      type: Schema.Types.ObjectId,
+      default: undefined,
     },
     batch: {
       type: Schema.Types.ObjectId,
       ref: "Batch",
-      required: true,
+      required: false,
     },
     referrer: {
       type: Schema.Types.ObjectId,
       ref: "Employee",
-      required: true,
+      required: false,
     },
     collectedAmount: {
       type: Number,
@@ -57,6 +63,8 @@ const CommissionEntrySchema: Schema = new Schema(
       min: 0,
       max: 100,
     },
+    payoutType: { type: String, enum: ["percentage", "fixed"] },
+    payoutValue: { type: Number, min: 0 },
     commissionEarned: {
       type: Number,
       required: true,
@@ -101,6 +109,7 @@ CommissionEntrySchema.index({ batch: 1, createdAt: -1 });
 CommissionEntrySchema.index({ createdAt: -1 });
 CommissionEntrySchema.index({ settlementId: 1 });
 CommissionEntrySchema.index({ status: 1 });
+CommissionEntrySchema.index({ admissionKey: 1 }, { unique: true, sparse: true });
 
 const CommissionEntry: Model<ICommissionEntryDocument> =
   mongoose.models.CommissionEntry ||

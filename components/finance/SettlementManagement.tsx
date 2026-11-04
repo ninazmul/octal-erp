@@ -330,10 +330,10 @@ export default function SettlementManagement({
         <div>
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2.5">
             <FileCheck className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
-            Batch Settlements & Commission Tracking
+            Instructor Batch Payouts & Settlements
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Track commission calculations per batch & per instructor, reconcile verified tuition collections, approve statements, and disburse payouts.
+            Track batch earnings per admission, prepare statements, approve them, and record instructor payouts.
           </p>
         </div>
 
@@ -485,7 +485,7 @@ export default function SettlementManagement({
                   <th className="py-3 px-4">Instructor</th>
                   <th className="py-3 px-4">Batch</th>
                   <th className="py-3 px-4">Eligible Collections</th>
-                  <th className="py-3 px-4">Gross Commission</th>
+                  <th className="py-3 px-4">Gross Batch Earnings</th>
                   <th className="py-3 px-4">Net Payable</th>
                   <th className="py-3 px-4">Paid / Due</th>
                   <th className="py-3 px-4">Status</th>
@@ -644,7 +644,7 @@ export default function SettlementManagement({
                         {b.courseTitle}
                       </span>
                       <span className="text-[10px] font-semibold text-indigo-600 dark:text-indigo-400">
-                        Declared: {b.defaultCommissionRate}%
+                        {b.instructorPayoutType === "percentage" ? `${b.instructorPayoutValue}% per admission` : b.instructorPayoutType === "fixed" ? `৳${b.instructorPayoutValue.toLocaleString()} per admission` : "Monthly salary only"}
                       </span>
                     </td>
 
@@ -734,7 +734,7 @@ export default function SettlementManagement({
                   <th className="py-3 px-4">Contact</th>
                   <th className="py-3 px-4">Assigned Batches</th>
                   <th className="py-3 px-4 text-right">Collections Generated</th>
-                  <th className="py-3 px-4 text-right">Total Commission</th>
+                  <th className="py-3 px-4 text-right">Total Batch Earnings</th>
                   <th className="py-3 px-4 text-right">Disbursed Payouts</th>
                   <th className="py-3 px-4 text-right">Pending Balance</th>
                   <th className="py-3 px-4 text-right">Action</th>
@@ -854,7 +854,7 @@ export default function SettlementManagement({
                     <option value="" disabled>Select Batch</option>
                     {batches.map((b) => (
                       <option key={b._id} value={b._id}>
-                        {b.batchName} ({b.batchCode}) — Commission: {b.commissionRate ?? 20}%
+                        {b.batchName} ({b.batchCode}) — {b.instructorPayoutType === "percentage" ? `${b.instructorPayoutValue}% per admission` : b.instructorPayoutType === "fixed" ? `৳${b.instructorPayoutValue} per admission` : "monthly salary only"}
                       </option>
                     ))}
                   </select>
@@ -897,27 +897,27 @@ export default function SettlementManagement({
                 <div className="flex items-center justify-between p-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800">
                   <div>
                     <span className="font-bold text-xs text-indigo-900 dark:text-indigo-200 block">
-                      Batch Commission Rate
+                      Instructor Batch Payout
                     </span>
                     <span className="text-[10px] text-indigo-600 dark:text-indigo-400">
-                      Declared on batch creation
+                      Earned once for each student admission
                     </span>
                   </div>
                   <span className="font-mono text-base font-bold text-indigo-700 dark:text-indigo-300">
-                    {statementData.batchCommissionRate ?? (statementData.batch as unknown as { commissionRate?: number })?.commissionRate ?? 20}%
+                    {statementData.batchPayoutType === "percentage" ? `${statementData.batchPayoutValue}%` : statementData.batchPayoutType === "fixed" ? `৳${statementData.batchPayoutValue.toLocaleString()}` : "No batch payout"}
                   </span>
                 </div>
 
                 <div className="flex justify-between">
-                  <span className="text-slate-500">Eligible Collections:</span>
+                  <span className="text-slate-500">Eligible Admissions:</span>
                   <span className="font-mono font-semibold">
-                    {statementData.eligibleCollectionsCount} payments (৳{statementData.totalEligibleCollections.toLocaleString()})
+                    {statementData.eligibleCollectionsCount} students (fee total ৳{statementData.totalEligibleCollections.toLocaleString()})
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-500">Gross Commission Earned:</span>
+                  <span className="text-slate-500">Gross Batch Earnings:</span>
                   <span className="font-mono font-semibold text-indigo-600 dark:text-indigo-400">
-                    ৳{statementData.grossCommission.toLocaleString()} ({statementData.batchCommissionRate ?? 20}% of ৳{statementData.totalEligibleCollections.toLocaleString()})
+                    ৳{statementData.grossCommission.toLocaleString()}
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -933,21 +933,21 @@ export default function SettlementManagement({
                   </span>
                 </div>
 
-                {/* Detailed Verified Collections Breakdown */}
+                {/* Detailed admission earnings breakdown */}
                 {statementData.eligibleEntries && statementData.eligibleEntries.length > 0 && (
                   <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
                     <span className="font-semibold text-slate-700 dark:text-slate-300 block mb-1.5 text-[11px] uppercase tracking-wider">
-                      Verified Collections Breakdown ({statementData.eligibleEntries.length})
+                      Admission Earnings Breakdown ({statementData.eligibleEntries.length})
                     </span>
                     <div className="max-h-40 overflow-y-auto rounded-lg border border-slate-200 dark:border-slate-700">
                       <table className="w-full text-left text-[11px]">
                         <thead className="bg-slate-100 dark:bg-slate-800 text-slate-500 sticky top-0">
                           <tr>
                             <th className="py-1 px-2">Student</th>
-                            <th className="py-1 px-2">Receipt</th>
-                            <th className="py-1 px-2 text-right">Amount</th>
-                            <th className="py-1 px-2 text-right">Rate</th>
-                            <th className="py-1 px-2 text-right">Commission</th>
+                            <th className="py-1 px-2">Enrollment</th>
+                            <th className="py-1 px-2 text-right">Student Fee</th>
+                            <th className="py-1 px-2 text-right">Payout Rule</th>
+                            <th className="py-1 px-2 text-right">Earning</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -957,13 +957,13 @@ export default function SettlementManagement({
                                 {(e.enrollment as unknown as { student?: { fullName?: string } })?.student?.fullName || "Student"}
                               </td>
                               <td className="py-1 px-2 font-mono text-slate-500">
-                                {(e.payment as unknown as { receiptNo?: string })?.receiptNo || "—"}
+                                {(e.enrollment as unknown as { enrollmentId?: string })?.enrollmentId || "—"}
                               </td>
                               <td className="py-1 px-2 font-mono text-right">
-                                ৳{(e.collectedAmount || 0).toLocaleString()}
+                                ৳{(e.enrollment as unknown as { finalPayableAmount?: number })?.finalPayableAmount?.toLocaleString() || "0"}
                               </td>
                               <td className="py-1 px-2 font-mono text-right text-indigo-600 dark:text-indigo-400 font-semibold">
-                                {e.commissionRate ?? statementData.batchCommissionRate ?? 20}%
+                                {statementData.batchPayoutType === "percentage" ? `${statementData.batchPayoutValue}%` : "Fixed"}
                               </td>
                               <td className="py-1 px-2 font-mono text-right font-semibold text-emerald-600 dark:text-emerald-400">
                                 ৳{(e.commissionEarned || 0).toLocaleString()}
@@ -1043,7 +1043,7 @@ export default function SettlementManagement({
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Banknote className="w-5 h-5 text-emerald-600" />
-                Disburse Commission Payout ({activeSettlement.settlementNo})
+                Disburse Instructor Payout ({activeSettlement.settlementNo})
               </DialogTitle>
             </DialogHeader>
 
