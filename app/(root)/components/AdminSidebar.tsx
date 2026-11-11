@@ -69,29 +69,6 @@ const sidebarSections: SidebarSection[] = [
     ],
   },
   {
-    label: "Academic Management",
-    items: [
-      {
-        title: "Subjects",
-        url: "/academic/subjects",
-        icon: GraduationCap,
-        module: "academic",
-      },
-      {
-        title: "Courses",
-        url: "/academic/courses",
-        icon: BookOpen,
-        module: "academic",
-      },
-      {
-        title: "Batches",
-        url: "/academic/batches",
-        icon: Layers,
-        module: "academic",
-      },
-    ],
-  },
-  {
     label: "Students & Admissions",
     items: [
       {
@@ -127,6 +104,29 @@ const sidebarSections: SidebarSection[] = [
         url: "/finance/settlements",
         icon: FileCheck,
         module: "commissions",
+      },
+    ],
+  },
+  {
+    label: "Academic Management",
+    items: [
+      {
+        title: "Subjects",
+        url: "/academic/subjects",
+        icon: GraduationCap,
+        module: "academic",
+      },
+      {
+        title: "Courses",
+        url: "/academic/courses",
+        icon: BookOpen,
+        module: "academic",
+      },
+      {
+        title: "Batches",
+        url: "/academic/batches",
+        icon: Layers,
+        module: "academic",
       },
     ],
   },
@@ -228,7 +228,18 @@ const AppSidebar = () => {
         // Instructor scope restriction:
         if (isInstructor) {
           // Instructors only see dashboard, academic (view), students (assigned), and their commissions
-          if (["staff", "payroll", "expenses", "finance", "reports", "admins", "settings", "payments"].includes(item.module)) {
+          if (
+            [
+              "staff",
+              "payroll",
+              "expenses",
+              "finance",
+              "reports",
+              "admins",
+              "settings",
+              "payments",
+            ].includes(item.module)
+          ) {
             return false;
           }
         }
