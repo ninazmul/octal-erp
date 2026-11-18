@@ -5,7 +5,7 @@
 @media print {
   @page {
     size: A4 portrait;
-    margin: 12mm;
+    margin: 10mm;
   }
 
   html,
@@ -32,8 +32,8 @@
   #receipt-print-area {
     position: fixed !important;
     inset: 0 auto auto 0 !important;
-    width: 100% !important;
-    min-height: 273mm !important;
+    width: 190mm !important;
+    min-height: 0 !important;
     max-width: none !important;
     margin: 0 !important;
     padding: 0 !important;
@@ -42,55 +42,35 @@
     background: #fff !important;
     color: #0f172a !important;
     box-shadow: none !important;
-    font-size: 10pt !important;
+    font-size: 9pt !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 4mm !important;
   }
 
   #receipt-print-area,
   #receipt-print-area * {
-    color: #000 !important;
-    border-color: #000 !important;
     box-shadow: none !important;
   }
 
-  #receipt-print-area .bg-black {
-    color: #fff !important;
-    border-color: #000 !important;
-    background-color: #000 !important;
+  #receipt-print-area .receipt-copy {
+    flex: 0 0 auto !important;
+    min-height: 0 !important;
+    padding: 5mm !important;
+    border-radius: 2mm !important;
+    border-color: #94a3b8 !important;
+    break-inside: avoid !important;
   }
 
-  #receipt-print-area .bg-black * {
-    color: #fff !important;
+  #receipt-print-area .receipt-cutline {
+    flex: 0 0 auto !important;
+    height: 4mm !important;
+    color: #64748b !important;
   }
 
-  #receipt-print-area .bg-white,
-  #receipt-print-area .bg-slate-50\/80 {
-    background-color: #fff !important;
-  }
-
-  #receipt-print-area .text-white {
-    color: #fff !important;
-  }
-
-  #receipt-print-area .text-slate-300,
-  #receipt-print-area .text-slate-500,
-  #receipt-print-area .text-slate-600,
-  #receipt-print-area .text-slate-700 {
-    color: #333 !important;
-  }
-
-  #receipt-print-area .border-slate-200,
-  #receipt-print-area .border-slate-300 {
-    border-color: #666 !important;
-  }
-
-  #receipt-print-area .bg-indigo-50 {
-    background-color: #fff !important;
-  }
-
-  #receipt-print-area .text-indigo-900,
-  #receipt-print-area .text-indigo-700,
-  #receipt-print-area .text-indigo-800 {
-    color: #000 !important;
+  #receipt-print-area .bg-indigo-50,
+  #receipt-print-area .bg-slate-100 {
+    background-color: #f1f5f9 !important;
   }
 
   .receipt-dialog {
