@@ -68,13 +68,6 @@ const QUICK_ACTIONS: QuickAction[] = [
     category: "Academic",
   },
   {
-    title: "Subjects",
-    subtitle: "Web Dev, Graphic Design, Marketing, etc.",
-    url: "/academic/subjects",
-    icon: GraduationCap,
-    category: "Academic",
-  },
-  {
     title: "Batch Settlements & Commissions",
     subtitle: "Track commission calculations per batch & instructor payouts",
     url: "/finance/settlements",

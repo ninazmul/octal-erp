@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ICourse, ISubject, IEmployee } from "@/types";
+import { ICourse, IEmployee } from "@/types";
 import {
   createCourse,
   updateCourse,
@@ -33,13 +33,11 @@ import toast from "react-hot-toast";
 
 interface CourseManagementProps {
   initialCourses: ICourse[];
-  subjects: ISubject[];
   instructors: IEmployee[];
 }
 
 export default function CourseManagement({
   initialCourses,
-  subjects,
   instructors,
 }: CourseManagementProps) {
   const { isInstructor, canWrite } = usePermissions();
@@ -47,14 +45,12 @@ export default function CourseManagement({
 
   const [courses, setCourses] = useState<ICourse[]>(initialCourses);
   const [search, setSearch] = useState("");
-  const [subjectFilter, setSubjectFilter] = useState("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState<ICourse | null>(null);
 
   // Form states
   const [title, setTitle] = useState("");
   const [code, setCode] = useState("");
-  const [subjectId, setSubjectId] = useState("");
   const [description, setDescription] = useState("");
   const [durationMonths, setDurationMonths] = useState(3);
   const [defaultFee, setDefaultFee] = useState(15000);
@@ -64,24 +60,15 @@ export default function CourseManagement({
   const [deletingCourse, setDeletingCourse] = useState<ICourse | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  const filteredCourses = courses.filter((c) => {
-    const matchesSearch =
-      c.title.toLowerCase().includes(search.toLowerCase()) ||
-      c.code.toLowerCase().includes(search.toLowerCase());
-    const subjectObj = c.subject as ISubject;
-    const matchesSubject =
-      subjectFilter === "all" ||
-      (typeof c.subject === "string"
-        ? c.subject === subjectFilter
-        : subjectObj?._id === subjectFilter);
-    return matchesSearch && matchesSubject;
-  });
+  const filteredCourses = courses.filter((c) =>
+    c.title.toLowerCase().includes(search.toLowerCase()) ||
+    c.code.toLowerCase().includes(search.toLowerCase())
+  );
 
   const handleOpenCreate = () => {
     setEditingCourse(null);
     setTitle("");
     setCode("");
-    setSubjectId(subjects[0]?._id || "");
     setDescription("");
     setDurationMonths(3);
     setDefaultFee(15000);
@@ -94,9 +81,6 @@ export default function CourseManagement({
     setEditingCourse(course);
     setTitle(course.title);
     setCode(course.code);
-    const subjId =
-      typeof course.subject === "string" ? course.subject : course.subject?._id;
-    setSubjectId(subjId || subjects[0]?._id || "");
     setDescription(course.description || "");
     setDurationMonths(course.durationMonths || 3);
     setDefaultFee(course.defaultFee || 0);
@@ -110,8 +94,8 @@ export default function CourseManagement({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !code.trim() || !subjectId) {
-      toast.error("Title, code, and subject are required.");
+    if (!title.trim() || !code.trim()) {
+      toast.error("Course title and code are required.");
       return;
     }
 
@@ -121,7 +105,6 @@ export default function CourseManagement({
         const updated = await updateCourse(editingCourse._id, {
           title,
           code,
-          subjectId,
           description,
           durationMonths: Number(durationMonths),
           defaultFee: Number(defaultFee),
@@ -136,7 +119,6 @@ export default function CourseManagement({
         const created = await createCourse({
           title,
           code,
-          subjectId,
           description,
           durationMonths: Number(durationMonths),
           defaultFee: Number(defaultFee),
@@ -230,25 +212,11 @@ export default function CourseManagement({
           />
         </div>
 
-        <select
-          value={subjectFilter}
-          onChange={(e) => setSubjectFilter(e.target.value)}
-          aria-label="Filter by subject"
-          className="w-full sm:w-56 h-11 px-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-        >
-          <option value="all">All Subjects</option>
-          {subjects.map((s) => (
-            <option key={s._id} value={s._id}>
-              {s.name} ({s.code})
-            </option>
-          ))}
-        </select>
       </div>
 
       {/* Courses Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {filteredCourses.map((course) => {
-          const subjectObj = course.subject as ISubject;
           const assignedInstructorNames = (course.instructors || []).map((item) =>
             typeof item === "string" ? instructors.find((inst) => inst._id === item)?.fullName : item.fullName
           ).filter(Boolean);
@@ -263,9 +231,6 @@ export default function CourseManagement({
                   <div className="flex items-center gap-2">
                     <span className="font-mono text-xs font-semibold px-2.5 py-1 rounded-md bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200/50 dark:border-indigo-800/40">
                       {course.code}
-                    </span>
-                    <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                      {subjectObj?.name || "Subject"}
                     </span>
                   </div>
 
@@ -334,7 +299,7 @@ export default function CourseManagement({
             <p className="text-xs text-slate-400 mt-1">
               {isInstructor
                 ? "You will see courses here once you are assigned as an instructor to a course or its batches."
-                : "Add your first course under a subject to begin admissions and batch scheduling."}
+                : "Add your first course to begin admissions and batch scheduling."}
             </p>
           </div>
         )}
@@ -374,26 +339,6 @@ export default function CourseManagement({
                   required
                   className="font-mono uppercase"
                 />
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                  Subject *
-                </label>
-                <select
-                  value={subjectId}
-                  onChange={(e) => setSubjectId(e.target.value)}
-                  required
-                  aria-label="Course Subject"
-                  className="w-full h-10 px-3 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                >
-                  <option value="" disabled>Select Subject</option>
-                  {subjects.map((s) => (
-                    <option key={s._id} value={s._id}>
-                      {s.name} ({s.code})
-                    </option>
-                  ))}
-                </select>
               </div>
 
               <div>

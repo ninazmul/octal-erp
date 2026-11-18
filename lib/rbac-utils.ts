@@ -452,7 +452,7 @@ export const GRANULAR_PERMISSIONS_LIST: GranularPermissionMeta[] = [
     key: "academic_manage",
     label: "Manage Academic",
     category: "Academic",
-    description: "Create and update subjects, courses, and batches",
+    description: "Create and update courses and batches",
   },
   {
     key: "student_admit",

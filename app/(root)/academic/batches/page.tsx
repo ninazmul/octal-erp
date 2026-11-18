@@ -1,7 +1,6 @@
 import {
   getBatches,
   getCourses,
-  getSubjects,
   getInstructorOptions,
 } from "@/lib/actions/academic.actions";
 import BatchManagement from "@/components/academic/BatchManagement";
@@ -9,10 +8,9 @@ import BatchManagement from "@/components/academic/BatchManagement";
 export const dynamic = "force-dynamic";
 
 export default async function BatchesPage() {
-  const [batches, courses, subjects, instructors] = await Promise.all([
+  const [batches, courses, instructors] = await Promise.all([
     getBatches(),
     getCourses({ status: "active" }),
-    getSubjects({ status: "active" }),
     getInstructorOptions(),
   ]);
 
@@ -21,7 +19,6 @@ export default async function BatchesPage() {
       <BatchManagement
         initialBatches={batches}
         courses={courses}
-        subjects={subjects}
         instructors={instructors}
       />
     </div>

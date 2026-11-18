@@ -77,21 +77,10 @@ export type Admin = IAdminUser;
 // ACADEMIC MANAGEMENT TYPES
 // ==========================================
 
-export interface ISubject {
-  _id: string;
-  name: string;
-  code: string;
-  description?: string;
-  isActive: boolean;
-  createdAt?: Date | string;
-  updatedAt?: Date | string;
-}
-
 export interface ICourse {
   _id: string;
   title: string;
   code: string;
-  subject: ISubject | string;
   description?: string;
   durationMonths: number;
   defaultFee: number;
@@ -109,7 +98,6 @@ export interface IBatch {
   batchCode: string;
   batchName: string;
   course: ICourse | string;
-  subject: ISubject | string;
   instructors: Array<IEmployee | string>;
   startDate: Date | string;
   endDate?: Date | string;

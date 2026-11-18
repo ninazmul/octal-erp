@@ -1,7 +1,6 @@
 "use server";
 
 import { connectToDatabase } from "@/lib/database";
-import Subject from "@/lib/database/models/subject.model";
 import Course from "@/lib/database/models/course.model";
 import Batch from "@/lib/database/models/batch.model";
 import Employee from "@/lib/database/models/employee.model";
@@ -12,139 +11,14 @@ import { revalidatePath } from "next/cache";
 import mongoose from "mongoose";
 
 // ==========================================
-// SUBJECT ACTIONS
-// ==========================================
-
-export async function getSubjects(params?: { search?: string; status?: string }) {
-  const profile = await requirePermission("academic", "read");
-  await connectToDatabase();
-
-  const query: Record<string, unknown> = {};
-  if (params?.search) {
-    query.$or = [
-      { name: { $regex: params.search, $options: "i" } },
-      { code: { $regex: params.search, $options: "i" } },
-    ];
-  }
-  if (params?.status === "active") query.isActive = true;
-  if (params?.status === "inactive") query.isActive = false;
-
-  // Instructor resource-based scoping: only see subjects on which the instructor is assigned
-  if (profile.role === "instructor" || profile.role === "staff") {
-    if (!profile.employeeId) return [];
-    const [assignedCourseSubjects, assignedBatchSubjects] = await Promise.all([
-      Course.find({ instructors: profile.employeeId }).distinct("subject"),
-      Batch.find({ instructors: profile.employeeId }).distinct("subject"),
-    ]);
-    const assignedSubjectIds = Array.from(
-      new Set([
-        ...assignedCourseSubjects.map((id) => String(id)),
-        ...assignedBatchSubjects.map((id) => String(id)),
-      ])
-    );
-    query._id = { $in: assignedSubjectIds };
-  }
-
-  const subjects = await Subject.find(query).sort({ name: 1 }).lean();
-  return JSON.parse(JSON.stringify(subjects));
-}
-
-export async function createSubject(data: {
-  name: string;
-  code: string;
-  description?: string;
-  isActive?: boolean;
-}) {
-  const actor = await requirePermission("academic", "write");
-  if (actor.role === "instructor") {
-    throw new Error("Forbidden: Instructors are not permitted to add subjects.");
-  }
-  await connectToDatabase();
-
-  const existing = await Subject.findOne({ code: data.code.trim().toUpperCase() });
-  if (existing) {
-    throw new Error(`Subject with code "${data.code}" already exists.`);
-  }
-
-  const subject = await Subject.create({
-    name: data.name.trim(),
-    code: data.code.trim().toUpperCase(),
-    description: data.description?.trim() || "",
-    isActive: data.isActive !== undefined ? data.isActive : true,
-  });
-
-  await logActivityAndNotify({
-    actor,
-    action: "CREATE_SUBJECT",
-    module: "academic",
-    resourceId: String(subject._id),
-    resourceName: subject.name,
-    details: `Created subject ${subject.name} (${subject.code})`,
-  });
-
-  revalidatePath("/academic/subjects");
-  return JSON.parse(JSON.stringify(subject));
-}
-
-export async function updateSubject(
-  id: string,
-  data: {
-    name?: string;
-    code?: string;
-    description?: string;
-    isActive?: boolean;
-  }
-) {
-  const actor = await requirePermission("academic", "write");
-  if (actor.role === "instructor") {
-    throw new Error("Forbidden: Instructors are not permitted to edit subjects.");
-  }
-  await connectToDatabase();
-
-  const subject = await Subject.findById(id);
-  if (!subject) throw new Error("Subject not found");
-
-  if (data.code && data.code.trim().toUpperCase() !== subject.code) {
-    const existing = await Subject.findOne({ code: data.code.trim().toUpperCase() });
-    if (existing) {
-      throw new Error(`Subject code "${data.code}" is already in use.`);
-    }
-    subject.code = data.code.trim().toUpperCase();
-  }
-
-  if (data.name !== undefined) subject.name = data.name.trim();
-  if (data.description !== undefined) subject.description = data.description.trim();
-  if (data.isActive !== undefined) subject.isActive = data.isActive;
-
-  await subject.save();
-
-  await logActivityAndNotify({
-    actor,
-    action: "UPDATE_SUBJECT",
-    module: "academic",
-    resourceId: String(subject._id),
-    resourceName: subject.name,
-    details: `Updated subject ${subject.name}`,
-  });
-
-  revalidatePath("/academic/subjects");
-  return JSON.parse(JSON.stringify(subject));
-}
-
-// ==========================================
 // COURSE ACTIONS
 // ==========================================
 
-export async function getCourses(params?: {
-  subjectId?: string;
-  search?: string;
-  status?: string;
-}) {
+export async function getCourses(params?: { search?: string; status?: string }) {
   const profile = await requirePermission("academic", "read");
   await connectToDatabase();
 
   const query: Record<string, unknown> = {};
-  if (params?.subjectId) query.subject = params.subjectId;
   if (params?.status === "active") query.isActive = true;
   if (params?.status === "inactive") query.isActive = false;
 
@@ -166,7 +40,6 @@ export async function getCourses(params?: {
   }
 
   const courses = await Course.find(query)
-    .populate("subject", "name code")
     .populate("instructors", "fullName employeeId email")
     .sort({ title: 1 })
     .lean();
@@ -177,7 +50,6 @@ export async function getCourses(params?: {
 export async function createCourse(data: {
   title: string;
   code: string;
-  subjectId: string;
   description?: string;
   durationMonths: number;
   defaultFee: number;
@@ -206,7 +78,6 @@ export async function createCourse(data: {
   const course = await Course.create({
     title: data.title.trim(),
     code: data.code.trim().toUpperCase(),
-    subject: data.subjectId,
     description: data.description?.trim() || "",
     durationMonths,
     defaultFee,
@@ -232,7 +103,6 @@ export async function updateCourse(
   data: {
     title?: string;
     code?: string;
-    subjectId?: string;
     description?: string;
     durationMonths?: number;
     defaultFee?: number;
@@ -258,8 +128,6 @@ export async function updateCourse(
   }
 
   if (data.title !== undefined) course.title = data.title.trim();
-  if (data.subjectId !== undefined)
-    course.subject = data.subjectId as unknown as mongoose.Types.ObjectId;
   if (data.description !== undefined) course.description = data.description.trim();
   if (data.durationMonths !== undefined) course.durationMonths = data.durationMonths;
   if (data.defaultFee !== undefined) course.defaultFee = data.defaultFee;
@@ -315,7 +183,6 @@ export async function getBatches(params?: {
 
   const batches = await Batch.find(query)
     .populate("course", "title code defaultFee")
-    .populate("subject", "name code")
     .populate("instructors", "fullName employeeId email")
     .sort({ startDate: -1 })
     .lean();
@@ -371,7 +238,6 @@ export async function getBatchById(id: string) {
 
   const batch = await Batch.findById(id)
     .populate("course", "title code defaultFee durationMonths")
-    .populate("subject", "name code")
     .populate("instructors", "fullName employeeId email phone")
     .lean();
 
@@ -434,7 +300,6 @@ export async function createBatch(data: {
   batchCode: string;
   batchName: string;
   courseId: string;
-  subjectId: string;
   instructors: string[];
   startDate: string | Date;
   endDate?: string | Date;
@@ -468,7 +333,6 @@ export async function createBatch(data: {
     batchCode: data.batchCode.trim().toUpperCase(),
     batchName: data.batchName.trim(),
     course: data.courseId,
-    subject: data.subjectId,
     instructors: data.instructors,
     startDate: new Date(data.startDate),
     endDate: data.endDate ? new Date(data.endDate) : undefined,

@@ -18,7 +18,6 @@ import {
 
 import {
   LayoutDashboard,
-  GraduationCap,
   BookOpen,
   Layers,
   Users,
@@ -110,12 +109,6 @@ const sidebarSections: SidebarSection[] = [
   {
     label: "Academic Management",
     items: [
-      {
-        title: "Subjects",
-        url: "/academic/subjects",
-        icon: GraduationCap,
-        module: "academic",
-      },
       {
         title: "Courses",
         url: "/academic/courses",

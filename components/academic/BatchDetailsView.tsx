@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { IBatch, IEnrollment, ICommissionEntry, ICourse, ISubject, IEmployee, IStudent } from "@/types";
+import { IBatch, IEnrollment, ICommissionEntry, ICourse, IEmployee, IStudent } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -36,7 +36,6 @@ export default function BatchDetailsView({ batch }: BatchDetailsProps) {
   const [activeTab, setActiveTab] = useState<"students" | "commissions">("students");
 
   const courseObj = batch.course as ICourse;
-  const subjectObj = batch.subject as ISubject;
   const instructors = (batch.instructors || []).slice(0, 1) as IEmployee[];
 
   return (
@@ -81,7 +80,7 @@ export default function BatchDetailsView({ batch }: BatchDetailsProps) {
             </Badge>
           </div>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Course: <strong className="text-slate-700 dark:text-slate-300">{courseObj?.title}</strong> ({subjectObj?.name})
+            Course: <strong className="text-slate-700 dark:text-slate-300">{courseObj?.title}</strong>
           </p>
         </div>
 

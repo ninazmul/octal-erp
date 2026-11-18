@@ -4,7 +4,6 @@ export interface IBatchDocument extends Document {
   batchCode: string;
   batchName: string;
   course: mongoose.Types.ObjectId;
-  subject: mongoose.Types.ObjectId;
   instructors: mongoose.Types.ObjectId[];
   startDate: Date;
   endDate?: Date;
@@ -36,12 +35,6 @@ const BatchSchema: Schema = new Schema(
     course: {
       type: Schema.Types.ObjectId,
       ref: "Course",
-      required: true,
-    },
-    subject: {
-      type: Schema.Types.ObjectId,
-      ref: "Subject",
-      required: true,
     },
     instructors: [
       {
@@ -98,7 +91,6 @@ const BatchSchema: Schema = new Schema(
 );
 
 BatchSchema.index({ course: 1, startDate: -1 });
-BatchSchema.index({ subject: 1 });
 BatchSchema.index({ instructors: 1, startDate: -1 });
 BatchSchema.index({ status: 1, startDate: -1 });
 BatchSchema.index({ financialStatus: 1, startDate: -1 });

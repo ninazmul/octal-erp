@@ -3,7 +3,6 @@ import mongoose, { Schema, Document, Model } from "mongoose";
 export interface ICourseDocument extends Document {
   title: string;
   code: string;
-  subject: mongoose.Types.ObjectId;
   description?: string;
   durationMonths: number;
   defaultFee: number;
@@ -26,11 +25,6 @@ const CourseSchema: Schema = new Schema(
       unique: true,
       trim: true,
       uppercase: true,
-    },
-    subject: {
-      type: Schema.Types.ObjectId,
-      ref: "Subject",
-      required: true,
     },
     description: {
       type: String,
@@ -65,7 +59,6 @@ const CourseSchema: Schema = new Schema(
   }
 );
 
-CourseSchema.index({ subject: 1 });
 CourseSchema.index({ instructors: 1 });
 CourseSchema.index({ title: 1 });
 

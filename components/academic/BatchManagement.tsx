@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { IBatch, ICourse, ISubject, IEmployee } from "@/types";
+import { IBatch, ICourse, IEmployee } from "@/types";
 import {
   createBatch,
   updateBatch,
@@ -38,14 +38,12 @@ import toast from "react-hot-toast";
 interface BatchManagementProps {
   initialBatches: IBatch[];
   courses: ICourse[];
-  subjects: ISubject[];
   instructors: IEmployee[];
 }
 
 export default function BatchManagement({
   initialBatches,
   courses,
-  subjects,
   instructors,
 }: BatchManagementProps) {
   const { isInstructor, canWrite } = usePermissions();
@@ -61,7 +59,6 @@ export default function BatchManagement({
   const [batchCode, setBatchCode] = useState("");
   const [batchName, setBatchName] = useState("");
   const [courseId, setCourseId] = useState("");
-  const [subjectId, setSubjectId] = useState("");
   const [selectedInstructors, setSelectedInstructors] = useState<string[]>([]);
   const [startDate, setStartDate] = useState(
     new Date().toISOString().split("T")[0]
@@ -82,17 +79,11 @@ export default function BatchManagement({
   const [cancellingBatch, setCancellingBatch] = useState<IBatch | null>(null);
   const [cancelling, setCancelling] = useState(false);
 
-  // Handle course selection change: auto-fill subject and instructors from course
+  // Handle course selection change and auto-fill its primary instructor.
   const handleCourseChange = (selectedCourseId: string) => {
     setCourseId(selectedCourseId);
     const courseObj = courses.find((c) => c._id === selectedCourseId);
     if (courseObj) {
-      const subjId =
-        typeof courseObj.subject === "string"
-          ? courseObj.subject
-          : courseObj.subject?._id;
-      if (subjId) setSubjectId(subjId);
-
       const instIds = (courseObj.instructors || []).map((i) =>
         typeof i === "string" ? i : (i as IEmployee)._id
       );
@@ -116,18 +107,12 @@ export default function BatchManagement({
     const firstCourse = courses[0];
     setCourseId(firstCourse?._id || "");
     if (firstCourse) {
-      const subjId =
-        typeof firstCourse.subject === "string"
-          ? firstCourse.subject
-          : firstCourse.subject?._id;
-      setSubjectId(subjId || subjects[0]?._id || "");
       setSelectedInstructors(
         (firstCourse.instructors || []).slice(0, 1).map((i) =>
           typeof i === "string" ? i : (i as IEmployee)._id
         )
       );
     } else {
-      setSubjectId(subjects[0]?._id || "");
       setSelectedInstructors([]);
     }
     setStartDate(new Date().toISOString().split("T")[0]);
@@ -148,10 +133,7 @@ export default function BatchManagement({
     setBatchName(batch.batchName);
     const crsId =
       typeof batch.course === "string" ? batch.course : batch.course?._id;
-    const sbjId =
-      typeof batch.subject === "string" ? batch.subject : batch.subject?._id;
     setCourseId(crsId || courses[0]?._id || "");
-    setSubjectId(sbjId || subjects[0]?._id || "");
     setSelectedInstructors(
       (batch.instructors || []).slice(0, 1).map((i) =>
         typeof i === "string" ? i : (i as IEmployee)._id
@@ -175,8 +157,8 @@ export default function BatchManagement({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!batchCode.trim() || !batchName.trim() || !courseId || !subjectId) {
-      toast.error("Batch code, name, course, and subject are required.");
+    if (!batchCode.trim() || !batchName.trim() || !courseId) {
+      toast.error("Batch code, name, and course are required.");
       return;
     }
 
@@ -205,7 +187,6 @@ export default function BatchManagement({
           batchCode,
           batchName,
           courseId,
-          subjectId,
           instructors: selectedInstructors,
           startDate,
           endDate: endDate || undefined,
@@ -552,26 +533,6 @@ export default function BatchManagement({
                   {courses.map((c) => (
                     <option key={c._id} value={c._id}>
                       {c.title} ({c.code})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                  Subject *
-                </label>
-                <select
-                  value={subjectId}
-                  onChange={(e) => setSubjectId(e.target.value)}
-                  required
-                  aria-label="Subject"
-                  className="w-full h-10 px-3 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                >
-                  <option value="" disabled>Select Subject</option>
-                  {subjects.map((s) => (
-                    <option key={s._id} value={s._id}>
-                      {s.name} ({s.code})
                     </option>
                   ))}
                 </select>

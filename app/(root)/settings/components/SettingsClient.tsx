@@ -116,7 +116,7 @@ export default function SettingsClient() {
               Academic Operations
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-              Configure training subjects (Web Dev, Graphic Design, Marketing), course pricing structures, default duration and batch schedules.
+              Configure courses, pricing, default duration, instructors and batch schedules.
             </p>
           </div>
           <div className="pt-4 flex flex-col sm:flex-row gap-2">
@@ -124,11 +124,6 @@ export default function SettingsClient() {
               <Button className="w-full rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs justify-between">
                 <span>Manage Courses</span>
                 <ChevronRight className="w-4 h-4" />
-              </Button>
-            </Link>
-            <Link href="/academic/subjects">
-              <Button variant="outline" className="w-full sm:w-auto rounded-xl border-slate-200 dark:border-slate-800 text-xs font-semibold">
-                Subjects
               </Button>
             </Link>
           </div>
