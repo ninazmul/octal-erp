@@ -22,7 +22,7 @@ interface NewAdmissionFormProps {
   courses: ICourse[];
   batches: IBatch[];
   preselectedBatchId?: string;
-  approvedDiscountRequest?: { _id: string; studentName: string; studentPhone: string; studentEmail?: string; course: { _id: string }; batch: { _id: string } } | null;
+  approvedDiscountRequest?: { _id: string; studentName: string; studentPhone: string; studentEmail?: string; approvedAmount?: number; course: { _id: string }; batch: { _id: string } } | null;
 }
 
 export default function NewAdmissionForm({
@@ -41,6 +41,9 @@ export default function NewAdmissionForm({
   const [guardianPhone, setGuardianPhone] = useState("");
   const [address, setAddress] = useState("");
   const [studentNotes, setStudentNotes] = useState("");
+  const [initialPaymentAmount, setInitialPaymentAmount] = useState("");
+  const [initialPaymentMethod, setInitialPaymentMethod] = useState("Cash");
+  const [initialPaymentRef, setInitialPaymentRef] = useState("");
 
   // Enrollment Fields
   const [selectedCourseId, setSelectedCourseId] = useState(approvedDiscountRequest?.course?._id || "");
@@ -95,6 +98,10 @@ export default function NewAdmissionForm({
 
   const selectedBatchObj = batches.find((b) => b._id === selectedBatchId);
   const selectedCourse = courses.find((c) => c._id === selectedCourseId);
+  const payableAmount = Math.max(0, Number(selectedCourse?.defaultFee || 0) - Number(approvedDiscountRequest?.approvedAmount || 0));
+  const paidNow = Number(initialPaymentAmount || 0);
+  const dueAfterAdmission = Math.max(0, payableAmount - paidNow);
+  const paymentAmountInvalid = paidNow < 0 || paidNow > payableAmount;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -116,6 +123,9 @@ export default function NewAdmissionForm({
         courseId: selectedCourseId,
         batchId: selectedBatchId,
         discountRequestId: approvedDiscountRequest?._id,
+        initialPaymentAmount: paidNow,
+        initialPaymentMethod: paidNow > 0 ? initialPaymentMethod as "Cash" | "Bank Transfer" | "bKash" | "Nagad" | "Rocket" | "Card" | "Other" : undefined,
+        initialPaymentRef: initialPaymentRef || undefined,
       });
 
       toast.success(
@@ -357,9 +367,35 @@ export default function NewAdmissionForm({
           </div>
         </div>
 
-        {/* Section 3: Admission Notes */}
+        {/* Section 3: Admission Payment */}
         <div className="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
-          <h2 className="text-sm font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">3. Admission Notes</h2>
+          <h2 className="text-sm font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">3. Admission Payment</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Payable after discount
+              <div className="mt-1 text-lg font-bold text-slate-900 dark:text-white">৳{payableAmount.toLocaleString()}</div>
+            </label>
+            <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Amount paid now (৳)
+              <Input type="number" min="0" max={payableAmount} step="0.01" value={initialPaymentAmount} onChange={(event) => setInitialPaymentAmount(event.target.value)} className="mt-1" placeholder="0" />
+            </label>
+            {paidNow > 0 && <>
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Payment method
+                <select value={initialPaymentMethod} onChange={(event) => setInitialPaymentMethod(event.target.value)} className="mt-1 w-full h-10 px-3 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm">
+                  {["Cash", "Bank Transfer", "bKash", "Nagad", "Rocket", "Card", "Other"].map((method) => <option key={method}>{method}</option>)}
+                </select>
+              </label>
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Transaction reference (optional)
+                <Input value={initialPaymentRef} onChange={(event) => setInitialPaymentRef(event.target.value)} className="mt-1" placeholder="Transaction or bank reference" />
+              </label>
+            </>}
+          </div>
+          <div className={`rounded-lg p-3 text-sm ${dueAfterAdmission === 0 ? "bg-emerald-50 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300" : "bg-amber-50 text-amber-800 dark:bg-amber-950/30 dark:text-amber-300"}`}>
+            {paymentAmountInvalid ? "Payment cannot exceed the payable amount." : dueAfterAdmission === 0 ? "Paid in full. Admission will be completed." : `Due after admission: ৳${dueAfterAdmission.toLocaleString()}`}
+          </div>
+        </div>
+
+        {/* Section 4: Admission Notes */}
+        <div className="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
+          <h2 className="text-sm font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">4. Admission Notes</h2>
           <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">Admission Notes / Payment Agreement Terms</label>
           <Textarea placeholder="e.g. 50% paid on admission, remaining 50% due by 2nd week..." value={studentNotes} onChange={(e) => setStudentNotes(e.target.value)} rows={2} />
         </div>
@@ -374,8 +410,8 @@ export default function NewAdmissionForm({
             <Link href="/students">
               <Button type="button" variant="outline" disabled={submitting}>Cancel</Button>
             </Link>
-            <Button type="submit" disabled={submitting || availableBatches.length === 0 || discountRequestSent} className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-6 py-2.5 shadow-sm">
-              {submitting ? "Processing Admission..." : discountRequestSent ? "Pending Admin Review" : "Complete Admission"}
+            <Button type="submit" disabled={submitting || availableBatches.length === 0 || discountRequestSent || paymentAmountInvalid} className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-6 py-2.5 shadow-sm">
+              {submitting ? "Processing Admission..." : discountRequestSent ? "Pending Admin Review" : dueAfterAdmission === 0 ? "Complete Admission" : "Submit Admission"}
             </Button>
           </div>
         </div>

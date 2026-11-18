@@ -4,6 +4,8 @@ import { connectToDatabase } from "@/lib/database";
 import Student from "@/lib/database/models/student.model";
 import Enrollment from "@/lib/database/models/enrollment.model";
 import Payment from "@/lib/database/models/payment.model";
+import Account from "@/lib/database/models/account.model";
+import Ledger from "@/lib/database/models/ledger.model";
 import Course from "@/lib/database/models/course.model";
 import Batch from "@/lib/database/models/batch.model";
 import CommissionEntry from "@/lib/database/models/commissionEntry.model";
@@ -404,6 +406,9 @@ export async function admitStudent(data: {
   batchId: string;
 
   discountRequestId?: string;
+  initialPaymentAmount?: number;
+  initialPaymentMethod?: "Cash" | "Bank Transfer" | "bKash" | "Nagad" | "Rocket" | "Card" | "Other";
+  initialPaymentRef?: string;
 }) {
   const currentProfile = await getCurrentAdminProfile();
   if (!currentProfile) throw new Error("Unauthorized: Access is restricted to authorized administrators.");
@@ -501,8 +506,17 @@ export async function admitStudent(data: {
     discount = Math.min(Math.max(0, approvedDiscountRequest.approvedAmount), agreedFee);
   }
   const finalPayableAmount = Math.max(0, agreedFee - discount);
-  const totalCollectedAmount = 0;
-  const remainingDue = finalPayableAmount;
+  const initialPaymentAmount = Number(data.initialPaymentAmount || 0);
+  if (!Number.isFinite(initialPaymentAmount) || initialPaymentAmount < 0 || initialPaymentAmount > finalPayableAmount) {
+    throw new Error("Admission payment must be between ৳0 and the final payable amount.");
+  }
+  const validPaymentMethods = ["Cash", "Bank Transfer", "bKash", "Nagad", "Rocket", "Card", "Other"];
+  if (initialPaymentAmount > 0 && !validPaymentMethods.includes(data.initialPaymentMethod || "")) {
+    throw new Error("Select a valid payment method for the admission payment.");
+  }
+  if (initialPaymentAmount > 0 && !data.initialPaymentMethod) throw new Error("Select a payment method for the admission payment.");
+  const totalCollectedAmount = initialPaymentAmount;
+  const remainingDue = Math.max(0, finalPayableAmount - initialPaymentAmount);
 
   // 4. Create Enrollment. Instructor earnings are attached to the batch, never an admission referrer.
   const generatedEnrollmentId = await getNextEnrollmentId();
@@ -525,6 +539,43 @@ export async function admitStudent(data: {
     notes: data.notes?.trim() || "",
   });
 
+  if (initialPaymentAmount > 0) {
+    const receiptCounter = await Counter.findByIdAndUpdate("octal_receipt_no", { $inc: { seq: 1 } }, { new: true, upsert: true });
+    const receiptNo = `REC-${formatSL(receiptCounter.seq, 6)}`;
+    const paymentDate = new Date();
+    await Payment.create({
+      receiptNo,
+      enrollment: enrollment._id,
+      student: studentDoc._id,
+      batch: batch._id,
+      amount: initialPaymentAmount,
+      paymentMethod: data.initialPaymentMethod,
+      transactionRef: data.initialPaymentRef?.trim() || "",
+      status: "confirmed",
+      paymentDate,
+      collectedBy: { email: actor.email, name: actor.name || "", userId: actor._id },
+      notes: "Admission-time payment",
+    });
+    const account = await Account.findOne({ isDefault: true, isActive: true }) || await Account.findOne({ isActive: true });
+    if (account) {
+      account.currentBalance += initialPaymentAmount;
+      await account.save();
+      const ledgerCounter = await Counter.findByIdAndUpdate("octal_ledger_no", { $inc: { seq: 1 } }, { new: true, upsert: true });
+      await Ledger.create({
+        entryNo: `LED-${formatSL(ledgerCounter.seq, 6)}`,
+        account: account._id,
+        type: "CREDIT",
+        amount: initialPaymentAmount,
+        balanceAfter: account.currentBalance,
+        sourceModule: "payments",
+        sourceReferenceId: receiptNo,
+        description: `Student payment ${receiptNo} from ${studentDoc.fullName} for ${batch.batchName} (${data.initialPaymentMethod})`,
+        transactionDate: paymentDate,
+        recordedBy: { email: actor.email, name: actor.name || "", userId: actor._id },
+      });
+    }
+  }
+
   const commissionEarned = await createInstructorAdmissionEarning(enrollment, batch);
 
   if (approvedDiscountRequest) {
@@ -544,6 +595,8 @@ export async function admitStudent(data: {
   });
 
   revalidatePath("/students");
+  revalidatePath("/payments");
+  revalidatePath("/finance");
   revalidatePath("/academic/batches");
   return JSON.parse(
     JSON.stringify({
