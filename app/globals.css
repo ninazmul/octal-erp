@@ -93,6 +93,10 @@
   }
 }
 
+.receipt-dialog > button[aria-label="Close"] {
+  display: none;
+}
+
 @layer base {
   :root {
     --background: 210 40% 98%;

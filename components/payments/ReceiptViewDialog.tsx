@@ -72,16 +72,16 @@ export default function ReceiptViewDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="receipt-dialog sm:max-w-2xl p-0 overflow-hidden print:m-0 print:p-0 print:border-none print:shadow-none">
+      <DialogContent className="receipt-dialog flex max-h-[calc(100dvh-2rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl print:m-0 print:p-0 print:border-none print:shadow-none">
         {/* Printable Area */}
-        <div id="receipt-print-area" className="receipt-print-area space-y-4 bg-white p-5 text-slate-900 sm:p-6">
+        <div id="receipt-print-area" className="receipt-print-area min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain bg-white p-5 text-slate-900 sm:p-6">
           {receiptCopy("Student Copy")}
           <div className="receipt-cutline flex items-center gap-3 text-[9px] font-semibold uppercase tracking-[0.2em] text-slate-400"><span className="h-px flex-1 border-t border-dashed border-slate-400" />Cut here<span className="h-px flex-1 border-t border-dashed border-slate-400" /></div>
           {receiptCopy("Institute Copy")}
         </div>
 
         {/* Action Controls */}
-        <div className="p-4 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-2 print:hidden">
+        <div className="shrink-0 p-3 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-2 print:hidden">
           <Button variant="outline" onClick={() => onOpenChange(false)} size="sm">
             Close
           </Button>
