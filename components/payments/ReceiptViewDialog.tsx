@@ -8,6 +8,26 @@ import {
 import { Button } from "@/components/ui/button";
 import { Printer } from "lucide-react";
 
+const ones = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen"];
+const tens = ["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"];
+
+function numberToWords(value: number): string {
+  const number = Math.floor(Math.abs(value));
+  if (number < 20) return ones[number];
+  if (number < 100) return `${tens[Math.floor(number / 10)]}${number % 10 ? `-${ones[number % 10]}` : ""}`;
+  if (number < 1_000) return `${ones[Math.floor(number / 100)]} hundred${number % 100 ? ` ${numberToWords(number % 100)}` : ""}`;
+  for (const [size, label] of [[1_000_000_000, "billion"], [1_000_000, "million"], [1_000, "thousand"]] as const) {
+    if (number >= size) return `${numberToWords(Math.floor(number / size))} ${label}${number % size ? ` ${numberToWords(number % size)}` : ""}`;
+  }
+  return "zero";
+}
+
+function amountInWords(amount: number): string {
+  const whole = Math.floor(amount || 0);
+  const paisa = Math.round(((amount || 0) - whole) * 100);
+  return `Taka ${numberToWords(whole)}${paisa ? ` and ${numberToWords(paisa)} paisa` : ""} only`;
+}
+
 interface ReceiptViewDialogProps {
   payment: IPayment & {
     student?: IStudent;
@@ -32,6 +52,11 @@ export default function ReceiptViewDialog({
   const paymentDate = new Date(payment.paymentDate).toLocaleDateString(undefined, {
     year: "numeric", month: "long", day: "numeric",
   });
+  const totalCourseFee = enrollment?.agreedFee ?? enrollment?.finalPayableAmount ?? 0;
+  const discount = enrollment?.discount ?? 0;
+  const totalPayable = enrollment?.finalPayableAmount ?? totalCourseFee;
+  const totalPaid = enrollment?.totalCollectedAmount ?? payment.amount ?? 0;
+  const amountDue = enrollment?.remainingDue ?? Math.max(0, totalPayable - totalPaid);
 
   const handlePrint = () => {
     window.print();
@@ -57,13 +82,17 @@ export default function ReceiptViewDialog({
       </section>
 
       <section className="mt-3 overflow-hidden rounded border border-slate-300 text-[11px]">
-        <div className="grid grid-cols-[1fr_auto] gap-4 bg-slate-100 px-3 py-1.5 font-bold text-slate-700"><span>Payment details</span><span>Amount</span></div>
-        <div className="grid grid-cols-[1fr_auto] gap-4 px-3 py-2.5"><div><p className="font-semibold">Tuition fee installment</p><p className="text-[10px] text-slate-600">{payment.paymentMethod}{payment.transactionRef ? ` · Ref: ${payment.transactionRef}` : ""}</p></div><p className="font-mono font-bold">৳{payment.amount?.toLocaleString()}</p></div>
-        <div className="grid grid-cols-[1fr_auto] gap-4 border-t border-slate-300 px-3 py-2"><span className="font-bold uppercase tracking-wide">Amount received</span><span className="font-mono text-base font-bold">৳{payment.amount?.toLocaleString()}</span></div>
+        <div className="grid grid-cols-[1fr_auto] gap-4 bg-slate-100 px-3 py-1.5 font-bold text-slate-700"><span>Course payment summary</span><span>Amount</span></div>
+        <div className="grid grid-cols-[1fr_auto] gap-4 px-3 py-1.5"><span>Total course fee</span><span className="font-mono font-semibold">৳{totalCourseFee.toLocaleString()}</span></div>
+        {discount > 0 && <div className="grid grid-cols-[1fr_auto] gap-4 border-t border-slate-200 px-3 py-1.5"><span>Discount</span><span className="font-mono font-semibold">−৳{discount.toLocaleString()}</span></div>}
+        <div className="grid grid-cols-[1fr_auto] gap-4 border-t border-slate-200 px-3 py-1.5"><span>Total payable</span><span className="font-mono font-semibold">৳{totalPayable.toLocaleString()}</span></div>
+        <div className="grid grid-cols-[1fr_auto] gap-4 border-t border-slate-200 px-3 py-1.5"><span>Total paid to date</span><span className="font-mono font-semibold">৳{totalPaid.toLocaleString()}</span></div>
+        <div className="grid grid-cols-[1fr_auto] gap-4 border-t border-slate-200 px-3 py-1.5"><span>Due balance</span><span className="font-mono font-semibold">৳{amountDue.toLocaleString()}</span></div>
+        <div className="grid grid-cols-[1fr_auto] gap-4 border-t border-slate-300 bg-indigo-50 px-3 py-2"><div><p className="font-bold uppercase tracking-wide">Paid this receipt</p><p className="mt-0.5 text-[10px] capitalize text-slate-600">{amountInWords(payment.amount || 0)}</p><p className="text-[10px] text-slate-600">{payment.paymentMethod}{payment.transactionRef ? ` · Ref: ${payment.transactionRef}` : ""}</p></div><span className="font-mono text-base font-bold">৳{payment.amount?.toLocaleString()}</span></div>
       </section>
 
       <div className="mt-3 grid grid-cols-2 gap-4 text-[10px]">
-        <p><span className="font-bold uppercase tracking-wider text-slate-500">Balance due</span><br /><span className="font-mono text-sm font-bold text-slate-900">৳{enrollment?.remainingDue?.toLocaleString() || "0"}</span></p>
+        <p><span className="font-bold uppercase tracking-wider text-slate-500">Payment status</span><br /><span className="font-semibold capitalize text-slate-900">{payment.status.replaceAll("_", " ")}</span></p>
         <p><span className="font-bold uppercase tracking-wider text-slate-500">Received by</span><br /><span className="font-semibold text-slate-900">{payment.collectedBy?.name || payment.collectedBy?.email || "—"}</span></p>
       </div>
       <footer className="mt-4 flex items-end justify-between gap-4 border-t border-slate-300 pt-2 text-[9px] text-slate-600"><p>Computer-generated receipt. Please keep this copy for your records.</p><div className="w-36 border-t border-slate-500 pt-1 text-center">Authorized signature</div></footer>
