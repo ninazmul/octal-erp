@@ -139,7 +139,7 @@ export type EnrollmentStatus = "Active" | "Completed" | "Dropped" | "Suspended";
 
 export interface IStudent {
   _id: string;
-  studentId: string; // e.g. "OCT-STU-0001"
+  studentId: string; // e.g. "WEB-260001" (course code, two-digit year, sequence)
   fullName: string;
   phone: string;
   email?: string;

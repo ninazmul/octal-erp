@@ -498,7 +498,7 @@ export default function StudentDirectory({
         <div className="flex-1 flex items-center gap-3 bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200/80 dark:border-slate-800 w-full">
           <Search className="w-4 h-4 text-slate-400 ml-1 shrink-0" />
           <Input
-            placeholder="Search by student name, ID (OCT-STU-...), phone number, or email..."
+            placeholder="Search by student name, ID (e.g. WEB-260001), phone number, or email..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="border-0 focus-visible:ring-0 text-sm shadow-none p-0 h-8"

@@ -24,13 +24,16 @@ import mongoose from "mongoose";
 import { revalidatePath } from "next/cache";
 
 // Sequential ID generators
-async function getNextStudentId(): Promise<string> {
+async function getNextStudentId(courseCode: string, admissionDate = new Date()): Promise<string> {
+  const normalizedCourseCode = courseCode.trim().toUpperCase();
+  if (!normalizedCourseCode) throw new Error("A valid course code is required to generate the student ID.");
+  const year = String(admissionDate.getFullYear()).slice(-2);
   const counter = await Counter.findByIdAndUpdate(
-    "octal_student_id",
+    `octal_student_id_${normalizedCourseCode}_${year}`,
     { $inc: { seq: 1 } },
     { new: true, upsert: true }
   );
-  return `OCT-STU-${formatSL(counter.seq, 4)}`;
+  return `${normalizedCourseCode}-${year}${formatSL(counter.seq, 4)}`;
 }
 
 async function getNextEnrollmentId(): Promise<string> {
@@ -463,7 +466,7 @@ export async function admitStudent(data: {
       if (data.address) studentDoc.address = data.address.trim();
       await studentDoc.save();
     } else {
-      const generatedStudentId = await getNextStudentId();
+      const generatedStudentId = await getNextStudentId(course.code);
       studentDoc = await Student.create({
         studentId: generatedStudentId,
         fullName: data.fullName.trim(),
@@ -658,7 +661,7 @@ export async function requestAdmissionDiscount(data: {
 
   let studentDoc = await Student.findOne({ phone: studentPhone });
   if (!studentDoc) {
-    const newStudentId = await getNextStudentId();
+    const newStudentId = await getNextStudentId(course.code);
     studentDoc = await Student.create({
       studentId: newStudentId,
       fullName: studentName,
@@ -757,7 +760,7 @@ export async function allowDiscountAndActivateStudent(data: {
   }
 
   if (!studentDoc) {
-    const newStudentId = await getNextStudentId();
+    const newStudentId = await getNextStudentId(course.code);
     studentDoc = await Student.create({
       studentId: newStudentId,
       fullName: fullName || "Student",

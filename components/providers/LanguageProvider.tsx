@@ -138,7 +138,7 @@ const translations: Record<string, string> = {
   "Create Batch": "ব্যাচ তৈরি করুন",
   "Create Course": "কোর্স তৈরি করুন",
   "Create Subject": "বিষয় তৈরি করুন",
-  "Search by student name, ID (OCT-STU-...), or phone number...": "শিক্ষার্থীর নাম, আইডি (OCT-STU-...) বা ফোন নম্বর দিয়ে খুঁজুন...",
+  "Search by student name, ID (e.g. WEB-260001), phone number, or email...": "শিক্ষার্থীর নাম, আইডি (যেমন WEB-260001), ফোন নম্বর বা ইমেইল দিয়ে খুঁজুন...",
   "Search by batch name, course, or instructor...": "ব্যাচের নাম, কোর্স বা প্রশিক্ষক দিয়ে খুঁজুন...",
   "Search by employee name or ID...": "কর্মীর নাম বা আইডি দিয়ে খুঁজুন...",
   "Search by expense title or category...": "ব্যয়ের শিরোনাম বা শ্রেণি দিয়ে খুঁজুন...",
