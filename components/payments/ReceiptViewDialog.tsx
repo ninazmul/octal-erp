@@ -97,7 +97,7 @@ export default function ReceiptViewDialog({
         <p><span className="font-bold uppercase tracking-wider text-slate-500">Payment status</span><br /><span className="font-semibold capitalize text-slate-900">{payment.status.replaceAll("_", " ")} · {payment.paymentMethod}</span>{payment.transactionRef && <><br /><span className="text-slate-600">Ref: {payment.transactionRef}</span></>}</p>
         <p><span className="font-bold uppercase tracking-wider text-slate-500">Received by</span><br /><span className="font-semibold text-slate-900">{payment.collectedBy?.name || payment.collectedBy?.email || "—"}</span></p>
       </div>
-      <footer className="mt-4 flex items-end justify-between gap-4 border-t border-slate-300 pt-2 text-[9px] text-slate-600"><div><p>Computer-generated receipt. Please keep this copy for your records.</p>{amountDue > 0 && <p className="mt-1 font-semibold text-amber-800">Outstanding balance must be paid within 20 days of this receipt.</p>}</div><div className="w-36 border-t border-slate-500 pt-1 text-center">Authorized signature</div></footer>
+      <footer className="mt-4 flex items-end justify-between gap-4 text-[9px] text-slate-600"><div><p>Computer-generated receipt. Please keep this copy for your records.</p>{amountDue > 0 && <p className="mt-1 font-semibold text-amber-800">Outstanding balance must be paid within 20 days of this receipt.</p>}</div><div className="w-36 border-t border-slate-500 pt-1 text-center">Authorized signature</div></footer>
       </div>
     </article>
   );
