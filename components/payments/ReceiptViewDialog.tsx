@@ -61,7 +61,13 @@ export default function ReceiptViewDialog({
   };
 
   const receiptCopy = (copyName: "Student Copy" | "Institute Copy") => (
-    <article className="receipt-copy rounded-lg border border-slate-300 bg-white p-4 text-slate-900">
+    <article className="receipt-copy relative isolate overflow-hidden rounded-lg border border-slate-300 bg-white p-4 text-slate-900">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 z-0 opacity-[0.055]"
+        style={{ backgroundImage: "url('/assets/images/octal.png')", backgroundPosition: "center", backgroundRepeat: "no-repeat", backgroundSize: "86% auto" }}
+      />
+      <div className="relative z-10">
       <header className="flex items-start justify-between gap-4 border-b-2 border-indigo-700 pb-3">
         <div>
           <p className="text-lg font-bold tracking-tight text-slate-950">Octal Technical Training Institute</p>
@@ -92,6 +98,7 @@ export default function ReceiptViewDialog({
         <p><span className="font-bold uppercase tracking-wider text-slate-500">Received by</span><br /><span className="font-semibold text-slate-900">{payment.collectedBy?.name || payment.collectedBy?.email || "—"}</span></p>
       </div>
       <footer className="mt-4 flex items-end justify-between gap-4 border-t border-slate-300 pt-2 text-[9px] text-slate-600"><div><p>Computer-generated receipt. Please keep this copy for your records.</p>{amountDue > 0 && <p className="mt-1 font-semibold text-amber-800">Outstanding balance must be paid within 20 days of this receipt.</p>}</div><div className="w-36 border-t border-slate-500 pt-1 text-center">Authorized signature</div></footer>
+      </div>
     </article>
   );
 
