@@ -11,7 +11,6 @@ import {
   UserPlus,
   ArrowLeft,
   GraduationCap,
-  Users,
   BadgePercent,
 } from "lucide-react";
 import Link from "next/link";
@@ -191,10 +190,10 @@ export default function NewAdmissionForm({
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Section 1: Student Personal Details */}
+        {/* Student and course details */}
         <div className="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
           <h2 className="text-sm font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 flex items-center gap-2">
-            <Users className="w-4 h-4" /> 1. Student Personal Information
+            <GraduationCap className="w-4 h-4" /> Course
           </h2>
           {approvedDiscountRequest && <p className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-300">An administrator-approved discount request is attached and will be applied when admission is completed.</p>}
 
@@ -264,14 +263,6 @@ export default function NewAdmissionForm({
               />
             </div>
           </div>
-        </div>
-
-        {/* Section 2: Course & Batch Selection */}
-        <div className="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
-          <h2 className="text-sm font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 flex items-center gap-2">
-            <GraduationCap className="w-4 h-4" /> 2. Academic Course & Batch Assignment
-          </h2>
-
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
@@ -367,9 +358,9 @@ export default function NewAdmissionForm({
           </div>
         </div>
 
-        {/* Section 3: Admission Payment */}
+        {/* Section 2: Admission Payment */}
         <div className="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
-          <h2 className="text-sm font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">3. Admission Payment</h2>
+          <h2 className="text-sm font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">2. Admission Payment</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Payable after discount
               <div className="mt-1 text-lg font-bold text-slate-900 dark:text-white">৳{payableAmount.toLocaleString()}</div>
@@ -393,9 +384,9 @@ export default function NewAdmissionForm({
           </div>
         </div>
 
-        {/* Section 4: Admission Notes */}
+        {/* Section 3: Admission Notes */}
         <div className="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
-          <h2 className="text-sm font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">4. Admission Notes</h2>
+          <h2 className="text-sm font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">3. Admission Notes</h2>
           <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">Admission Notes / Payment Agreement Terms</label>
           <Textarea placeholder="e.g. 50% paid on admission, remaining 50% due by 2nd week..." value={studentNotes} onChange={(e) => setStudentNotes(e.target.value)} rows={2} />
         </div>
