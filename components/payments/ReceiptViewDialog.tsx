@@ -108,7 +108,7 @@ export default function ReceiptViewDialog({
         {/* Printable Area */}
         <div id="receipt-print-area" className="receipt-print-area min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain bg-white p-5 text-slate-900 sm:p-6">
           {receiptCopy("Student Copy")}
-          <div className="receipt-cutline flex items-center gap-3 text-[9px] font-semibold uppercase tracking-[0.2em] text-slate-400"><span className="h-px flex-1 border-t border-dashed border-slate-400" />Cut here<span className="h-px flex-1 border-t border-dashed border-slate-400" /></div>
+          <div className="receipt-cutline flex h-12 items-center gap-3 text-[9px] font-semibold uppercase tracking-[0.2em] text-slate-400"><span className="h-px flex-1 border-t border-dashed border-slate-400" />Cut here<span className="h-px flex-1 border-t border-dashed border-slate-400" /></div>
           {receiptCopy("Institute Copy")}
         </div>
 

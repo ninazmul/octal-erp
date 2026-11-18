@@ -64,7 +64,7 @@
 
   #receipt-print-area .receipt-cutline {
     flex: 0 0 auto !important;
-    height: 4mm !important;
+    height: 12mm !important;
     color: #64748b !important;
   }
 
