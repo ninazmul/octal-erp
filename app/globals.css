@@ -3,6 +3,11 @@
 @tailwind utilities;
 
 @media print {
+  @page statement {
+    size: A4 landscape;
+    margin: 12mm;
+  }
+
   @page {
     size: A4 portrait;
     margin: 10mm;
@@ -28,6 +33,46 @@
   #receipt-print-area * {
     visibility: visible !important;
   }
+
+  #bank-statement-print-area,
+  #bank-statement-print-area * {
+    visibility: visible !important;
+  }
+
+  #bank-statement-print-area {
+    page: statement;
+    display: block !important;
+    position: absolute !important;
+    inset: 0 auto auto 0 !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: #fff !important;
+    color: #172033 !important;
+    font-family: Arial, sans-serif !important;
+    font-size: 9pt !important;
+  }
+
+  #bank-statement-print-area .bank-statement-header { margin-bottom: 7mm !important; }
+  #bank-statement-print-area .bank-statement-brand { color: #0f2747 !important; font-size: 17pt !important; font-weight: 700 !important; letter-spacing: .08em !important; }
+  #bank-statement-print-area .bank-statement-subtitle { margin-top: 1.5mm !important; color: #526176 !important; font-size: 10pt !important; font-weight: 700 !important; letter-spacing: .16em !important; }
+  #bank-statement-print-area .bank-statement-rule { height: 1px !important; margin: 4mm 0 !important; background: #b7c4d3 !important; }
+  #bank-statement-print-area .bank-statement-meta { display: grid !important; grid-template-columns: repeat(3, 1fr) !important; gap: 8mm !important; }
+  #bank-statement-print-area .bank-statement-meta div { display: flex !important; flex-direction: column !important; gap: 1mm !important; }
+  #bank-statement-print-area .bank-statement-meta span, #bank-statement-print-area .bank-statement-totals span { color: #64748b !important; font-size: 8pt !important; }
+  #bank-statement-print-area .bank-statement-meta strong { color: #172033 !important; font-size: 9pt !important; }
+  #bank-statement-print-area .bank-statement-totals { display: grid !important; grid-template-columns: repeat(3, 1fr) !important; gap: 4mm !important; margin-bottom: 6mm !important; }
+  #bank-statement-print-area .bank-statement-totals div { display: flex !important; flex-direction: column !important; gap: 1.5mm !important; border: 1px solid #d8e0e9 !important; border-radius: 2mm !important; padding: 3mm 4mm !important; }
+  #bank-statement-print-area .bank-statement-totals strong { color: #0f2747 !important; font-size: 13pt !important; }
+  #bank-statement-print-area .bank-statement-table { width: 100% !important; border-collapse: collapse !important; font-size: 8pt !important; }
+  #bank-statement-print-area .bank-statement-table thead { display: table-header-group !important; }
+  #bank-statement-print-area .bank-statement-table tr { break-inside: avoid !important; page-break-inside: avoid !important; }
+  #bank-statement-print-area .bank-statement-table th { padding: 2.5mm 2mm !important; border-top: 1px solid #9aa9ba !important; border-bottom: 1px solid #9aa9ba !important; background: #eef2f6 !important; color: #26364a !important; text-align: left !important; }
+  #bank-statement-print-area .bank-statement-table td { padding: 2mm !important; border-bottom: 1px solid #e2e8f0 !important; vertical-align: top !important; }
+  #bank-statement-print-area .bank-statement-table .numeric { text-align: right !important; white-space: nowrap !important; }
+  #bank-statement-print-area .bank-statement-table tfoot th { background: #f5f7fa !important; }
+  #bank-statement-print-area .bank-statement-table .empty-row { padding: 8mm !important; color: #64748b !important; text-align: center !important; }
+  #bank-statement-print-area .bank-statement-footer { margin-top: 6mm !important; padding-top: 2mm !important; border-top: 1px solid #d8e0e9 !important; color: #64748b !important; font-size: 7pt !important; }
 
   #receipt-print-area {
     position: fixed !important;

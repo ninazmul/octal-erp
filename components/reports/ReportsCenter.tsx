@@ -24,6 +24,7 @@ import {
   ArrowUpRight,
 } from "lucide-react";
 import toast from "react-hot-toast";
+import { exportMultiSheetExcel } from "@/lib/excel";
 
 const REPORT_DEFINITIONS = [
   { id: "student_admissions", name: "1. Student Admission Report", icon: Users },
@@ -136,6 +137,49 @@ export default function ReportsCenter({
   const ledgerRows = activeReportId === "income_expense" && Array.isArray(filteredLedgerData) ? filteredLedgerData : [];
   const totalIncome = ledgerRows.reduce((sum: number, row: ReportItem) => sum + (row.type === "CREDIT" ? Number(row.amount || 0) : 0), 0);
   const totalExpense = ledgerRows.reduce((sum: number, row: ReportItem) => sum + (row.type === "DEBIT" ? Number(row.amount || 0) : 0), 0);
+  const statementPeriod = startDate || endDate
+    ? `${startDate ? new Date(`${startDate}T00:00:00`).toLocaleDateString() : "Beginning"} – ${endDate ? new Date(`${endDate}T00:00:00`).toLocaleDateString() : "Today"}`
+    : "All available dates";
+  const statementType = transactionType === "ALL" ? "All transactions" : transactionType === "CREDIT" ? "Credit / Income" : "Debit / Expense";
+
+  const exportExcel = async () => {
+    try {
+      const transactions = ledgerRows.map((row: ReportItem) => ({
+        Date: row.transactionDate ? new Date(row.transactionDate).toLocaleDateString() : "",
+        Reference: row.entryNo || "",
+        Description: row.description || "",
+        Account: row.account?.accountName || "",
+        Category: row.sourceModule || "",
+        Debit: row.type === "DEBIT" ? Number(row.amount || 0) : 0,
+        Credit: row.type === "CREDIT" ? Number(row.amount || 0) : 0,
+        "Balance After": Number(row.balanceAfter || 0),
+      }));
+      await exportMultiSheetExcel([
+        {
+          name: "Statement Summary",
+          headers: ["Item", "Value"],
+          data: [
+            { Item: "Institution", Value: "Octal Technical Training Institute" },
+            { Item: "Statement Period", Value: statementPeriod },
+            { Item: "Transaction Filter", Value: statementType },
+            { Item: "Total Income / Credit", Value: totalIncome },
+            { Item: "Total Expense / Debit", Value: totalExpense },
+            { Item: "Net Cash Flow", Value: totalIncome - totalExpense },
+            { Item: "Transaction Count", Value: ledgerRows.length },
+            { Item: "Generated At", Value: new Date().toLocaleString() },
+          ],
+        },
+        {
+          name: "Transactions",
+          headers: ["Date", "Reference", "Description", "Account", "Category", "Debit", "Credit", "Balance After"],
+          data: transactions,
+        },
+      ], `income-expense-statement-${new Date().toISOString().slice(0, 10)}.xlsx`);
+      toast.success("Excel statement exported.");
+    } catch (error) {
+      toast.error((error as Error).message || "Could not export Excel statement.");
+    }
+  };
 
   const exportCSV = () => {
     if (!data) return;
@@ -184,6 +228,38 @@ export default function ReportsCenter({
 
   return (
     <div className="space-y-6">
+      {activeReportId === "income_expense" && <section id="bank-statement-print-area" aria-label="Printable bank style financial statement">
+        <header className="bank-statement-header">
+          <div className="bank-statement-brand">OCTAL TECHNICAL TRAINING INSTITUTE</div>
+          <div className="bank-statement-subtitle">FINANCIAL ACCOUNT STATEMENT</div>
+          <div className="bank-statement-rule" />
+          <div className="bank-statement-meta">
+            <div><span>Statement period</span><strong>{statementPeriod}</strong></div>
+            <div><span>Transaction type</span><strong>{statementType}</strong></div>
+            <div><span>Generated</span><strong>{new Date().toLocaleString()}</strong></div>
+          </div>
+        </header>
+        <div className="bank-statement-totals">
+          <div><span>Total credits / income</span><strong>৳{totalIncome.toLocaleString()}</strong></div>
+          <div><span>Total debits / expense</span><strong>৳{totalExpense.toLocaleString()}</strong></div>
+          <div><span>Net cash flow</span><strong>৳{(totalIncome - totalExpense).toLocaleString()}</strong></div>
+        </div>
+        <table className="bank-statement-table">
+          <thead><tr><th>Date</th><th>Reference</th><th>Description</th><th>Account</th><th>Debit</th><th>Credit</th><th>Balance after</th></tr></thead>
+          <tbody>
+            {ledgerRows.map((row: ReportItem) => <tr key={row._id}>
+              <td>{row.transactionDate ? new Date(row.transactionDate).toLocaleDateString() : "—"}</td>
+              <td>{row.entryNo || "—"}</td><td>{row.description || "—"}</td><td>{row.account?.accountName || "—"}</td>
+              <td className="numeric">{row.type === "DEBIT" ? Number(row.amount || 0).toLocaleString() : "—"}</td>
+              <td className="numeric">{row.type === "CREDIT" ? Number(row.amount || 0).toLocaleString() : "—"}</td>
+              <td className="numeric">{Number(row.balanceAfter || 0).toLocaleString()}</td>
+            </tr>)}
+            {ledgerRows.length === 0 && <tr><td colSpan={7} className="empty-row">No transactions for the selected period.</td></tr>}
+          </tbody>
+          <tfoot><tr><th colSpan={4}>Period totals</th><th className="numeric">৳{totalExpense.toLocaleString()}</th><th className="numeric">৳{totalIncome.toLocaleString()}</th><th className="numeric">Net ৳{(totalIncome - totalExpense).toLocaleString()}</th></tr></tfoot>
+        </table>
+        <footer className="bank-statement-footer">This statement was generated electronically by Octal ERP. Please retain it for your records.</footer>
+      </section>}
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm print:hidden">
         <div>
@@ -197,19 +273,21 @@ export default function ReportsCenter({
         </div>
 
         <div className="flex items-center gap-2">
-          <Button
-            onClick={exportCSV}
-            variant="outline"
-            className="rounded-xl text-xs sm:text-sm gap-1.5"
-          >
-            <Download className="w-4 h-4" /> Export CSV
-          </Button>
-          <Button
-            onClick={handlePrint}
-            className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs sm:text-sm gap-1.5 shadow-sm"
-          >
-            <Printer className="w-4 h-4" /> Print Report
-          </Button>
+          {activeReportId === "income_expense" ? <>
+            <Button onClick={exportExcel} variant="outline" className="rounded-xl text-xs sm:text-sm gap-1.5">
+              <FileSpreadsheet className="w-4 h-4" /> Export Excel
+            </Button>
+            <Button onClick={handlePrint} className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs sm:text-sm gap-1.5 shadow-sm">
+              <Download className="w-4 h-4" /> Export PDF
+            </Button>
+          </> : <>
+            <Button onClick={exportCSV} variant="outline" className="rounded-xl text-xs sm:text-sm gap-1.5">
+              <Download className="w-4 h-4" /> Export CSV
+            </Button>
+            <Button onClick={handlePrint} className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs sm:text-sm gap-1.5 shadow-sm">
+              <Printer className="w-4 h-4" /> Print Report
+            </Button>
+          </>}
         </div>
       </div>
 
