@@ -19,6 +19,7 @@ import {
 import { usePermissions } from "@/components/providers/PermissionContext";
 import { useEffect, useState } from "react";
 import { getPWAInstallState, promptPWAInstall, subscribeToPWAInstall } from "@/components/shared/PWAInstallManager";
+import IdCardTemplateSettings from "@/components/settings/IdCardTemplateSettings";
 
 export default function SettingsClient() {
   const { isSuperAdmin } = usePermissions();
@@ -281,6 +282,7 @@ export default function SettingsClient() {
           </div>
         </div>
       </div>
+      <IdCardTemplateSettings />
     </div>
   );
 }

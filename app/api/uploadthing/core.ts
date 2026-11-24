@@ -34,6 +34,19 @@ export const ourFileRouter = {
       }
     })
     .onUploadComplete(async ({ file }) => ({ url: file.ufsUrl })),
+
+  idCardAssetUploader: f({
+    image: { maxFileSize: "8MB", maxFileCount: 1 },
+  })
+    .middleware(async () => {
+      try {
+        const actor = await requireSuperAdmin();
+        return { uploadedBy: actor._id };
+      } catch {
+        throw new UploadThingError("Only a super admin can manage ID card artwork.");
+      }
+    })
+    .onUploadComplete(async ({ file }) => ({ url: file.ufsUrl })),
 } satisfies FileRouter;
 
 export type OurFileRouter = typeof ourFileRouter;

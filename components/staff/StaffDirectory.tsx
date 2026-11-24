@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import toast from "react-hot-toast";
+import IdCardPrintButton from "@/components/shared/IdCardPrintButton";
 
 interface StaffDirectoryProps {
   initialEmployees: IEmployee[];
@@ -281,8 +282,9 @@ export default function StaffDirectory({
                 {emp.employmentType}
               </span>
 
-              {isSuperAdmin && (
-                <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1">
+                <IdCardPrintButton compact person={{ role: "staff", name: emp.fullName, id: emp.employeeId, imageUrl: emp.profileImageUrl, phone: emp.phone, email: emp.email, status: emp.status, detail: emp.designation, detailLabel: "Designation", extra: emp.department }} />
+                {isSuperAdmin && <>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -296,8 +298,8 @@ export default function StaffDirectory({
                       <UserX className="w-3.5 h-3.5" /> Remove
                     </Button>
                   )}
-                </div>
-              )}
+                </>}
+              </div>
             </div>
           </div>
         ))}

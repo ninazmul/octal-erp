@@ -14,6 +14,7 @@ import {
   GraduationCap,
 } from "lucide-react";
 import Link from "next/link";
+import IdCardPrintButton from "@/components/shared/IdCardPrintButton";
 
 interface StudentProfileViewProps {
   student: IStudent & {
@@ -89,6 +90,7 @@ export default function StudentProfileView({
         </div>
 
         <div className="flex items-center gap-2">
+          <IdCardPrintButton person={{ role: "student", name: student.fullName, id: student.studentId, imageUrl: student.profileImageUrl, phone: student.phone, email: student.email, status: student.status, detail: student.enrollments[0]?.course?.title, detailLabel: "Course", extra: student.enrollments[0]?.batch?.batchName }} />
           <Link href={`/payments?studentId=${student._id}`}>
             <Button className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs sm:text-sm gap-2 shadow-sm">
               <Receipt className="w-4 h-4" /> Record Payment

@@ -45,6 +45,7 @@ import {
 import Link from "next/link";
 import toast from "react-hot-toast";
 import ProfileImageUploader from "@/components/shared/ProfileImageUploader";
+import IdCardPrintButton from "@/components/shared/IdCardPrintButton";
 
 interface StudentDirectoryProps {
   initialStudents: IStudent[];
@@ -674,6 +675,8 @@ export default function StudentDirectory({
                           </Button>
                         )}
 
+                        {student.studentId !== "REQ-DISC" && <IdCardPrintButton compact person={{ role: "student", name: student.fullName, id: student.studentId, imageUrl: student.profileImageUrl, phone: student.phone, email: student.email, status: student.status }} />}
+
                         {/* Dropdown for secondary actions */}
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -803,6 +806,7 @@ export default function StudentDirectory({
                     </div>
                   </div>
 
+                  {student.studentId !== "REQ-DISC" && <IdCardPrintButton compact person={{ role: "student", name: student.fullName, id: student.studentId, imageUrl: student.profileImageUrl, phone: student.phone, email: student.email, status: student.status }} />}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="sm" className="h-7 w-7 p-0 shrink-0">
