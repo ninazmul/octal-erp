@@ -72,7 +72,7 @@ export default function IdCardPrintButton({ person, variant = "outline", compact
         .signline{width:20mm;border-top:1px solid #64748b;margin:1mm auto .6mm}
         .signatory{font-weight:700}
         .front-sign{min-width:20mm;margin-top:auto;padding-top:.4mm;text-align:center;color:#334155;font-size:5pt;line-height:1.15}
-        .front-sign .signature{width:16mm;height:4mm;margin:0 auto}
+        .front-sign .signature{width:23mm;height:6.5mm;margin:0 auto}
         .front-sign .signline{width:18mm;margin:.2mm auto .4mm}
         .front{break-after:page;page-break-after:always}
         @media print{body{width:68mm;height:100mm}.card{margin:7.2mm auto;break-inside:avoid}}
