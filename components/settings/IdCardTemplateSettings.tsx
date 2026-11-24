@@ -89,7 +89,7 @@ export default function IdCardTemplateSettings() {
             {previewSide === "front" ? <div className="relative flex h-full flex-col items-center justify-between text-center" style={{ color: current.accentColor }}>
               <div className="-mx-3 -mt-3 flex w-[calc(100%+1.5rem)] flex-col items-center px-3 pb-2 pt-5" style={{ color: current.accentColor }}>
                 <Image src="/assets/images/octal-logo.png" alt="Octal logo" width={120} height={48} className="mb-1 h-8 w-20 rounded bg-white p-1 object-contain" />
-                <p className="max-w-full truncate text-[9px] font-bold uppercase tracking-wide">Octal TTI</p>
+                <p className="max-w-full truncate text-[9px] font-bold uppercase tracking-wide">{current.institutionName || "Institution"}</p>
                 <p className="mt-0.5 text-[7px] font-semibold">{current.cardTitle}</p>
               </div>
               <div className="flex flex-col items-center gap-1"><div className="relative flex h-[109px] w-[84px] items-center justify-center overflow-hidden rounded border bg-white/80"><UserRound className="h-8 w-8 opacity-40" /></div><div className="space-y-1 leading-tight"><p className="max-w-full whitespace-normal break-words text-[9px] font-bold">{role === "student" ? "Student name" : "Staff name"}</p><p className="max-w-full whitespace-normal break-words text-[7px]">ID: {role === "student" ? "OCT-260001" : "OCT-EMP-001"}</p>{role === "student" ? <p className="max-w-full whitespace-normal break-words text-[7px]">Web Development</p> : <><p className="max-w-full whitespace-normal break-words text-[7px]">Designation: Instructor</p><p className="max-w-full whitespace-normal break-words text-[7px]">Department: Academic</p></>}</div></div>
