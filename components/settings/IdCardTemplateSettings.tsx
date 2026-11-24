@@ -81,12 +81,16 @@ export default function IdCardTemplateSettings() {
         </div>
         <div className="self-start rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950">
           <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">Preview</p>
-          <div className="relative aspect-[1.586] overflow-hidden rounded-xl border border-slate-200 bg-white p-4 shadow-md dark:border-slate-700">
+          <div className="relative mx-auto aspect-[0.631] w-full max-w-[190px] overflow-hidden rounded-xl border border-slate-200 bg-white p-3 shadow-md dark:border-slate-700">
             {current.backgroundImageUrl && <Image src={current.backgroundImageUrl} alt="" fill unoptimized className="object-cover opacity-20" />}
-            <div className="relative flex h-full flex-col justify-between" style={{ color: current.accentColor }}>
-              <div><p className="text-[9px] font-bold uppercase tracking-wide">{current.institutionName || "Institution"}</p><p className="mt-1 text-[7px] font-semibold">{current.cardTitle}</p></div>
-              <div className="flex items-center gap-2"><div className="relative flex h-12 w-10 items-center justify-center overflow-hidden rounded border bg-white/80"><UserRound className="h-5 w-5 opacity-40" /></div><div><p className="text-[9px] font-bold">Person name</p><p className="text-[7px]">ID · Role / Course</p></div></div>
-              <div className="flex justify-between text-[6px]"><span>{current.contactLine || current.addressLine || "Contact details"}</span><span className="text-right">{current.signatoryName || current.signatoryTitle}</span></div>
+            <div className="relative flex h-full flex-col items-center justify-between text-center" style={{ color: current.accentColor }}>
+              <div className="flex flex-col items-center">
+                <Image src="/erp-logo.png" alt="Octal logo" width={36} height={36} className="mb-1 h-9 w-9 rounded object-contain" />
+                <p className="max-w-full truncate text-[9px] font-bold uppercase tracking-wide">{current.institutionName || "Institution"}</p>
+                <p className="mt-0.5 text-[7px] font-semibold">{current.cardTitle}</p>
+              </div>
+              <div className="flex flex-col items-center gap-1"><div className="relative flex h-16 w-12 items-center justify-center overflow-hidden rounded border bg-white/80"><UserRound className="h-6 w-6 opacity-40" /></div><div><p className="text-[9px] font-bold">Person name</p><p className="text-[7px]">ID · Role / Course</p></div></div>
+              <div className="w-full border-t border-slate-300 pt-1 text-[6px]"><span>{current.contactLine || current.addressLine || "Contact details"}</span><div className="mt-1 font-semibold">{current.signatoryName || current.signatoryTitle}</div></div>
             </div>
           </div>
           <p className="mt-3 text-xs leading-relaxed text-slate-500">Student and staff cards use the same layout with profile-specific details.</p>
