@@ -219,7 +219,71 @@ export default function ReportsCenter({
   };
 
   const handlePrint = () => {
-    window.print();
+    if (activeReportId !== "income_expense") {
+      window.print();
+      return;
+    }
+
+    const escapeHtml = (value: unknown) => String(value ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#39;");
+    const rows = ledgerRows.map((row: ReportItem) => `
+      <tr>
+        <td>${escapeHtml(row.transactionDate ? new Date(row.transactionDate).toLocaleDateString() : "—")}</td>
+        <td>${escapeHtml(row.entryNo || "—")}</td>
+        <td>${escapeHtml(row.description || "—")}</td>
+        <td>${escapeHtml(row.account?.accountName || "—")}</td>
+        <td class="number">${row.type === "DEBIT" ? Number(row.amount || 0).toLocaleString() : "—"}</td>
+        <td class="number">${row.type === "CREDIT" ? Number(row.amount || 0).toLocaleString() : "—"}</td>
+        <td class="number">${Number(row.balanceAfter || 0).toLocaleString()}</td>
+      </tr>`).join("");
+    const printWindow = window.open("", "_blank", "width=1200,height=800");
+    if (!printWindow) {
+      toast.error("Allow pop-ups to export this statement as PDF.");
+      return;
+    }
+
+    printWindow.document.open();
+    printWindow.document.write(`<!doctype html>
+      <html><head><meta charset="utf-8"><title>Income and Expense Statement</title>
+      <style>
+        @page { size: A4 landscape; margin: 12mm; }
+        * { box-sizing: border-box; }
+        body { margin: 0; color: #172033; font: 10px Arial, Helvetica, sans-serif; }
+        header { margin-bottom: 22px; }
+        .brand { color: #0f2747; font-size: 19px; font-weight: 700; letter-spacing: 1.4px; }
+        .subtitle { margin-top: 5px; color: #526176; font-size: 11px; font-weight: 700; letter-spacing: 2px; }
+        .rule { height: 1px; margin: 12px 0; background: #b7c4d3; }
+        .meta { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 16px; }
+        .meta span, .summary span { display: block; margin-bottom: 4px; color: #64748b; font-size: 9px; }
+        .meta strong { font-size: 10px; }
+        .summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 16px 0; }
+        .summary div { padding: 10px 12px; border: 1px solid #d8e0e9; border-radius: 5px; }
+        .summary strong { color: #0f2747; font-size: 16px; }
+        table { width: 100%; border-collapse: collapse; font-size: 9px; }
+        thead { display: table-header-group; }
+        th { padding: 8px 7px; border-top: 1px solid #9aa9ba; border-bottom: 1px solid #9aa9ba; background: #eef2f6; color: #26364a; text-align: left; }
+        td { padding: 7px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+        tr { break-inside: avoid; page-break-inside: avoid; }
+        .number { text-align: right; white-space: nowrap; }
+        tfoot th { background: #f5f7fa; }
+        footer { margin-top: 20px; padding-top: 7px; border-top: 1px solid #d8e0e9; color: #64748b; font-size: 8px; }
+      </style></head><body>
+      <header><div class="brand">OCTAL TECHNICAL TRAINING INSTITUTE</div><div class="subtitle">FINANCIAL ACCOUNT STATEMENT</div><div class="rule"></div>
+        <div class="meta"><div><span>Statement period</span><strong>${escapeHtml(statementPeriod)}</strong></div><div><span>Transaction type</span><strong>${escapeHtml(statementType)}</strong></div><div><span>Generated</span><strong>${escapeHtml(new Date().toLocaleString())}</strong></div></div>
+      </header>
+      <div class="summary"><div><span>Total credits / income</span><strong>৳${totalIncome.toLocaleString()}</strong></div><div><span>Total debits / expense</span><strong>৳${totalExpense.toLocaleString()}</strong></div><div><span>Net cash flow</span><strong>৳${(totalIncome - totalExpense).toLocaleString()}</strong></div></div>
+      <table><thead><tr><th>Date</th><th>Reference</th><th>Description</th><th>Account</th><th class="number">Debit</th><th class="number">Credit</th><th class="number">Balance after</th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="7" style="padding:24px;text-align:center;color:#64748b">No transactions for the selected period.</td></tr>'}</tbody>
+      <tfoot><tr><th colspan="4">Period totals</th><th class="number">৳${totalExpense.toLocaleString()}</th><th class="number">৳${totalIncome.toLocaleString()}</th><th class="number">Net ৳${(totalIncome - totalExpense).toLocaleString()}</th></tr></tfoot></table>
+      <footer>This statement was generated electronically by Octal ERP. Please retain it for your records.</footer>
+      </body></html>`);
+    printWindow.document.close();
+    printWindow.focus();
+    window.setTimeout(() => printWindow.print(), 300);
   };
 
   const currentReportMeta = REPORT_DEFINITIONS.find(
@@ -228,7 +292,7 @@ export default function ReportsCenter({
 
   return (
     <div className="space-y-6">
-      {activeReportId === "income_expense" && <section id="bank-statement-print-area" aria-label="Printable bank style financial statement">
+      {activeReportId === "income_expense" && <section id="bank-statement-print-area" className="hidden" aria-label="Printable bank style financial statement">
         <header className="bank-statement-header">
           <div className="bank-statement-brand">OCTAL TECHNICAL TRAINING INSTITUTE</div>
           <div className="bank-statement-subtitle">FINANCIAL ACCOUNT STATEMENT</div>
