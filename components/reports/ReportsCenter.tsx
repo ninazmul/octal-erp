@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { getReportData } from "@/lib/actions/financialReport.actions";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -19,7 +19,6 @@ import {
   Briefcase,
   CreditCard,
   Building,
-  RefreshCw,
   ArrowDownRight,
   ArrowUpRight,
 } from "lucide-react";
@@ -27,21 +26,21 @@ import toast from "react-hot-toast";
 import { exportMultiSheetExcel } from "@/lib/excel";
 
 const REPORT_DEFINITIONS = [
-  { id: "student_admissions", name: "1. Student Admission Report", icon: Users },
-  { id: "student_directory", name: "2. Student Directory & Enrollment History", icon: GraduationCap },
-  { id: "batch_enrollments", name: "3. Course & Batch-Wise Enrollment", icon: Layers },
-  { id: "collections_dues", name: "4. Student Collection & Due Report", icon: Receipt },
-  { id: "referral_performance", name: "5. Instructor Batch Earnings", icon: Users },
-  { id: "instructor_commissions", name: "6. Instructor Batch Earnings", icon: Percent },
-  { id: "batch_settlements", name: "7. Batch Settlement Statements", icon: FileSpreadsheet },
-  { id: "staff_payroll_summary", name: "8. Staff Directory & Payroll Summary", icon: Briefcase },
-  { id: "employee_salary_history", name: "9. Employee-Wise Salary History", icon: Briefcase },
-  { id: "department_payroll", name: "10. Department-Wise Payroll Report", icon: Briefcase },
-  { id: "expense_categories", name: "11. Expense Category Report", icon: CreditCard },
-  { id: "monthly_expenses", name: "12. Monthly Expense Report", icon: CreditCard },
-  { id: "outstanding_liabilities", name: "13. Outstanding Liabilities Report", icon: Building },
-  { id: "cashflow_summary", name: "14. Cashflow & Account Balance Summary", icon: Building },
-  { id: "income_expense", name: "15. Income & Expense Ledger", icon: CreditCard },
+  { id: "student_admissions", name: "Student Admission Report", icon: Users },
+  { id: "student_directory", name: "Student Directory & Enrollment History", icon: GraduationCap },
+  { id: "batch_enrollments", name: "Course & Batch-Wise Enrollment", icon: Layers },
+  { id: "collections_dues", name: "Student Collection & Due Report", icon: Receipt },
+  { id: "referral_performance", name: "Instructor Batch Earnings", icon: Users },
+  { id: "instructor_commissions", name: "Instructor Batch Earnings Detail", icon: Percent },
+  { id: "batch_settlements", name: "Batch Settlement Statements", icon: FileSpreadsheet },
+  { id: "staff_payroll_summary", name: "Staff Directory & Payroll Summary", icon: Briefcase },
+  { id: "employee_salary_history", name: "Employee-Wise Salary History", icon: Briefcase },
+  { id: "department_payroll", name: "Department-Wise Payroll Report", icon: Briefcase },
+  { id: "expense_categories", name: "Expense Category Report", icon: CreditCard },
+  { id: "monthly_expenses", name: "Monthly Expense Report", icon: CreditCard },
+  { id: "outstanding_liabilities", name: "Outstanding Liabilities Report", icon: Building },
+  { id: "cashflow_summary", name: "Cashflow & Account Balance Summary", icon: Building },
+  { id: "income_expense", name: "Income & Expense Statement", icon: CreditCard },
 ];
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -64,26 +63,32 @@ export default function ReportsCenter({
   const [datePreset, setDatePreset] = useState("all");
   const [transactionType, setTransactionType] = useState<"ALL" | "CREDIT" | "DEBIT">("ALL");
   const [loading, setLoading] = useState(false);
+  const requestCounter = useRef(0);
 
   const fetchReport = async (reportId: string, filters?: { startDate?: string; endDate?: string; transactionType?: "ALL" | "CREDIT" | "DEBIT" }) => {
+    const requestId = ++requestCounter.current;
     setLoading(true);
     try {
       const res = await getReportData(reportId, {
-        startDate: filters?.startDate ?? (startDate || undefined),
-        endDate: filters?.endDate ?? (endDate || undefined),
-        transactionType: filters?.transactionType ?? transactionType,
+        startDate: filters && "startDate" in filters ? filters.startDate : startDate || undefined,
+        endDate: filters && "endDate" in filters ? filters.endDate : endDate || undefined,
+        transactionType: filters && "transactionType" in filters ? filters.transactionType : transactionType,
       });
-      setData(res);
-      setActiveReportId(reportId);
+      if (requestId === requestCounter.current) {
+        setData(res);
+        setActiveReportId(reportId);
+      }
     } catch (error: unknown) {
       const err = error as Error;
-      toast.error(err.message || "Failed to load report.");
+      if (requestId === requestCounter.current) toast.error(err.message || "Failed to load report.");
     } finally {
-      setLoading(false);
+      if (requestId === requestCounter.current) setLoading(false);
     }
   };
 
   const handleSelectReport = (reportId: string) => {
+    setActiveReportId(reportId);
+    setSearch("");
     fetchReport(reportId);
   };
 
@@ -133,6 +138,11 @@ export default function ReportsCenter({
         return [row.entryNo, row.description, row.sourceModule, row.type, row.account?.accountName]
           .some((value) => String(value || "").toLowerCase().includes(term));
       })
+    : data;
+  const reportRows = Array.isArray(data)
+    ? data.filter((row: ReportItem) => !search.trim() || (activeReportId === "income_expense"
+      ? true
+      : JSON.stringify(row).toLowerCase().includes(search.trim().toLowerCase())))
     : data;
   const ledgerRows = activeReportId === "income_expense" && Array.isArray(filteredLedgerData) ? filteredLedgerData : [];
   const totalIncome = ledgerRows.reduce((sum: number, row: ReportItem) => sum + (row.type === "CREDIT" ? Number(row.amount || 0) : 0), 0);
@@ -188,7 +198,7 @@ export default function ReportsCenter({
     const reportName =
       REPORT_DEFINITIONS.find((r) => r.id === activeReportId)?.name || "Report";
 
-    const exportData = activeReportId === "income_expense" ? ledgerRows : data;
+    const exportData = activeReportId === "income_expense" ? ledgerRows : Array.isArray(data) ? reportRows : data;
     if (activeReportId === "income_expense") {
       csvContent += `Income,,${totalIncome}\r\nExpense,,${totalExpense}\r\nNet,,${totalIncome - totalExpense}\r\n\r\n`;
     }
@@ -289,6 +299,8 @@ export default function ReportsCenter({
   const currentReportMeta = REPORT_DEFINITIONS.find(
     (r) => r.id === activeReportId
   );
+  const CurrentReportIcon = currentReportMeta?.icon || BarChart3;
+  const supportsDateFilter = !["staff_payroll_summary", "department_payroll", "outstanding_liabilities"].includes(activeReportId);
 
   return (
     <div className="space-y-6">
@@ -324,15 +336,14 @@ export default function ReportsCenter({
         </table>
         <footer className="bank-statement-footer">This statement was generated electronically by Octal ERP. Please retain it for your records.</footer>
       </section>}
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm print:hidden">
+      {/* Page heading and exports */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 print:hidden">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2.5">
-            <BarChart3 className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
-            Operational & Financial Reports Center
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2.5">
+            <BarChart3 className="w-6 h-6 text-indigo-600 dark:text-indigo-400" /> Reports
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Generate and export official statements across admissions, collections, payroll, instructor batch earnings, and liabilities.
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+            View, filter, and export operational and financial reports.
           </p>
         </div>
 
@@ -355,102 +366,60 @@ export default function ReportsCenter({
         </div>
       </div>
 
-      {/* Main Grid: Sidebar Navigator + Report Display */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Left Side: Report Selection List */}
-        <div className="lg:col-span-1 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-3 space-y-1 shadow-sm print:hidden">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-3 py-2 block">
-            15 Standard Reports
-          </span>
-          {REPORT_DEFINITIONS.map((def) => {
-            const Icon = def.icon;
-            const isActive = activeReportId === def.id;
+      <div className="space-y-4">
+          {/* Compact report and filter controls */}
+          <div className="grid grid-cols-1 gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6 print:hidden">
+            <label className="space-y-1.5">
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Report</span>
+              <select aria-label="Choose report" value={activeReportId} onChange={(e) => handleSelectReport(e.target.value)} className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:ring-indigo-950">
+                {REPORT_DEFINITIONS.map((report) => <option key={report.id} value={report.id}>{report.name}</option>)}
+              </select>
+            </label>
 
-            return (
-              <button
-                key={def.id}
-                onClick={() => handleSelectReport(def.id)}
-                className={`w-full text-left px-3 py-2.5 rounded-xl text-xs font-medium transition-all flex items-center gap-2.5 ${
-                  isActive
-                    ? "bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 font-bold border border-indigo-200/50 dark:border-indigo-800/40"
-                    : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
-                }`}
-              >
-                <Icon
-                  className={`w-4 h-4 shrink-0 ${
-                    isActive ? "text-indigo-600" : "text-slate-400"
-                  }`}
-                />
-                <span className="truncate">{def.name}</span>
-              </button>
-            );
-          })}
-        </div>
+            <label className="space-y-1.5">
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Search this report</span>
+              <span className="flex h-10 items-center gap-2 rounded-md border border-slate-200 bg-white px-3 dark:border-slate-700 dark:bg-slate-950">
+                <Search className="h-4 w-4 shrink-0 text-slate-400" />
+                <Input placeholder="Search records" value={search} onChange={(e) => setSearch(e.target.value)} className="h-full border-0 p-0 text-sm shadow-none focus-visible:ring-0" />
+              </span>
+            </label>
 
-        {/* Right Side: Report Filters and Data Table */}
-        <div className="lg:col-span-3 space-y-4">
-          {/* Filter Bar */}
-          <div className="bg-white dark:bg-slate-900 p-3.5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row items-center gap-3 print:hidden">
-            <div className="flex-1 flex items-center gap-2 w-full">
-              <Search className="w-4 h-4 text-slate-400 ml-1 shrink-0" />
-              <Input
-                placeholder="Search within report results..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="border-0 focus-visible:ring-0 text-xs shadow-none p-0 h-8"
-              />
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-              <select aria-label="Report period" value={datePreset} onChange={(e) => applyDatePreset(e.target.value)} className="h-8 rounded-md border border-input bg-background px-2 text-xs">
+            {supportsDateFilter && <label className="space-y-1.5">
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Period</span>
+              <select aria-label="Report period" value={datePreset} onChange={(e) => applyDatePreset(e.target.value)} className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-950">
                 <option value="all">All time</option><option value="today">Today</option><option value="yesterday">Yesterday</option><option value="week">This week</option><option value="month">This month</option><option value="last_month">Last month</option><option value="year">This year</option><option value="custom">Custom range</option>
               </select>
-              {activeReportId === "income_expense" && <select aria-label="Transaction type" value={transactionType} onChange={(e) => { const value = e.target.value as "ALL" | "CREDIT" | "DEBIT"; setTransactionType(value); fetchReport(activeReportId, { transactionType: value }); }} className="h-8 rounded-md border border-input bg-background px-2 text-xs">
-                <option value="ALL">Debit + Credit</option><option value="CREDIT">Credit / Income</option><option value="DEBIT">Debit / Expense</option>
-              </select>}
-              <Input
-                type="date"
-                value={startDate}
-                onChange={(e) => { setStartDate(e.target.value); setDatePreset("custom"); }}
-                className="h-8 text-xs w-36"
-                placeholder="Start Date"
-              />
-              <span className="text-slate-400 text-xs">to</span>
-              <Input
-                type="date"
-                value={endDate}
-                onChange={(e) => { setEndDate(e.target.value); setDatePreset("custom"); }}
-                className="h-8 text-xs w-36"
-                placeholder="End Date"
-              />
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => fetchReport(activeReportId)}
-                disabled={loading}
-                className="h-8 px-2 text-xs"
-              >
-                <RefreshCw
-                  className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`}
-                />
-              </Button>
-            </div>
+            </label>}
+
+            {activeReportId === "income_expense" && <label className="space-y-1.5">
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Entry type</span>
+              <select aria-label="Transaction type" value={transactionType} onChange={(e) => { const value = e.target.value as "ALL" | "CREDIT" | "DEBIT"; setTransactionType(value); fetchReport(activeReportId, { transactionType: value }); }} className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-950">
+                <option value="ALL">Debit + credit</option><option value="CREDIT">Credit / income</option><option value="DEBIT">Debit / expense</option>
+              </select>
+            </label>}
+
+            {supportsDateFilter && <label className="space-y-1.5">
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">From</span>
+              <Input type="date" aria-label="Start date" value={startDate} onChange={(e) => { const value = e.target.value; setStartDate(value); setDatePreset("custom"); fetchReport(activeReportId, { startDate: value || undefined, endDate: endDate || undefined }); }} className="h-10 w-full text-sm" />
+            </label>}
+            {supportsDateFilter && <label className="space-y-1.5">
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">To</span>
+              <Input type="date" aria-label="End date" value={endDate} onChange={(e) => { const value = e.target.value; setEndDate(value); setDatePreset("custom"); fetchReport(activeReportId, { startDate: startDate || undefined, endDate: value || undefined }); }} className="h-10 w-full text-sm" />
+            </label>}
           </div>
 
           {/* Report Viewer Container */}
           <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden p-5 sm:p-6">
-            <div className="border-b border-slate-100 dark:border-slate-800 pb-4 mb-4 flex items-center justify-between">
-              <div>
-                <h2 className="text-base font-bold text-slate-900 dark:text-white">
-                  {currentReportMeta?.name}
-                </h2>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  Generated on {new Date().toLocaleDateString()} • Octal ERP Unified Ledger
-                </p>
+            <div className="mb-5 flex flex-col gap-3 border-b border-slate-100 pb-4 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3">
+                <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-950/50 dark:text-indigo-300"><CurrentReportIcon className="h-5 w-5" /></span>
+                <div>
+                  <h2 className="text-base font-semibold text-slate-900 dark:text-white">{currentReportMeta?.name}</h2>
+                  <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{activeReportId === "income_expense" ? `${statementPeriod} · ${statementType}` : `Generated ${new Date().toLocaleDateString()}`}</p>
+                </div>
               </div>
-
-              <Badge variant="outline" className="text-xs font-mono font-bold">
-                {Array.isArray(data) ? `${data.length} Records` : "Aggregated View"}
+              <Badge variant="outline" className="w-fit text-xs font-medium">
+                {loading ? "Updating…" : Array.isArray(data) ? `${activeReportId === "income_expense" ? ledgerRows.length : reportRows.length} records` : "Summary"}
               </Badge>
             </div>
 
@@ -504,7 +473,7 @@ export default function ReportsCenter({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
-                    {data.map((enr: ReportItem) => (
+                    {reportRows.map((enr: ReportItem) => (
                       <tr key={enr._id}>
                         <td className="py-2.5 px-3 font-semibold text-slate-900 dark:text-white">
                           {enr.student?.fullName}
@@ -554,7 +523,7 @@ export default function ReportsCenter({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
-                    {data.map((b: ReportItem) => (
+                    {reportRows.map((b: ReportItem) => (
                       <tr key={b._id}>
                         <td className="py-2.5 px-3 font-bold text-slate-900 dark:text-white">
                           {b.batchName} ({b.batchCode})
@@ -597,7 +566,7 @@ export default function ReportsCenter({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
-                    {data.map((item: ReportItem) => (
+                    {reportRows.map((item: ReportItem) => (
                       <tr key={item.instructor?._id}>
                         <td className="py-2.5 px-3 font-bold text-slate-900 dark:text-white">
                           {item.instructor?.fullName}
@@ -653,14 +622,14 @@ export default function ReportsCenter({
               )}
 
               {/* Generic Fallback for other reports */}
-              {!["collections_dues", "batch_enrollments", "referral_performance", "department_payroll"].includes(activeReportId) && Array.isArray(data) && (
+              {!["collections_dues", "batch_enrollments", "referral_performance", "department_payroll", "income_expense"].includes(activeReportId) && Array.isArray(data) && (
                 <div className="space-y-2">
                   <table className="w-full text-left">
                     <thead>
                       <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-400 font-semibold uppercase text-[10px]">
-                        {data[0] &&
-                          Object.keys(data[0])
-                            .filter((k) => typeof data[0][k] !== "object")
+                        {reportRows[0] &&
+                          Object.keys(reportRows[0])
+                            .filter((k) => typeof reportRows[0][k] !== "object")
                             .slice(0, 7)
                             .map((k) => (
                               <th key={k} className="pb-3 px-3 capitalize">
@@ -670,7 +639,7 @@ export default function ReportsCenter({
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
-                      {data.map((row: ReportItem, i: number) => (
+                      {reportRows.map((row: ReportItem, i: number) => (
                         <tr key={row._id || i}>
                           {Object.keys(row)
                             .filter((k) => typeof row[k] !== "object")
@@ -690,7 +659,7 @@ export default function ReportsCenter({
               )}
 
               {/* Empty state */}
-              {(!data || (Array.isArray(data) && data.length === 0)) && (
+              {(!data || (Array.isArray(data) && (activeReportId === "income_expense" ? ledgerRows : reportRows).length === 0)) && (
                 <div className="py-12 text-center text-slate-400">
                   <BarChart3 className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
                   <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
@@ -701,7 +670,6 @@ export default function ReportsCenter({
             </div>
           </div>
         </div>
-      </div>
     </div>
   );
 }

@@ -258,7 +258,9 @@ export async function getReportData(reportKey: string, params?: {
 
     // Report 2: Student Directory & Enrollment History
     case "student_directory": {
-      const students = await Student.find().sort({ fullName: 1 }).lean();
+      const studentQuery: Record<string, unknown> = {};
+      if (Object.keys(dateFilter).length) studentQuery.admissionDate = dateFilter;
+      const students = await Student.find(studentQuery).sort({ fullName: 1 }).lean();
       const enrollments = students.length
         ? await Enrollment.find({ student: { $in: students.map((student) => student._id) } })
             .populate("course", "title code")
@@ -281,7 +283,9 @@ export async function getReportData(reportKey: string, params?: {
 
     // Report 3: Course & Batch Wise Enrollment
     case "batch_enrollments": {
-      const batches = await Batch.find()
+      const batchQuery: Record<string, unknown> = {};
+      if (Object.keys(dateFilter).length) batchQuery.startDate = dateFilter;
+      const batches = await Batch.find(batchQuery)
         .populate("course", "title code defaultFee")
         .sort({ startDate: -1 })
         .lean();
@@ -314,7 +318,9 @@ export async function getReportData(reportKey: string, params?: {
 
     // Report 4: Student Collection and Due Reports
     case "collections_dues": {
-      const enrollments = await Enrollment.find({ remainingDue: { $gt: 0 } })
+      const enrollmentQuery: Record<string, unknown> = { remainingDue: { $gt: 0 } };
+      if (Object.keys(dateFilter).length) enrollmentQuery.createdAt = dateFilter;
+      const enrollments = await Enrollment.find(enrollmentQuery)
         .populate("student", "fullName studentId phone")
         .populate("course", "title code")
         .populate("batch", "batchName batchCode")
@@ -333,7 +339,7 @@ export async function getReportData(reportKey: string, params?: {
       const commissionSummaries = instructorIds.length
         ? await Promise.all([
             CommissionEntry.aggregate([
-              { $match: { referrer: { $in: instructorIds }, enrollment: { $ne: null } } },
+              { $match: { referrer: { $in: instructorIds }, enrollment: { $ne: null }, ...(Object.keys(dateFilter).length ? { createdAt: dateFilter } : {}) } },
               {
                 $group: {
                   _id: { instructor: "$referrer", batch: "$batch" },
@@ -365,7 +371,7 @@ export async function getReportData(reportKey: string, params?: {
 
     // Report 6: Instructor Commission and Earnings Report
     case "instructor_commissions": {
-      const commissions = await CommissionEntry.find()
+      const commissions = await CommissionEntry.find(Object.keys(dateFilter).length ? { createdAt: dateFilter } : {})
         .populate("referrer", "fullName employeeId email")
         .populate("batch", "batchName batchCode")
         .sort({ createdAt: -1 })
@@ -375,7 +381,7 @@ export async function getReportData(reportKey: string, params?: {
 
     // Report 7: Batch Settlement Statements
     case "batch_settlements": {
-      const settlements = await Settlement.find()
+      const settlements = await Settlement.find(Object.keys(dateFilter).length ? { createdAt: dateFilter } : {})
         .populate("batch", "batchName batchCode")
         .populate("instructor", "fullName employeeId")
         .sort({ createdAt: -1 })
@@ -391,7 +397,10 @@ export async function getReportData(reportKey: string, params?: {
 
     // Report 9: Employee-Wise Salary History
     case "employee_salary_history": {
-      const payrolls = await Payroll.find()
+      const periodQuery: Record<string, unknown> = {};
+      if (params?.startDate) periodQuery.$gte = params.startDate.slice(0, 7);
+      if (params?.endDate) periodQuery.$lte = params.endDate.slice(0, 7);
+      const payrolls = await Payroll.find(Object.keys(periodQuery).length ? { period: periodQuery } : {})
         .populate("employee", "fullName employeeId department designation")
         .sort({ period: -1 })
         .lean();
@@ -415,7 +424,7 @@ export async function getReportData(reportKey: string, params?: {
 
     // Report 11: Expense Category Report
     case "expense_categories": {
-      const expenses = await Expense.find().lean();
+      const expenses = await Expense.find(Object.keys(dateFilter).length ? { expenseDate: dateFilter } : {}).lean();
       const catMap: Record<string, { count: number; totalAmount: number; paidAmount: number; dueAmount: number }> = {};
       expenses.forEach((exp) => {
         if (!catMap[exp.category]) {
@@ -431,7 +440,7 @@ export async function getReportData(reportKey: string, params?: {
 
     // Report 12: Monthly Expense Report
     case "monthly_expenses": {
-      const expenses = await Expense.find().sort({ expenseDate: -1 }).lean();
+      const expenses = await Expense.find(Object.keys(dateFilter).length ? { expenseDate: dateFilter } : {}).sort({ expenseDate: -1 }).lean();
       return JSON.parse(JSON.stringify(expenses));
     }
 
@@ -457,7 +466,7 @@ export async function getReportData(reportKey: string, params?: {
     // Report 14: Cashflow & Account Balance Report + Monthly Financial Summary
     case "cashflow_summary": {
       const accounts = await Account.find().lean();
-      const ledgers = await Ledger.find()
+      const ledgers = await Ledger.find(Object.keys(dateFilter).length ? { transactionDate: dateFilter } : {})
         .populate("account", "accountName type")
         .sort({ transactionDate: -1 })
         .limit(200)
