@@ -87,7 +87,7 @@ export default function IdCardTemplateSettings() {
           <div className="relative mx-auto aspect-[0.631] w-full max-w-[190px] overflow-hidden rounded-xl border border-slate-200 bg-white p-3 shadow-md dark:border-slate-700">
             {current.backgroundImageUrl && <Image src={current.backgroundImageUrl} alt="" fill unoptimized className="object-cover opacity-30" />}
             {previewSide === "front" ? <div className="relative flex h-full flex-col items-center justify-between text-center" style={{ color: current.accentColor }}>
-              <div className="-mx-3 -mt-3 flex w-[calc(100%+1.5rem)] flex-col items-center px-3 py-2 text-white" style={{ backgroundColor: current.accentColor }}>
+              <div className="-mx-3 -mt-3 flex w-[calc(100%+1.5rem)] flex-col items-center px-3 py-2" style={{ color: current.accentColor }}>
                 <Image src="/assets/images/octal.png" alt="Octal logo" width={120} height={48} className="mb-1 h-8 w-20 rounded bg-white p-1 object-contain" />
                 <p className="max-w-full truncate text-[9px] font-bold uppercase tracking-wide">Octal TTI</p>
                 <p className="mt-0.5 text-[7px] font-semibold">{current.cardTitle}</p>

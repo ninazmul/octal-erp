@@ -46,7 +46,7 @@ export default function IdCardPrintButton({ person, variant = "outline", compact
         html,body{margin:0;width:68mm;height:100mm;font-family:Arial,Helvetica,sans-serif;color:#1e293b}
         .card{position:relative;width:54mm;height:85.6mm;margin:7.2mm auto;overflow:hidden;border:1px solid #cbd5e1;border-radius:3mm;background:#fff ${background} center/cover no-repeat;print-color-adjust:exact;-webkit-print-color-adjust:exact;break-inside:avoid}
         .wash{position:absolute;inset:0;background:rgba(255,255,255,.7)}
-        .top{position:relative;display:flex;min-height:22mm;flex-direction:column;align-items:center;justify-content:center;gap:1mm;padding:2mm 3mm;color:white;text-align:center;background:${cssColor}}
+        .top{position:relative;display:flex;min-height:22mm;flex-direction:column;align-items:center;justify-content:center;gap:1mm;padding:2mm 3mm;color:${cssColor};text-align:center;background:transparent}
         .logo{display:block;width:19mm;height:9mm;object-fit:contain;border:1px solid rgba(255,255,255,.8);border-radius:1.5mm;background:#fff;padding:1mm}
         .front .top{min-height:24mm}
         .front .logo{width:21mm;height:10mm}
