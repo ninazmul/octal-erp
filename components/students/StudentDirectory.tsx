@@ -675,7 +675,7 @@ export default function StudentDirectory({
                           </Button>
                         )}
 
-                        {student.studentId !== "REQ-DISC" && <IdCardPrintButton compact person={{ role: "student", name: student.fullName, id: student.studentId, imageUrl: student.profileImageUrl, phone: student.phone, email: student.email, status: student.status }} />}
+                        {student.studentId !== "REQ-DISC" && <IdCardPrintButton compact person={{ role: "student", recordId: student._id, name: student.fullName, id: student.studentId, imageUrl: student.profileImageUrl, phone: student.phone, email: student.email, status: student.status }} />}
 
                         {/* Dropdown for secondary actions */}
                         <DropdownMenu>
@@ -806,7 +806,7 @@ export default function StudentDirectory({
                     </div>
                   </div>
 
-                  {student.studentId !== "REQ-DISC" && <IdCardPrintButton compact person={{ role: "student", name: student.fullName, id: student.studentId, imageUrl: student.profileImageUrl, phone: student.phone, email: student.email, status: student.status }} />}
+                  {student.studentId !== "REQ-DISC" && <IdCardPrintButton compact person={{ role: "student", recordId: student._id, name: student.fullName, id: student.studentId, imageUrl: student.profileImageUrl, phone: student.phone, email: student.email, status: student.status }} />}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="sm" className="h-7 w-7 p-0 shrink-0">

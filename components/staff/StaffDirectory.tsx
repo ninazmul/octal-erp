@@ -283,7 +283,7 @@ export default function StaffDirectory({
               </span>
 
               <div className="flex items-center gap-1">
-                <IdCardPrintButton compact person={{ role: "staff", name: emp.fullName, id: emp.employeeId, imageUrl: emp.profileImageUrl, phone: emp.phone, email: emp.email, status: emp.status, detail: emp.designation, detailLabel: "Designation", extra: emp.department }} />
+                <IdCardPrintButton compact person={{ role: "staff", recordId: emp._id, name: emp.fullName, id: emp.employeeId, imageUrl: emp.profileImageUrl, phone: emp.phone, email: emp.email, status: emp.status, detail: emp.designation, detailLabel: "Designation", extra: emp.department }} />
                 {isSuperAdmin && <>
                   <Button
                     variant="ghost"

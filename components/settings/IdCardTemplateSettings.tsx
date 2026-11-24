@@ -88,14 +88,14 @@ export default function IdCardTemplateSettings() {
             {current.backgroundImageUrl && <Image src={current.backgroundImageUrl} alt="" fill unoptimized className="object-cover opacity-20" />}
             {previewSide === "front" ? <div className="relative flex h-full flex-col items-center justify-between text-center" style={{ color: current.accentColor }}>
               <div className="flex flex-col items-center">
-                <Image src="/erp-logo.png" alt="Octal logo" width={48} height={48} className="mb-1 h-12 w-12 rounded object-contain" />
-                <p className="max-w-full truncate text-[9px] font-bold uppercase tracking-wide">{current.institutionName || "Institution"}</p>
+                <Image src="/assets/images/octal.png" alt="Octal logo" width={120} height={48} className="mb-1 h-8 w-20 rounded object-contain" />
+                <p className="max-w-full truncate text-[9px] font-bold uppercase tracking-wide">Octal TTI</p>
                 <p className="mt-0.5 text-[7px] font-semibold">{current.cardTitle}</p>
               </div>
-              <div className="flex flex-col items-center gap-1"><div className="relative flex h-16 w-12 items-center justify-center overflow-hidden rounded border bg-white/80"><UserRound className="h-6 w-6 opacity-40" /></div><div><p className="text-[9px] font-bold">Person name</p><p className="text-[7px]">ID · Role / Course</p></div></div>
+              <div className="flex flex-col items-center gap-1"><div className="relative flex h-20 w-16 items-center justify-center overflow-hidden rounded border bg-white/80"><UserRound className="h-8 w-8 opacity-40" /></div><div><p className="text-[9px] font-bold">Person name</p><p className="text-[7px]">ID: OCT-260001</p><p className="text-[7px]">Course: Web Development</p></div></div>
               <div className="w-full border-t border-slate-300 pt-1 text-[6px]">Front side · photo, name and ID</div>
             </div> : <div className="relative flex h-full flex-col items-center justify-between px-1 py-3 text-center" style={{ color: current.accentColor }}>
-              <div><Image src="/erp-logo.png" alt="Octal logo" width={30} height={30} className="mx-auto mb-1 h-7 w-7 rounded object-contain" /><p className="text-[8px] font-bold">{current.institutionName}</p><p className="mt-3 text-[8px] font-bold uppercase">If found</p><p className="mt-1 text-[7px] leading-relaxed text-slate-600">{current.backMessage}</p></div>
+              <div><Image src="/assets/images/octal.png" alt="Octal logo" width={100} height={40} className="mx-auto mb-1 h-7 w-16 rounded object-contain" /><p className="text-[8px] font-bold">{current.institutionName}</p><p className="mt-3 text-[8px] font-bold uppercase">If found</p><p className="mt-1 text-[7px] leading-relaxed text-slate-600">{current.backMessage}</p></div>
               <div className="w-full border-t border-slate-300 pt-2 text-[7px] leading-relaxed text-slate-600">{current.addressLine}<br />{current.contactLine}<div className="mt-2 text-[6px] font-semibold text-slate-700">{current.signatoryName || current.signatoryTitle}</div>{current.signatureImageUrl && <div className="relative mx-auto mt-1 h-7 w-16"><Image src={current.signatureImageUrl} alt="Signature" fill unoptimized className="object-contain" /></div>}</div>
             </div>}
           </div>
