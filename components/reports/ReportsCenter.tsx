@@ -52,7 +52,7 @@ interface ReportsCenterProps {
 }
 
 export default function ReportsCenter({
-  initialReportId = "collections_dues",
+  initialReportId = "income_expense",
   initialData = [],
 }: ReportsCenterProps) {
   const [activeReportId, setActiveReportId] = useState(initialReportId);
@@ -281,6 +281,10 @@ export default function ReportsCenter({
         .number { text-align: right; white-space: nowrap; }
         tfoot th { background: #f5f7fa; }
         footer { margin-top: 20px; padding-top: 7px; border-top: 1px solid #d8e0e9; color: #64748b; font-size: 8px; }
+        .signature-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 70px; margin: 42px 24px 0; }
+        .signature-line { height: 1px; background: #64748b; margin-bottom: 7px; }
+        .signature-title { color: #172033; font-size: 9px; font-weight: 700; }
+        .signature-caption { margin-top: 3px; color: #64748b; font-size: 8px; }
       </style></head><body>
       <header><div class="brand">OCTAL TECHNICAL TRAINING INSTITUTE</div><div class="subtitle">FINANCIAL ACCOUNT STATEMENT</div><div class="rule"></div>
         <div class="meta"><div><span>Statement period</span><strong>${escapeHtml(statementPeriod)}</strong></div><div><span>Transaction type</span><strong>${escapeHtml(statementType)}</strong></div><div><span>Generated</span><strong>${escapeHtml(new Date().toLocaleString())}</strong></div></div>
@@ -290,6 +294,10 @@ export default function ReportsCenter({
       <tbody>${rows || '<tr><td colspan="7" style="padding:24px;text-align:center;color:#64748b">No transactions for the selected period.</td></tr>'}</tbody>
       <tfoot><tr><th colspan="4">Period totals</th><th class="number">৳${totalExpense.toLocaleString()}</th><th class="number">৳${totalIncome.toLocaleString()}</th><th class="number">Net ৳${(totalIncome - totalExpense).toLocaleString()}</th></tr></tfoot></table>
       <footer>This statement was generated electronically by Octal ERP. Please retain it for your records.</footer>
+      <div class="signature-grid">
+        <div><div class="signature-line"></div><div class="signature-title">Prepared by</div><div class="signature-caption">Name and signature · Date</div></div>
+        <div><div class="signature-line"></div><div class="signature-title">Authorized by</div><div class="signature-caption">Name and signature · Date</div></div>
+      </div>
       </body></html>`);
     printWindow.document.close();
     printWindow.focus();

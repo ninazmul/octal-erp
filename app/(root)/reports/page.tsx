@@ -9,7 +9,7 @@ interface ReportsPageProps {
 
 export default async function ReportsPage({ searchParams }: ReportsPageProps) {
   const { report } = await searchParams;
-  const activeReport = report || "collections_dues";
+  const activeReport = report || "income_expense";
 
   const initialData = await getReportData(activeReport);
 
