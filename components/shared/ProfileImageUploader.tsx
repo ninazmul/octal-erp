@@ -21,7 +21,7 @@ export default function ProfileImageUploader({ endpoint, value, onChange, onUplo
       </div>
       <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">Profile photo</p>
-        <p className="mb-2 text-xs text-slate-500">Upload one image, up to 4 MB.</p>
+        <p className="mb-2 text-xs text-slate-500">Upload one image, up to 8 MB.</p>
         <div className="flex flex-wrap items-center gap-2">
           <UploadButton
             endpoint={endpoint}

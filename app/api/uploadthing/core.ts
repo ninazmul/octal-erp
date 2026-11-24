@@ -6,7 +6,7 @@ const f = createUploadthing();
 
 export const ourFileRouter = {
   studentImageUploader: f({
-    image: { maxFileSize: "4MB", maxFileCount: 1 },
+    image: { maxFileSize: "8MB", maxFileCount: 1 },
   })
     .middleware(async () => {
       try {
@@ -23,7 +23,7 @@ export const ourFileRouter = {
     .onUploadComplete(async ({ file }) => ({ url: file.ufsUrl })),
 
   employeeImageUploader: f({
-    image: { maxFileSize: "4MB", maxFileCount: 1 },
+    image: { maxFileSize: "8MB", maxFileCount: 1 },
   })
     .middleware(async () => {
       try {
