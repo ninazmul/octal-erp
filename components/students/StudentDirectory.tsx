@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { IStudent, ICourse, IBatch, StudentStatus } from "@/types";
 import {
   deleteStudent,
@@ -43,6 +44,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import toast from "react-hot-toast";
+import ProfileImageUploader from "@/components/shared/ProfileImageUploader";
 
 interface StudentDirectoryProps {
   initialStudents: IStudent[];
@@ -78,10 +80,12 @@ export default function StudentDirectory({
   const [archivingStudent, setArchivingStudent] = useState<IStudent | null>(null);
   const [deletingStudent, setDeletingStudent] = useState<IStudent | null>(null);
   const [saving, setSaving] = useState(false);
+  const [uploadingProfilePhoto, setUploadingProfilePhoto] = useState(false);
   const [editFields, setEditFields] = useState<{
     fullName: string;
     phone: string;
     email: string;
+    profileImageUrl: string;
     guardianName: string;
     guardianPhone: string;
     address: string;
@@ -91,6 +95,7 @@ export default function StudentDirectory({
     fullName: "",
     phone: "",
     email: "",
+    profileImageUrl: "",
     guardianName: "",
     guardianPhone: "",
     address: "",
@@ -112,6 +117,7 @@ export default function StudentDirectory({
       fullName: student.fullName,
       phone: student.phone,
       email: student.email || "",
+      profileImageUrl: student.profileImageUrl || "",
       guardianName: student.guardianName || "",
       guardianPhone: student.guardianPhone || "",
       address: student.address || "",
@@ -554,20 +560,19 @@ export default function StudentDirectory({
                   >
                     {/* Student Name & ID */}
                     <td className="py-3 px-4">
-                      {student.studentId !== "REQ-DISC" ? (
-                        <Link href={`/students/${student._id}`} className="group inline-block max-w-[200px]">
-                          <span className="block truncate font-semibold text-sm text-slate-900 transition-colors group-hover:text-indigo-600 group-hover:underline dark:text-white dark:group-hover:text-indigo-400">
-                            {student.fullName}
-                          </span>
-                        </Link>
-                      ) : (
-                        <div className="font-semibold text-sm text-slate-900 dark:text-white truncate max-w-[200px]">
-                          {student.fullName}
+                      <div className="flex items-center gap-2.5">
+                        <div className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-100 text-xs font-bold text-slate-500 dark:bg-slate-800">
+                          {student.profileImageUrl ? <Image src={student.profileImageUrl} alt="" fill sizes="36px" unoptimized className="object-cover" /> : student.fullName.slice(0, 1).toUpperCase()}
                         </div>
-                      )}
-                      <span className="font-mono text-[11px] font-medium text-indigo-600 dark:text-indigo-400">
-                        {student.studentId}
-                      </span>
+                        <div className="min-w-0">
+                          {student.studentId !== "REQ-DISC" ? (
+                            <Link href={`/students/${student._id}`} className="group block max-w-[200px] truncate font-semibold text-sm text-slate-900 transition-colors group-hover:text-indigo-600 group-hover:underline dark:text-white dark:group-hover:text-indigo-400">
+                              {student.fullName}
+                            </Link>
+                          ) : <div className="max-w-[200px] truncate font-semibold text-sm text-slate-900 dark:text-white">{student.fullName}</div>}
+                          <span className="font-mono text-[11px] font-medium text-indigo-600 dark:text-indigo-400">{student.studentId}</span>
+                        </div>
+                      </div>
                     </td>
 
                     {/* Contact */}
@@ -1102,6 +1107,7 @@ export default function StudentDirectory({
             <DialogTitle>Edit Student Profile</DialogTitle>
           </DialogHeader>
           <form onSubmit={saveStudent} className="space-y-4">
+            <ProfileImageUploader endpoint="studentImageUploader" value={editFields.profileImageUrl} onChange={(profileImageUrl) => setEditFields((previous) => ({ ...previous, profileImageUrl }))} onUploadingChange={setUploadingProfilePhoto} disabled={saving} />
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {([
                 ["fullName", "Full Name", true],
@@ -1171,16 +1177,16 @@ export default function StudentDirectory({
                 type="button"
                 variant="outline"
                 onClick={() => setEditingStudent(null)}
-                disabled={saving}
+                disabled={saving || uploadingProfilePhoto}
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
-                disabled={saving}
+                disabled={saving || uploadingProfilePhoto}
                 className="bg-indigo-600 text-white"
               >
-                {saving ? "Saving…" : "Save Changes"}
+                {uploadingProfilePhoto ? "Uploading Photo..." : saving ? "Saving…" : "Save Changes"}
               </Button>
             </DialogFooter>
           </form>

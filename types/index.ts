@@ -146,6 +146,7 @@ export interface IStudent {
   studentId: string; // e.g. "WEB-260001" (course code, two-digit year, sequence)
   fullName: string;
   phone: string;
+  profileImageUrl?: string;
   email?: string;
   guardianName?: string;
   guardianPhone?: string;
@@ -448,6 +449,7 @@ export interface IEmployee {
   fullName: string;
   email: string;
   phone: string;
+  profileImageUrl?: string;
   department: EmployeeDepartment;
   designation: string;
   joiningDate: Date | string;

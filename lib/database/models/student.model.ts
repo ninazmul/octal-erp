@@ -8,6 +8,7 @@ export interface IStudentDocument extends Document {
   guardianName?: string;
   guardianPhone?: string;
   address?: string;
+  profileImageUrl?: string;
   notes?: string;
   status: "Active" | "Inactive" | "Archived" | "Discount Requested";
   admissionDate: Date;
@@ -52,6 +53,11 @@ const StudentSchema: Schema = new Schema(
       default: "",
     },
     address: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    profileImageUrl: {
       type: String,
       trim: true,
       default: "",

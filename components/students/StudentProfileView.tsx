@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { IStudent, IEnrollment, IPayment, ICourse, IBatch } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -51,6 +52,9 @@ export default function StudentProfileView({
           </Link>
 
           <div className="flex items-center gap-3 flex-wrap">
+            <div className="relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-100 text-lg font-bold text-slate-500 dark:bg-slate-800">
+              {student.profileImageUrl ? <Image src={student.profileImageUrl} alt="" fill sizes="56px" unoptimized className="object-cover" /> : student.fullName.slice(0, 1).toUpperCase()}
+            </div>
             <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
               {student.fullName}
             </h1>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { IEmployee, EmployeeDepartment } from "@/types";
 import EmployeeFormDialog from "./EmployeeFormDialog";
 import { updateEmployee } from "@/lib/actions/staff.actions";
@@ -243,9 +244,12 @@ export default function StaffDirectory({
                 </div>
               </div>
 
-              <h3 className="font-bold text-base text-slate-900 dark:text-white mt-1">
-                {emp.fullName}
-              </h3>
+              <div className="mt-2 flex items-center gap-2.5">
+                <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-100 text-sm font-bold text-slate-500 dark:bg-slate-800">
+                  {emp.profileImageUrl ? <Image src={emp.profileImageUrl} alt="" fill sizes="40px" unoptimized className="object-cover" /> : emp.fullName.slice(0, 1).toUpperCase()}
+                </div>
+                <h3 className="truncate font-bold text-base text-slate-900 dark:text-white">{emp.fullName}</h3>
+              </div>
               <p className="text-xs font-medium text-indigo-600 dark:text-indigo-400 mt-0.5">
                 {emp.designation} • {emp.department}
               </p>

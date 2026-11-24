@@ -115,6 +115,7 @@ export async function createEmployee(data: {
   fullName: string;
   email: string;
   phone: string;
+  profileImageUrl?: string;
   department:
     | "Academic"
     | "Administration"
@@ -156,6 +157,7 @@ export async function createEmployee(data: {
     fullName: data.fullName.trim(),
     email: data.email.trim().toLowerCase(),
     phone: data.phone.trim(),
+    profileImageUrl: data.profileImageUrl?.trim() || "",
     department: data.department,
     designation: data.designation.trim(),
     joiningDate: data.joiningDate ? new Date(data.joiningDate) : new Date(),
@@ -195,6 +197,7 @@ export async function updateEmployee(
   data: {
     fullName?: string;
     phone?: string;
+    profileImageUrl?: string;
     department?:
       | "Academic"
       | "Administration"
@@ -224,6 +227,7 @@ export async function updateEmployee(
 
   if (data.fullName !== undefined) employee.fullName = data.fullName.trim();
   if (data.phone !== undefined) employee.phone = data.phone.trim();
+  if (data.profileImageUrl !== undefined) employee.profileImageUrl = data.profileImageUrl.trim();
   if (data.department !== undefined) employee.department = data.department;
   if (data.designation !== undefined) employee.designation = data.designation.trim();
   if (data.joiningDate !== undefined)

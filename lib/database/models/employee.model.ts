@@ -5,6 +5,7 @@ export interface IEmployeeDocument extends Document {
   fullName: string;
   email: string;
   phone: string;
+  profileImageUrl?: string;
   department:
     | "Academic"
     | "Administration"
@@ -54,6 +55,11 @@ const EmployeeSchema: Schema = new Schema(
       type: String,
       required: true,
       trim: true,
+    },
+    profileImageUrl: {
+      type: String,
+      trim: true,
+      default: "",
     },
     department: {
       type: String,

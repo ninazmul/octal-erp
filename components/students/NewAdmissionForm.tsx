@@ -16,6 +16,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
+import ProfileImageUploader from "@/components/shared/ProfileImageUploader";
 
 interface NewAdmissionFormProps {
   courses: ICourse[];
@@ -39,6 +40,8 @@ export default function NewAdmissionForm({
   const [guardianName, setGuardianName] = useState("");
   const [guardianPhone, setGuardianPhone] = useState("");
   const [address, setAddress] = useState("");
+  const [profileImageUrl, setProfileImageUrl] = useState("");
+  const [uploadingProfilePhoto, setUploadingProfilePhoto] = useState(false);
   const [studentNotes, setStudentNotes] = useState("");
   const [initialPaymentAmount, setInitialPaymentAmount] = useState("");
   const [initialPaymentMethod, setInitialPaymentMethod] = useState("Cash");
@@ -116,6 +119,7 @@ export default function NewAdmissionForm({
         fullName,
         phone,
         email: email || undefined,
+        profileImageUrl: profileImageUrl || undefined,
         guardianName: guardianName || undefined,
         guardianPhone: guardianPhone || undefined,
         address: address || undefined,
@@ -200,6 +204,8 @@ export default function NewAdmissionForm({
             <GraduationCap className="w-4 h-4" /> Course
           </h2>
           {approvedDiscountRequest && <p className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-300">An administrator-approved discount request is attached and will be applied when admission is completed.</p>}
+
+          <ProfileImageUploader endpoint="studentImageUploader" value={profileImageUrl} onChange={setProfileImageUrl} onUploadingChange={setUploadingProfilePhoto} disabled={submitting} />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -406,8 +412,8 @@ export default function NewAdmissionForm({
             <Link href="/students">
               <Button type="button" variant="outline" disabled={submitting}>Cancel</Button>
             </Link>
-            <Button type="submit" disabled={submitting || availableBatches.length === 0 || discountRequestSent || (!isFreeBatch && paymentAmountInvalid)} className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-6 py-2.5 shadow-sm">
-              {submitting ? "Processing Admission..." : discountRequestSent ? "Pending Admin Review" : isFreeBatch ? "Submit Free Admission" : dueAfterAdmission === 0 ? "Complete Admission" : "Submit Admission"}
+            <Button type="submit" disabled={submitting || uploadingProfilePhoto || availableBatches.length === 0 || discountRequestSent || (!isFreeBatch && paymentAmountInvalid)} className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-6 py-2.5 shadow-sm">
+              {uploadingProfilePhoto ? "Uploading Photo..." : submitting ? "Processing Admission..." : discountRequestSent ? "Pending Admin Review" : isFreeBatch ? "Submit Free Admission" : dueAfterAdmission === 0 ? "Complete Admission" : "Submit Admission"}
             </Button>
           </div>
         </div>

@@ -400,6 +400,7 @@ export async function admitStudent(data: {
   fullName: string;
   phone: string;
   email?: string;
+  profileImageUrl?: string;
   guardianName?: string;
   guardianPhone?: string;
   address?: string;
@@ -477,6 +478,7 @@ export async function admitStudent(data: {
         fullName: data.fullName.trim(),
         phone: data.phone.trim(),
         email: data.email?.trim().toLowerCase() || "",
+        profileImageUrl: data.profileImageUrl?.trim() || "",
         guardianName: data.guardianName?.trim() || "",
         guardianPhone: data.guardianPhone?.trim() || "",
         address: data.address?.trim() || "",
@@ -485,6 +487,11 @@ export async function admitStudent(data: {
         admissionDate: new Date(),
       });
     }
+  }
+
+  if (data.profileImageUrl !== undefined) {
+    studentDoc.profileImageUrl = data.profileImageUrl.trim();
+    await studentDoc.save();
   }
 
   if (isFreeBatch) {
@@ -968,6 +975,7 @@ export async function updateStudent(
     fullName?: string;
     phone?: string;
     email?: string;
+    profileImageUrl?: string;
     guardianName?: string;
     guardianPhone?: string;
     address?: string;
@@ -984,6 +992,7 @@ export async function updateStudent(
   if (data.fullName !== undefined) student.fullName = data.fullName.trim();
   if (data.phone !== undefined) student.phone = data.phone.trim();
   if (data.email !== undefined) student.email = data.email.trim().toLowerCase();
+  if (data.profileImageUrl !== undefined) student.profileImageUrl = data.profileImageUrl.trim();
   if (data.guardianName !== undefined) student.guardianName = data.guardianName.trim();
   if (data.guardianPhone !== undefined)
     student.guardianPhone = data.guardianPhone.trim();

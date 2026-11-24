@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import toast from "react-hot-toast";
+import ProfileImageUploader from "@/components/shared/ProfileImageUploader";
 
 interface EmployeeFormDialogProps {
   open: boolean;
@@ -31,6 +32,8 @@ export default function EmployeeFormDialog({
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [profileImageUrl, setProfileImageUrl] = useState("");
+  const [uploadingProfilePhoto, setUploadingProfilePhoto] = useState(false);
   const [department, setDepartment] = useState<EmployeeDepartment>("Academic");
   const [designation, setDesignation] = useState("");
   const [employmentType, setEmploymentType] =
@@ -48,6 +51,7 @@ export default function EmployeeFormDialog({
       setFullName(employee.fullName);
       setEmail(employee.email);
       setPhone(employee.phone);
+      setProfileImageUrl(employee.profileImageUrl || "");
       setDepartment(employee.department);
       setDesignation(employee.designation);
       setEmploymentType(employee.employmentType);
@@ -61,6 +65,7 @@ export default function EmployeeFormDialog({
       setFullName("");
       setEmail("");
       setPhone("");
+      setProfileImageUrl("");
       setDepartment("Academic");
       setDesignation("");
       setEmploymentType("Full-time");
@@ -88,6 +93,7 @@ export default function EmployeeFormDialog({
         const updated = await updateEmployee(employee._id, {
           fullName,
           phone,
+          profileImageUrl,
           department,
           designation,
           employmentType,
@@ -105,6 +111,7 @@ export default function EmployeeFormDialog({
           fullName,
           email,
           phone,
+          profileImageUrl,
           department,
           designation,
           employmentType,
@@ -137,6 +144,7 @@ export default function EmployeeFormDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 pt-2">
+          <ProfileImageUploader endpoint="employeeImageUploader" value={profileImageUrl} onChange={setProfileImageUrl} onUploadingChange={setUploadingProfilePhoto} disabled={submitting} />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
@@ -326,16 +334,16 @@ export default function EmployeeFormDialog({
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              disabled={submitting}
+              disabled={submitting || uploadingProfilePhoto}
             >
               Cancel
             </Button>
             <Button
               type="submit"
-              disabled={submitting}
+              disabled={submitting || uploadingProfilePhoto}
               className="bg-indigo-600 hover:bg-indigo-700 text-white"
             >
-              {submitting ? "Saving..." : employee ? "Update Employee" : "Save Employee"}
+              {uploadingProfilePhoto ? "Uploading Photo..." : submitting ? "Saving..." : employee ? "Update Employee" : "Save Employee"}
             </Button>
           </DialogFooter>
         </form>
