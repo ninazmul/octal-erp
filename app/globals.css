@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --font-inter: Inter, "Segoe UI", Arial, sans-serif;
+  --font-dm-serif: "DM Serif Display", Georgia, serif;
+}
+
 @media print {
   @page statement {
     size: A4 landscape;
