@@ -219,6 +219,7 @@ export async function getInstructorDashboardStats(
 export async function getReportData(reportKey: string, params?: {
   startDate?: string;
   endDate?: string;
+  transactionType?: "CREDIT" | "DEBIT" | "ALL";
   department?: string;
   batchId?: string;
 }) {
@@ -234,6 +235,19 @@ export async function getReportData(reportKey: string, params?: {
   }
 
   switch (reportKey) {
+    // Income and expense entries from the unified cash ledger.
+    case "income_expense": {
+      const query: Record<string, unknown> = {};
+      if (Object.keys(dateFilter).length) query.transactionDate = dateFilter;
+      if (params?.transactionType && params.transactionType !== "ALL") {
+        query.type = params.transactionType;
+      }
+      const transactions = await Ledger.find(query)
+        .populate("account", "accountName type")
+        .sort({ transactionDate: -1, createdAt: -1 })
+        .lean();
+      return JSON.parse(JSON.stringify(transactions));
+    }
     // Report 1: Student Admission Report
     case "student_admissions": {
       const q: Record<string, unknown> = {};

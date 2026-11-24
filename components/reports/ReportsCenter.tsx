@@ -20,6 +20,8 @@ import {
   CreditCard,
   Building,
   RefreshCw,
+  ArrowDownRight,
+  ArrowUpRight,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -38,6 +40,7 @@ const REPORT_DEFINITIONS = [
   { id: "monthly_expenses", name: "12. Monthly Expense Report", icon: CreditCard },
   { id: "outstanding_liabilities", name: "13. Outstanding Liabilities Report", icon: Building },
   { id: "cashflow_summary", name: "14. Cashflow & Account Balance Summary", icon: Building },
+  { id: "income_expense", name: "15. Income & Expense Ledger", icon: CreditCard },
 ];
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -57,14 +60,17 @@ export default function ReportsCenter({
   const [search, setSearch] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [datePreset, setDatePreset] = useState("all");
+  const [transactionType, setTransactionType] = useState<"ALL" | "CREDIT" | "DEBIT">("ALL");
   const [loading, setLoading] = useState(false);
 
-  const fetchReport = async (reportId: string) => {
+  const fetchReport = async (reportId: string, filters?: { startDate?: string; endDate?: string; transactionType?: "ALL" | "CREDIT" | "DEBIT" }) => {
     setLoading(true);
     try {
       const res = await getReportData(reportId, {
-        startDate: startDate || undefined,
-        endDate: endDate || undefined,
+        startDate: filters?.startDate ?? (startDate || undefined),
+        endDate: filters?.endDate ?? (endDate || undefined),
+        transactionType: filters?.transactionType ?? transactionType,
       });
       setData(res);
       setActiveReportId(reportId);
@@ -80,6 +86,57 @@ export default function ReportsCenter({
     fetchReport(reportId);
   };
 
+  const formatDateInput = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  const applyDatePreset = (preset: string) => {
+    setDatePreset(preset);
+    if (preset === "custom") return;
+    if (preset === "all") {
+      setStartDate("");
+      setEndDate("");
+      fetchReport(activeReportId, { startDate: undefined, endDate: undefined });
+      return;
+    }
+    const today = new Date();
+    const start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const end = new Date(start);
+    if (preset === "yesterday") {
+      start.setDate(start.getDate() - 1);
+      end.setTime(start.getTime());
+    } else if (preset === "week") {
+      start.setDate(start.getDate() - ((start.getDay() + 6) % 7));
+    } else if (preset === "month") {
+      start.setDate(1);
+    } else if (preset === "last_month") {
+      start.setMonth(start.getMonth() - 1, 1);
+      end.setDate(0);
+    } else if (preset === "year") {
+      start.setMonth(0, 1);
+    }
+    const from = formatDateInput(start);
+    const to = formatDateInput(end);
+    setStartDate(from);
+    setEndDate(to);
+    fetchReport(activeReportId, { startDate: from, endDate: to });
+  };
+
+  const filteredLedgerData = activeReportId === "income_expense" && Array.isArray(data)
+    ? data.filter((row: ReportItem) => {
+        const term = search.trim().toLowerCase();
+        if (!term) return true;
+        return [row.entryNo, row.description, row.sourceModule, row.type, row.account?.accountName]
+          .some((value) => String(value || "").toLowerCase().includes(term));
+      })
+    : data;
+  const ledgerRows = activeReportId === "income_expense" && Array.isArray(filteredLedgerData) ? filteredLedgerData : [];
+  const totalIncome = ledgerRows.reduce((sum: number, row: ReportItem) => sum + (row.type === "CREDIT" ? Number(row.amount || 0) : 0), 0);
+  const totalExpense = ledgerRows.reduce((sum: number, row: ReportItem) => sum + (row.type === "DEBIT" ? Number(row.amount || 0) : 0), 0);
+
   const exportCSV = () => {
     if (!data) return;
 
@@ -87,17 +144,21 @@ export default function ReportsCenter({
     const reportName =
       REPORT_DEFINITIONS.find((r) => r.id === activeReportId)?.name || "Report";
 
-    if (Array.isArray(data) && data.length > 0) {
-      const keys = Object.keys(data[0]).filter(
-        (k) => typeof data[0][k] !== "object"
+    const exportData = activeReportId === "income_expense" ? ledgerRows : data;
+    if (activeReportId === "income_expense") {
+      csvContent += `Income,,${totalIncome}\r\nExpense,,${totalExpense}\r\nNet,,${totalIncome - totalExpense}\r\n\r\n`;
+    }
+    if (Array.isArray(exportData) && exportData.length > 0) {
+      const keys = Object.keys(exportData[0]).filter(
+        (k) => typeof exportData[0][k] !== "object"
       );
       csvContent += keys.join(",") + "\r\n";
-      data.forEach((row: ReportItem) => {
+      exportData.forEach((row: ReportItem) => {
         const line = keys.map((k) => `"${String(row[k] ?? "")}"`).join(",");
         csvContent += line + "\r\n";
       });
     } else {
-      csvContent += JSON.stringify(data);
+      csvContent += JSON.stringify(exportData);
     }
 
     const encodedUri = encodeURI(csvContent);
@@ -157,7 +218,7 @@ export default function ReportsCenter({
         {/* Left Side: Report Selection List */}
         <div className="lg:col-span-1 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-3 space-y-1 shadow-sm print:hidden">
           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-3 py-2 block">
-            14 Standard Reports
+            15 Standard Reports
           </span>
           {REPORT_DEFINITIONS.map((def) => {
             const Icon = def.icon;
@@ -198,11 +259,17 @@ export default function ReportsCenter({
               />
             </div>
 
-            <div className="flex items-center gap-2 w-full sm:w-auto">
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+              <select aria-label="Report period" value={datePreset} onChange={(e) => applyDatePreset(e.target.value)} className="h-8 rounded-md border border-input bg-background px-2 text-xs">
+                <option value="all">All time</option><option value="today">Today</option><option value="yesterday">Yesterday</option><option value="week">This week</option><option value="month">This month</option><option value="last_month">Last month</option><option value="year">This year</option><option value="custom">Custom range</option>
+              </select>
+              {activeReportId === "income_expense" && <select aria-label="Transaction type" value={transactionType} onChange={(e) => { const value = e.target.value as "ALL" | "CREDIT" | "DEBIT"; setTransactionType(value); fetchReport(activeReportId, { transactionType: value }); }} className="h-8 rounded-md border border-input bg-background px-2 text-xs">
+                <option value="ALL">Debit + Credit</option><option value="CREDIT">Credit / Income</option><option value="DEBIT">Debit / Expense</option>
+              </select>}
               <Input
                 type="date"
                 value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
+                onChange={(e) => { setStartDate(e.target.value); setDatePreset("custom"); }}
                 className="h-8 text-xs w-36"
                 placeholder="Start Date"
               />
@@ -210,7 +277,7 @@ export default function ReportsCenter({
               <Input
                 type="date"
                 value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
+                onChange={(e) => { setEndDate(e.target.value); setDatePreset("custom"); }}
                 className="h-8 text-xs w-36"
                 placeholder="End Date"
               />
@@ -247,6 +314,39 @@ export default function ReportsCenter({
 
             {/* Dynamic Rendering Based on Active Report */}
             <div className="overflow-x-auto text-xs">
+              {activeReportId === "income_expense" && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
+                  <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-900 dark:bg-emerald-950/30">
+                    <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300"><ArrowUpRight className="h-4 w-4"/><span className="font-semibold">Total Income</span></div>
+                    <p className="mt-2 text-xl font-bold text-emerald-800 dark:text-emerald-200">৳{totalIncome.toLocaleString()}</p>
+                  </div>
+                  <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 dark:border-rose-900 dark:bg-rose-950/30">
+                    <div className="flex items-center gap-2 text-rose-700 dark:text-rose-300"><ArrowDownRight className="h-4 w-4"/><span className="font-semibold">Total Expense</span></div>
+                    <p className="mt-2 text-xl font-bold text-rose-800 dark:text-rose-200">৳{totalExpense.toLocaleString()}</p>
+                  </div>
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-800/50">
+                    <span className="font-semibold text-slate-600 dark:text-slate-300">Net Cash Flow</span>
+                    <p className={`mt-2 text-xl font-bold ${totalIncome - totalExpense >= 0 ? "text-slate-900 dark:text-white" : "text-rose-700 dark:text-rose-300"}`}>৳{(totalIncome - totalExpense).toLocaleString()}</p>
+                  </div>
+                </div>
+              )}
+              {activeReportId === "income_expense" && (
+                <table className="w-full text-left">
+                  <thead><tr className="border-b border-slate-200 text-slate-400 font-semibold uppercase text-[10px] dark:border-slate-800">
+                    <th className="pb-3 px-3">Date</th><th className="pb-3 px-3">Entry</th><th className="pb-3 px-3">Description</th><th className="pb-3 px-3">Account</th><th className="pb-3 px-3">Category</th><th className="pb-3 px-3">Type</th><th className="pb-3 px-3 text-right">Amount</th>
+                  </tr></thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+                    {ledgerRows.map((row: ReportItem) => <tr key={row._id}>
+                      <td className="py-2.5 px-3 whitespace-nowrap">{new Date(row.transactionDate).toLocaleDateString()}</td>
+                      <td className="py-2.5 px-3 font-mono">{row.entryNo}</td><td className="py-2.5 px-3">{row.description}</td>
+                      <td className="py-2.5 px-3">{row.account?.accountName || "—"}</td><td className="py-2.5 px-3 capitalize">{String(row.sourceModule || "").replaceAll("_", " ")}</td>
+                      <td className={`py-2.5 px-3 font-semibold ${row.type === "CREDIT" ? "text-emerald-600" : "text-rose-600"}`}>{row.type === "CREDIT" ? "Credit / Income" : "Debit / Expense"}</td>
+                      <td className="py-2.5 px-3 text-right font-mono font-semibold">৳{Number(row.amount || 0).toLocaleString()}</td>
+                    </tr>)}
+                    {ledgerRows.length === 0 && <tr><td colSpan={7} className="py-10 text-center text-slate-400">No ledger entries found for the selected filters.</td></tr>}
+                  </tbody>
+                </table>
+              )}
               {/* Report 4: Collections & Dues */}
               {activeReportId === "collections_dues" && Array.isArray(data) && (
                 <table className="w-full text-left">
