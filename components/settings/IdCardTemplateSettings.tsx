@@ -13,6 +13,7 @@ const blank = (role: IdCardRole): IdCardTemplateInput => ({
   role,
   institutionName: "Octal Technical Training Institute",
   cardTitle: role === "student" ? "STUDENT IDENTITY CARD" : "STAFF IDENTITY CARD",
+  backMessage: "If found, please return this card to the institute at the contact details below.",
   contactLine: "",
   addressLine: "",
   backgroundImageUrl: "",
@@ -27,6 +28,7 @@ export default function IdCardTemplateSettings() {
   const [templates, setTemplates] = useState<Record<IdCardRole, IdCardTemplateInput>>({ student: blank("student"), staff: blank("staff") });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [previewSide, setPreviewSide] = useState<"front" | "back">("front");
 
   useEffect(() => {
     getIdCardTemplates().then((result) => setTemplates(result)).catch((error) => toast.error(error.message || "Could not load card settings.")).finally(() => setLoading(false));
@@ -53,7 +55,7 @@ export default function IdCardTemplateSettings() {
         <div>
           <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-950/50 dark:text-indigo-300"><IdCard className="h-5 w-5" /></div>
           <h2 className="text-lg font-bold text-slate-900 dark:text-white">ID card design</h2>
-          <p className="mt-1 text-sm text-slate-500">Set separate backgrounds, signatures, and printed details. Cards are generated from each person’s saved profile.</p>
+          <p className="mt-1 text-sm text-slate-500">Set separate backgrounds, signatures, and return messages. Printing creates front and back pages; use duplex printing and flip on the short edge.</p>
         </div>
         <div className="flex rounded-lg border border-slate-200 p-1 dark:border-slate-700">
           {(["student", "staff"] as const).map((item) => <button key={item} type="button" onClick={() => setRole(item)} className={`rounded-md px-3 py-1.5 text-sm font-medium capitalize ${role === item ? "bg-indigo-600 text-white" : "text-slate-600 dark:text-slate-300"}`}>{item}</button>)}
@@ -64,6 +66,7 @@ export default function IdCardTemplateSettings() {
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="space-y-1 text-xs font-medium text-slate-600 dark:text-slate-300"><span>Institution name</span><Input value={current.institutionName} onChange={(e) => update("institutionName", e.target.value)} /></label>
             <label className="space-y-1 text-xs font-medium text-slate-600 dark:text-slate-300"><span>Card heading</span><Input value={current.cardTitle} onChange={(e) => update("cardTitle", e.target.value)} /></label>
+            <label className="space-y-1 text-xs font-medium text-slate-600 dark:text-slate-300 sm:col-span-2"><span>Back message if card is found</span><Input value={current.backMessage} onChange={(e) => update("backMessage", e.target.value)} /></label>
             <label className="space-y-1 text-xs font-medium text-slate-600 dark:text-slate-300"><span>Contact details</span><Input value={current.contactLine} onChange={(e) => update("contactLine", e.target.value)} placeholder="Phone · website" /></label>
             <label className="space-y-1 text-xs font-medium text-slate-600 dark:text-slate-300"><span>Address</span><Input value={current.addressLine} onChange={(e) => update("addressLine", e.target.value)} /></label>
             <label className="space-y-1 text-xs font-medium text-slate-600 dark:text-slate-300"><span>Signatory name</span><Input value={current.signatoryName} onChange={(e) => update("signatoryName", e.target.value)} /></label>
@@ -80,18 +83,21 @@ export default function IdCardTemplateSettings() {
           <Button onClick={save} disabled={saving} className="gap-2 bg-indigo-600 text-white hover:bg-indigo-700"><Save className="h-4 w-4" />{saving ? "Saving…" : "Save design"}</Button>
         </div>
         <div className="self-start rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">Preview</p>
+          <div className="mb-3 flex items-center justify-between gap-2"><p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Card preview</p><div className="flex rounded-md border border-slate-200 p-0.5 dark:border-slate-700">{(["front", "back"] as const).map((side) => <button type="button" key={side} onClick={() => setPreviewSide(side)} className={`rounded px-2 py-1 text-[10px] font-semibold capitalize ${previewSide === side ? "bg-indigo-600 text-white" : "text-slate-500"}`}>{side}</button>)}</div></div>
           <div className="relative mx-auto aspect-[0.631] w-full max-w-[190px] overflow-hidden rounded-xl border border-slate-200 bg-white p-3 shadow-md dark:border-slate-700">
             {current.backgroundImageUrl && <Image src={current.backgroundImageUrl} alt="" fill unoptimized className="object-cover opacity-20" />}
-            <div className="relative flex h-full flex-col items-center justify-between text-center" style={{ color: current.accentColor }}>
+            {previewSide === "front" ? <div className="relative flex h-full flex-col items-center justify-between text-center" style={{ color: current.accentColor }}>
               <div className="flex flex-col items-center">
                 <Image src="/erp-logo.png" alt="Octal logo" width={36} height={36} className="mb-1 h-9 w-9 rounded object-contain" />
                 <p className="max-w-full truncate text-[9px] font-bold uppercase tracking-wide">{current.institutionName || "Institution"}</p>
                 <p className="mt-0.5 text-[7px] font-semibold">{current.cardTitle}</p>
               </div>
               <div className="flex flex-col items-center gap-1"><div className="relative flex h-16 w-12 items-center justify-center overflow-hidden rounded border bg-white/80"><UserRound className="h-6 w-6 opacity-40" /></div><div><p className="text-[9px] font-bold">Person name</p><p className="text-[7px]">ID · Role / Course</p></div></div>
-              <div className="w-full border-t border-slate-300 pt-1 text-[6px]"><span>{current.contactLine || current.addressLine || "Contact details"}</span><div className="mt-1 font-semibold">{current.signatoryName || current.signatoryTitle}</div></div>
-            </div>
+              <div className="w-full border-t border-slate-300 pt-1 text-[6px]">Front side · photo, name and ID</div>
+            </div> : <div className="relative flex h-full flex-col items-center justify-between px-1 py-3 text-center" style={{ color: current.accentColor }}>
+              <div><Image src="/erp-logo.png" alt="Octal logo" width={30} height={30} className="mx-auto mb-1 h-7 w-7 rounded object-contain" /><p className="text-[8px] font-bold">{current.institutionName}</p><p className="mt-3 text-[8px] font-bold uppercase">If found</p><p className="mt-1 text-[7px] leading-relaxed text-slate-600">{current.backMessage}</p></div>
+              <div className="w-full border-t border-slate-300 pt-2 text-[7px] leading-relaxed text-slate-600">{current.addressLine}<br />{current.contactLine}<div className="mt-2 text-[6px] font-semibold text-slate-700">{current.signatoryName || current.signatoryTitle}</div>{current.signatureImageUrl && <div className="relative mx-auto mt-1 h-7 w-16"><Image src={current.signatureImageUrl} alt="Signature" fill unoptimized className="object-contain" /></div>}</div>
+            </div>}
           </div>
           <p className="mt-3 text-xs leading-relaxed text-slate-500">Student and staff cards use the same layout with profile-specific details.</p>
         </div>

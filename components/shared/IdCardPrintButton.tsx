@@ -37,36 +37,41 @@ export default function IdCardPrintButton({ person, variant = "outline", compact
       const photo = person.imageUrl ? `<img class="photo" src="${safe(person.imageUrl)}" alt="">` : `<div class="photo placeholder">${safe(person.name.slice(0, 1).toUpperCase())}</div>`;
       const signature = template.signatureImageUrl ? `<img class="signature" src="${safe(template.signatureImageUrl)}" alt="">` : "";
       const logoUrl = `${window.location.origin}/erp-logo.png`;
-      const fields = [person.detail && `<div class="field"><span>${safe(person.detailLabel || (person.role === "student" ? "Program" : "Department / Designation"))}</span><strong>${safe(person.detail)}</strong></div>`, person.extra && `<div class="field"><span>${safe(person.role === "student" ? "Batch" : "Employment")}</span><strong>${safe(person.extra)}</strong></div>`, person.phone && `<div class="field"><span>Phone</span><strong>${safe(person.phone)}</strong></div>`, person.email && `<div class="field"><span>Email</span><strong>${safe(person.email)}</strong></div>`].filter(Boolean).join("");
       printWindow.document.open();
       printWindow.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${safe(person.name)} ID Card</title><style>
         @page{size:68mm 100mm;margin:0}
         *{box-sizing:border-box}
         html,body{margin:0;width:68mm;height:100mm;font-family:Arial,Helvetica,sans-serif;color:#1e293b}
-        .card{position:relative;width:54mm;height:85.6mm;margin:7.2mm auto;overflow:hidden;border:1px solid #cbd5e1;border-radius:3mm;background:#fff ${background} center/cover no-repeat;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+        .card{position:relative;width:54mm;height:85.6mm;margin:7.2mm auto;overflow:hidden;border:1px solid #cbd5e1;border-radius:3mm;background:#fff ${background} center/cover no-repeat;print-color-adjust:exact;-webkit-print-color-adjust:exact;break-inside:avoid}
         .wash{position:absolute;inset:0;background:rgba(255,255,255,.88)}
         .top{position:relative;display:flex;min-height:22mm;flex-direction:column;align-items:center;justify-content:center;gap:1mm;padding:2mm 3mm;color:white;text-align:center;background:${cssColor}}
         .logo{display:block;width:9mm;height:9mm;object-fit:contain;border:1px solid rgba(255,255,255,.8);border-radius:1.5mm;background:#fff}
         .brand{min-width:0;max-width:100%}
         .institution{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:7pt;font-weight:700;letter-spacing:.02em}
         .title{margin-top:.5mm;font-size:5pt;letter-spacing:.1em;opacity:.95}
-        .body{position:relative;display:flex;height:47mm;flex-direction:column;align-items:center;gap:1.3mm;padding:2mm 3mm;text-align:center}
-        .photo{width:20mm;height:23mm;flex:none;object-fit:cover;border:1px solid #cbd5e1;border-radius:1.5mm;background:white}
+        .front-content{position:relative;display:flex;height:60mm;flex-direction:column;align-items:center;justify-content:center;gap:2mm;padding:3mm;text-align:center}
+        .photo{width:31mm;height:36mm;flex:none;object-fit:cover;border:1px solid #cbd5e1;border-radius:2mm;background:white}
         .placeholder{display:flex;align-items:center;justify-content:center;color:${cssColor};font-size:18pt;font-weight:700}
-        .info{width:100%;min-width:0}
-        .name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:${cssColor};font-size:9pt;font-weight:700}
-        .id{margin-top:.5mm;color:#64748b;font-family:monospace;font-size:5.5pt}
-        .fields{display:grid;grid-template-columns:1fr 1fr;gap:1.6mm 2mm;margin-top:2mm;text-align:left}
-        .field{min-width:0}.field span{display:block;color:#64748b;font-size:4.5pt;text-transform:uppercase;letter-spacing:.04em}
-        .field strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:.3mm;font-size:5.3pt}
-        .bottom{position:absolute;right:3mm;bottom:2mm;left:3mm;display:flex;align-items:end;justify-content:space-between;border-top:1px solid #cbd5e1;padding-top:1mm}
-        .meta{max-width:27mm;color:#64748b;font-size:4.3pt;line-height:1.35}
-        .sign{min-width:18mm;text-align:center;color:#334155;font-size:4.2pt}
-        .signature{display:block;width:16mm;height:5mm;object-fit:contain;margin:0 auto .3mm}
-        .signline{width:17mm;border-top:1px solid #64748b;margin:1mm auto .5mm}
-        .signatory{font-weight:700}.role{position:absolute;top:1.5mm;right:1.5mm;padding:.8mm 1.4mm;border-radius:1mm;background:white;color:${cssColor};font-size:4.5pt;font-weight:700;text-transform:uppercase}
+        .name{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:${cssColor};font-size:10pt;font-weight:700}
+        .id{color:#475569;font-family:monospace;font-size:7pt;font-weight:600}
+        .role{position:absolute;top:1.5mm;right:1.5mm;padding:.8mm 1.4mm;border-radius:1mm;background:white;color:${cssColor};font-size:4.5pt;font-weight:700;text-transform:uppercase}
+        .back{display:flex;flex-direction:column}
+        .back .top{min-height:20mm}
+        .back-content{position:relative;display:flex;flex:1;flex-direction:column;align-items:center;justify-content:space-between;padding:5mm 4mm 3mm;text-align:center}
+        .return-label{color:${cssColor};font-size:7pt;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+        .message{margin-top:2mm;color:#334155;font-size:7pt;line-height:1.55}
+        .details{width:100%;border-top:1px solid #cbd5e1;padding-top:2mm;color:#475569;font-size:6pt;line-height:1.5}
+        .details strong{display:block;margin-bottom:.7mm;color:${cssColor};font-size:6.3pt}
+        .sign{min-width:20mm;margin-top:3mm;text-align:center;color:#334155;font-size:5pt}
+        .signature{display:block;width:19mm;height:7mm;object-fit:contain;margin:0 auto .5mm}
+        .signline{width:20mm;border-top:1px solid #64748b;margin:1mm auto .6mm}
+        .signatory{font-weight:700}
+        .front{break-after:page;page-break-after:always}
         @media print{body{width:68mm;height:100mm}.card{margin:7.2mm auto;break-inside:avoid}}
-      </style></head><body><article class="card"><div class="wash"></div><header class="top"><img class="logo" src="${logoUrl}" alt="Octal logo"><div class="brand"><div class="institution">${safe(template.institutionName)}</div><div class="title">${safe(template.cardTitle)}</div></div><div class="role">${safe(person.role)}</div></header><main class="body">${photo}<div class="info"><div class="name">${safe(person.name)}</div><div class="id">ID: ${safe(person.id)}</div><div class="fields">${fields}</div></div></main><footer class="bottom"><div class="meta">${safe(template.addressLine)}${template.addressLine && template.contactLine ? "<br>" : ""}${safe(template.contactLine)}<br>${safe(person.status || "")}</div><div class="sign">${signature}<div class="signline"></div><div class="signatory">${safe(template.signatoryName || template.signatoryTitle)}</div>${template.signatoryName ? `<div>${safe(template.signatoryTitle)}</div>` : ""}</div></footer></article><script>window.onload=()=>setTimeout(()=>window.print(),250)</script></body></html>`);
+      </style></head><body>
+        <article class="card front"><div class="wash"></div><header class="top"><img class="logo" src="${logoUrl}" alt="Octal logo"><div class="brand"><div class="institution">${safe(template.institutionName)}</div><div class="title">${safe(template.cardTitle)}</div></div></header><main class="front-content">${photo}<div class="name">${safe(person.name)}</div><div class="id">ID: ${safe(person.id)}</div></main></article>
+        <article class="card back"><div class="wash"></div><header class="top"><img class="logo" src="${logoUrl}" alt="Octal logo"><div class="brand"><div class="institution">${safe(template.institutionName)}</div><div class="title">INFORMATION</div></div></header><main class="back-content"><div><div class="return-label">If found</div><p class="message">${safe(template.backMessage)}</p></div><div class="details"><strong>${safe(template.institutionName)}</strong>${safe(template.addressLine)}${template.addressLine && template.contactLine ? "<br>" : ""}${safe(template.contactLine)}</div><div class="sign">${signature}<div class="signline"></div><div class="signatory">${safe(template.signatoryName || template.signatoryTitle)}</div>${template.signatoryName ? `<div>${safe(template.signatoryTitle)}</div>` : ""}</div></main></article>
+        <script>window.onload=async()=>{await Promise.all([...document.images].map(image=>image.decode().catch(()=>{})));setTimeout(()=>window.print(),250)}</script></body></html>`);
       printWindow.document.close();
     } catch (error) {
       printWindow.close();

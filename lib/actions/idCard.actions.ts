@@ -10,6 +10,7 @@ export interface IdCardTemplateInput {
   role: IdCardRole;
   institutionName: string;
   cardTitle: string;
+  backMessage: string;
   contactLine: string;
   addressLine: string;
   backgroundImageUrl: string;
@@ -23,6 +24,7 @@ const defaults = (role: IdCardRole) => ({
   role,
   institutionName: "Octal Technical Training Institute",
   cardTitle: role === "student" ? "STUDENT IDENTITY CARD" : "STAFF IDENTITY CARD",
+  backMessage: "If found, please return this card to the institute at the contact details below.",
   contactLine: "",
   addressLine: "",
   backgroundImageUrl: "",
@@ -45,7 +47,7 @@ export async function saveIdCardTemplate(input: IdCardTemplateInput) {
   await requireSuperAdmin();
   await connectToDatabase();
   const data = { ...input };
-  for (const key of ["institutionName", "cardTitle", "contactLine", "addressLine", "backgroundImageUrl", "signatureImageUrl", "signatoryName", "signatoryTitle"] as const) {
+  for (const key of ["institutionName", "cardTitle", "backMessage", "contactLine", "addressLine", "backgroundImageUrl", "signatureImageUrl", "signatoryName", "signatoryTitle"] as const) {
     data[key] = String(data[key] || "").trim();
   }
   if (!/^#[0-9a-f]{6}$/i.test(data.accentColor)) throw new Error("Enter a valid accent color.");
