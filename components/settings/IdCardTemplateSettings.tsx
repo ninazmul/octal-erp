@@ -96,7 +96,7 @@ export default function IdCardTemplateSettings() {
               <div className="flex min-h-8 w-full flex-col items-center justify-end text-[6px]"><div className="w-16 border-t border-slate-500 pt-1 font-semibold">{current.signatoryName || "Authorized name"}</div><span>{current.signatoryTitle}</span></div>
             </div> : <div className="relative flex h-full flex-col items-center justify-between px-1 py-3 text-center" style={{ color: current.accentColor }}>
               <div><Image src="/assets/images/octal.png" alt="Octal logo" width={100} height={40} className="mx-auto mb-1 h-7 w-16 rounded object-contain" /><p className="text-[8px] font-bold">{current.institutionName}</p><p className="mt-3 text-[8px] font-bold uppercase">If found</p><p className="mt-1 text-[7px] leading-relaxed text-slate-600">{current.backMessage}</p></div>
-              <div className="w-full border-t border-slate-300 pt-2 text-[7px] leading-relaxed text-slate-600">{current.addressLine}<br />{current.contactLine}<div className="mt-2 text-[6px] font-semibold text-slate-700">{current.signatoryName || current.signatoryTitle}</div>{current.signatureImageUrl && <div className="relative mx-auto mt-1 h-7 w-16"><Image src={current.signatureImageUrl} alt="Signature" fill unoptimized className="object-contain" /></div>}</div>
+              <div className="w-full border-t border-slate-300 pt-2 text-[7px] leading-relaxed text-slate-600">{current.addressLine}<br />{current.contactLine}</div>
             </div>}
           </div>
           <p className="mt-3 text-xs leading-relaxed text-slate-500">Student and staff cards use the same layout with profile-specific details.</p>
