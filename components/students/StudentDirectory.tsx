@@ -378,16 +378,10 @@ export default function StudentDirectory({
           </p>
         </div>
 
-        {canAdmitStudents && canRead("academic") && (
-        <div className="flex items-center gap-3">
-          <Link href="/students/new">
-            <Button className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs sm:text-sm gap-2 shadow-sm">
-              <Plus className="w-4 h-4" />
-              New Admission
-            </Button>
-          </Link>
+        <div className="flex flex-wrap items-center gap-3">
+          {canRead("students") && <IdCardPrintButton people={filtered.filter((student) => student.studentId !== "REQ-DISC").map((student) => ({ role: "student" as const, recordId: student._id, name: student.fullName, id: student.studentId, imageUrl: student.profileImageUrl }))} />}
+          {canAdmitStudents && canRead("academic") && <Link href="/students/new"><Button className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs sm:text-sm gap-2 shadow-sm"><Plus className="w-4 h-4" />New Admission</Button></Link>}
         </div>
-        )}
       </div>
 
       {/* Discount Request Pending Alert Banner */}

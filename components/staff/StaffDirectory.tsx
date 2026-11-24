@@ -121,6 +121,7 @@ export default function StaffDirectory({
         </div>
 
         <div className="flex items-center gap-3">
+          <IdCardPrintButton people={filtered.map((emp) => ({ role: "staff" as const, recordId: emp._id, name: emp.fullName, id: emp.employeeId, imageUrl: emp.profileImageUrl }))} />
           <Link href="/payroll">
             <Button variant="outline" className="rounded-xl text-xs sm:text-sm gap-1.5">
               Monthly Payroll
