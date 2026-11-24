@@ -295,7 +295,7 @@ export default function ReportsCenter({
       <tfoot><tr><th colspan="4">Period totals</th><th class="number">৳${totalExpense.toLocaleString()}</th><th class="number">৳${totalIncome.toLocaleString()}</th><th class="number">Net ৳${(totalIncome - totalExpense).toLocaleString()}</th></tr></tfoot></table>
       <footer>This statement was generated electronically by Octal ERP. Please retain it for your records.</footer>
       <div class="signature-grid">
-        <div><div class="signature-line"></div><div class="signature-title">Prepared by</div><div class="signature-caption">Name and signature · Date</div></div>
+        <div><div class="signature-line"></div><div class="signature-title">Chairman</div><div class="signature-caption">Name and signature · Date</div></div>
         <div><div class="signature-line"></div><div class="signature-title">Authorized by</div><div class="signature-caption">Name and signature · Date</div></div>
       </div>
       </body></html>`);
