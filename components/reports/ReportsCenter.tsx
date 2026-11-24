@@ -281,8 +281,11 @@ export default function ReportsCenter({
         .number { text-align: right; white-space: nowrap; }
         tfoot th { background: #f5f7fa; }
         footer { margin-top: 20px; padding-top: 7px; border-top: 1px solid #d8e0e9; color: #64748b; font-size: 8px; }
-        .signature-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 70px; margin: 42px 24px 0; }
-        .signature-line { height: 1px; background: #64748b; margin-bottom: 7px; }
+        .signature-grid { display: flex; justify-content: space-between; align-items: flex-start; margin: 42px 0 0; }
+        .signature-block { width: 190px; }
+        .signature-block:last-child { text-align: right; }
+        .signature-line { width: 150px; height: 1px; background: #64748b; margin-bottom: 7px; }
+        .signature-block:last-child .signature-line { margin-left: auto; }
         .signature-title { color: #172033; font-size: 9px; font-weight: 700; }
         .signature-caption { margin-top: 3px; color: #64748b; font-size: 8px; }
       </style></head><body>
@@ -295,8 +298,8 @@ export default function ReportsCenter({
       <tfoot><tr><th colspan="4">Period totals</th><th class="number">৳${totalExpense.toLocaleString()}</th><th class="number">৳${totalIncome.toLocaleString()}</th><th class="number">Net ৳${(totalIncome - totalExpense).toLocaleString()}</th></tr></tfoot></table>
       <footer>This statement was generated electronically by Octal ERP. Please retain it for your records.</footer>
       <div class="signature-grid">
-        <div><div class="signature-line"></div><div class="signature-title">Chairman</div><div class="signature-caption">Name and signature · Date</div></div>
-        <div><div class="signature-line"></div><div class="signature-title">Authorized by</div><div class="signature-caption">Name and signature · Date</div></div>
+        <div class="signature-block"><div class="signature-line"></div><div class="signature-title">Chairman</div><div class="signature-caption">Name and signature · Date</div></div>
+        <div class="signature-block"><div class="signature-line"></div><div class="signature-title">Authorized by</div><div class="signature-caption">Name and signature · Date</div></div>
       </div>
       </body></html>`);
     printWindow.document.close();
