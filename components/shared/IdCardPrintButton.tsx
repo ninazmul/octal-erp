@@ -46,10 +46,12 @@ export default function IdCardPrintButton({ person, variant = "outline", compact
         .wash{position:absolute;inset:0;background:rgba(255,255,255,.88)}
         .top{position:relative;display:flex;min-height:22mm;flex-direction:column;align-items:center;justify-content:center;gap:1mm;padding:2mm 3mm;color:white;text-align:center;background:${cssColor}}
         .logo{display:block;width:9mm;height:9mm;object-fit:contain;border:1px solid rgba(255,255,255,.8);border-radius:1.5mm;background:#fff}
+        .front .top{min-height:26mm}
+        .front .logo{width:12mm;height:12mm}
         .brand{min-width:0;max-width:100%}
         .institution{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:7pt;font-weight:700;letter-spacing:.02em}
         .title{margin-top:.5mm;font-size:5pt;letter-spacing:.1em;opacity:.95}
-        .front-content{position:relative;display:flex;height:60mm;flex-direction:column;align-items:center;justify-content:center;gap:2mm;padding:3mm;text-align:center}
+        .front-content{position:relative;display:flex;height:56mm;flex-direction:column;align-items:center;justify-content:center;gap:2mm;padding:2mm 3mm;text-align:center}
         .photo{width:31mm;height:36mm;flex:none;object-fit:cover;border:1px solid #cbd5e1;border-radius:2mm;background:white}
         .placeholder{display:flex;align-items:center;justify-content:center;color:${cssColor};font-size:18pt;font-weight:700}
         .name{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:${cssColor};font-size:10pt;font-weight:700}

@@ -88,7 +88,7 @@ export default function IdCardTemplateSettings() {
             {current.backgroundImageUrl && <Image src={current.backgroundImageUrl} alt="" fill unoptimized className="object-cover opacity-20" />}
             {previewSide === "front" ? <div className="relative flex h-full flex-col items-center justify-between text-center" style={{ color: current.accentColor }}>
               <div className="flex flex-col items-center">
-                <Image src="/erp-logo.png" alt="Octal logo" width={36} height={36} className="mb-1 h-9 w-9 rounded object-contain" />
+                <Image src="/erp-logo.png" alt="Octal logo" width={48} height={48} className="mb-1 h-12 w-12 rounded object-contain" />
                 <p className="max-w-full truncate text-[9px] font-bold uppercase tracking-wide">{current.institutionName || "Institution"}</p>
                 <p className="mt-0.5 text-[7px] font-semibold">{current.cardTitle}</p>
               </div>
