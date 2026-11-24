@@ -38,34 +38,46 @@ export default function IdCardPrintButton({ person, variant = "outline", compact
       const background = template.backgroundImageUrl ? `url('${safe(template.backgroundImageUrl)}')` : "none";
       const photo = display.imageUrl ? `<img class="photo" src="${safe(display.imageUrl)}" alt="">` : `<div class="photo placeholder">${safe(display.name.slice(0, 1).toUpperCase())}</div>`;
       const signature = template.signatureImageUrl ? `<img class="signature" src="${safe(template.signatureImageUrl)}" alt="">` : "";
-      const logoUrl = `${window.location.origin}/assets/images/octal.png`;
+      const backProfile = [
+        display.phone ? `<div class="back-row"><span>Phone</span><strong>${safe(display.phone)}</strong></div>` : "",
+        display.email ? `<div class="back-row"><span>Email</span><strong>${safe(display.email)}</strong></div>` : "",
+        display.detail ? `<div class="back-row"><span>${safe(display.detailLabel || (display.role === "student" ? "Course" : "Designation"))}</span><strong>${safe(display.detail)}</strong></div>` : "",
+        display.extra ? `<div class="back-row"><span>${safe(display.extraLabel || (display.role === "student" ? "Batch" : "Department"))}</span><strong>${safe(display.extra)}</strong></div>` : "",
+      ].filter(Boolean).join("");
+      const logoUrl = `${window.location.origin}/assets/images/octal-logo.png`;
       printWindow.document.open();
       printWindow.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${safe(display.name)} ID Card</title><style>
         @page{size:68mm 100mm;margin:0}
         *{box-sizing:border-box}
         html,body{margin:0;width:68mm;height:100mm;font-family:Arial,Helvetica,sans-serif;color:#1e293b}
         .card{position:relative;width:54mm;height:85.6mm;margin:7.2mm auto;overflow:hidden;border:1px solid #cbd5e1;border-radius:3mm;background:#fff ${background} center/cover no-repeat;print-color-adjust:exact;-webkit-print-color-adjust:exact;break-inside:avoid}
-        .wash{position:absolute;inset:0;background:rgba(255,255,255,.7)}
+        .wash{position:absolute;inset:0;background:transparent}
         .top{position:relative;display:flex;min-height:22mm;flex-direction:column;align-items:center;justify-content:center;gap:1mm;padding:2mm 3mm;color:${cssColor};text-align:center;background:transparent}
         .logo{display:block;width:19mm;height:9mm;object-fit:contain;border:1px solid rgba(255,255,255,.8);border-radius:1.5mm;background:#fff;padding:1mm}
-        .front .top{min-height:29mm;padding:5mm 3mm 2mm}
+        .front .top{min-height:26mm;padding:5mm 3mm 2mm}
         .front .logo{width:21mm;height:10mm}
         .brand{min-width:0;max-width:100%}
         .institution{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:7pt;font-weight:700;letter-spacing:.02em}
         .title{margin-top:.5mm;font-size:5pt;letter-spacing:.1em;opacity:.95}
-        .front-content{position:relative;display:flex;height:56mm;flex-direction:column;align-items:center;justify-content:flex-start;gap:.7mm;padding:.6mm 3mm;text-align:center}
-        .photo{width:35mm;height:33mm;flex:none;object-fit:cover;border:1px solid #cbd5e1;border-radius:2mm;background:white}
+        .front-content{position:relative;display:flex;height:59mm;flex-direction:column;align-items:center;justify-content:flex-start;gap:.7mm;padding:.6mm 3mm;text-align:center}
+        .photo{width:27mm;height:35mm;flex:none;object-fit:cover;border:1px solid #cbd5e1;border-radius:2mm;background:white}
         .placeholder{display:flex;align-items:center;justify-content:center;color:${cssColor};font-size:18pt;font-weight:700}
         .name{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:${cssColor};font-size:8pt;font-weight:700}
         .id,.front-detail{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#475569;font-size:6pt;font-weight:600}
         .id{font-family:monospace}
         .role{position:absolute;top:1.5mm;right:1.5mm;padding:.8mm 1.4mm;border-radius:1mm;background:white;color:${cssColor};font-size:4.5pt;font-weight:700;text-transform:uppercase}
         .back{display:flex;flex-direction:column}
-        .back .top{min-height:20mm}
-        .back-content{position:relative;display:flex;flex:1;flex-direction:column;align-items:center;justify-content:space-between;padding:5mm 4mm 3mm;text-align:center}
+        .back .top{min-height:23mm;padding:6mm 3mm 2mm}
+        .back-content{position:relative;display:flex;flex:1;flex-direction:column;align-items:center;padding:4mm 4mm 3mm;text-align:center}
+        .back-intro{width:100%;min-height:17mm}
+        .back-profile{display:flex;width:100%;flex:1;flex-direction:column;justify-content:center;gap:2mm;padding:2mm 0;color:#334155}
+        .back-profile-title{margin-bottom:1mm;color:${cssColor};font-size:6pt;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+        .back-row{display:flex;width:100%;justify-content:space-between;gap:2mm;border-bottom:1px solid #e2e8f0;padding:1.3mm 0;text-align:left;font-size:6pt}
+        .back-row span{flex:none;color:#64748b}
+        .back-row strong{min-width:0;overflow-wrap:anywhere;color:#334155;font-weight:600;text-align:right}
         .return-label{color:${cssColor};font-size:7pt;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
         .message{margin-top:2mm;color:#334155;font-size:7pt;line-height:1.55}
-        .details{width:100%;border-top:1px solid #cbd5e1;padding-top:2mm;color:#475569;font-size:6pt;line-height:1.5}
+        .details{width:100%;margin-top:auto;border-top:1px solid #cbd5e1;padding-top:2mm;color:#475569;font-size:6pt;line-height:1.5}
         .details strong{display:block;margin-bottom:.7mm;color:${cssColor};font-size:6.3pt}
         .sign{min-width:20mm;margin-top:3mm;text-align:center;color:#334155;font-size:5pt}
         .signature{display:block;width:19mm;height:7mm;object-fit:contain;margin:0 auto .5mm}
@@ -78,7 +90,7 @@ export default function IdCardPrintButton({ person, variant = "outline", compact
         @media print{body{width:68mm;height:100mm}.card{margin:7.2mm auto;break-inside:avoid}}
       </style></head><body>
         <article class="card front"><div class="wash"></div><header class="top"><img class="logo" src="${logoUrl}" alt="Octal logo"><div class="brand"><div class="institution">Octal TTI</div><div class="title">${safe(template.cardTitle)}</div></div></header><main class="front-content">${photo}<div class="name">${safe(display.name)}</div><div class="id">ID: ${safe(display.id)}</div>${display.detail ? `<div class="front-detail">${safe(display.role === "student" ? display.detail : `${display.detailLabel || "Designation"}: ${display.detail}`)}</div>` : ""}${display.extra ? `<div class="front-detail">${safe(display.extraLabel || (display.role === "student" ? "Batch" : "Department"))}: ${safe(display.extra)}</div>` : ""}<div class="front-sign">${signature}<div class="signline"></div><div class="signatory">${safe(template.signatoryName || template.signatoryTitle)}</div>${template.signatoryName ? `<div>${safe(template.signatoryTitle)}</div>` : ""}</div></main></article>
-        <article class="card back"><div class="wash"></div><header class="top"><img class="logo" src="${logoUrl}" alt="Octal logo"><div class="brand"><div class="institution">${safe(template.institutionName)}</div><div class="title">INFORMATION</div></div></header><main class="back-content"><div><div class="return-label">If found</div><p class="message">${safe(template.backMessage)}</p></div><div class="details"><strong>${safe(template.institutionName)}</strong>${safe(template.addressLine)}${template.addressLine && template.contactLine ? "<br>" : ""}${safe(template.contactLine)}</div></main></article>
+        <article class="card back"><div class="wash"></div><header class="top"><img class="logo" src="${logoUrl}" alt="Octal logo"><div class="brand"><div class="institution">${safe(template.institutionName)}</div><div class="title">INFORMATION</div></div></header><main class="back-content"><div class="back-intro"><div class="return-label">If found</div><p class="message">${safe(template.backMessage)}</p></div><section class="back-profile"><div class="back-profile-title">${display.role === "student" ? "Student details" : "Staff details"}</div>${backProfile || `<div class="back-row"><span>Name</span><strong>${safe(display.name)}</strong></div>`}</section><div class="details"><strong>${safe(template.institutionName)}</strong>${safe(template.addressLine)}${template.addressLine && template.contactLine ? "<br>" : ""}${safe(template.contactLine)}</div></main></article>
         <script>window.onload=async()=>{await Promise.all([...document.images].map(image=>image.decode().catch(()=>{})));setTimeout(()=>window.print(),250)}</script></body></html>`);
       printWindow.document.close();
     } catch (error) {
