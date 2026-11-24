@@ -98,6 +98,7 @@ export interface IBatch {
   batchCode: string;
   batchName: string;
   course: ICourse | string;
+  feeType?: "Paid" | "Free";
   instructors: Array<IEmployee | string>;
   startDate: Date | string;
   endDate?: Date | string;
@@ -110,10 +111,25 @@ export interface IBatch {
   instructorPayoutValue?: number;
   // Computed / aggregated runtime fields
   totalEnrollments?: number;
+  totalFreeAdmissions?: number;
+  completedFreeAdmissions?: number;
   totalAgreedFees?: number;
   totalCollected?: number;
   totalDue?: number;
   totalCommissionEarned?: number;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+}
+
+export interface IFreeBatchAdmission {
+  _id: string;
+  student: IStudent | string;
+  course: ICourse | string;
+  batch: IBatch | string;
+  status: "Pending" | "Completed";
+  admittedBy: { email: string; name?: string; userId?: string };
+  completedBy?: { email: string; name?: string; userId?: string; date?: Date | string };
+  notes?: string;
   createdAt?: Date | string;
   updatedAt?: Date | string;
 }

@@ -1,7 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { IBatch, IEnrollment, ICommissionEntry, ICourse, IEmployee, IStudent } from "@/types";
+import { useRouter } from "next/navigation";
+import { IBatch, IEnrollment, ICommissionEntry, ICourse, IEmployee, IStudent, IFreeBatchAdmission } from "@/types";
+import { completeFreeBatchAdmission } from "@/lib/actions/academic.actions";
+import { usePermissions } from "@/components/providers/PermissionContext";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,6 +13,7 @@ import {
   Percent,
 } from "lucide-react";
 import Link from "next/link";
+import toast from "react-hot-toast";
 
 interface BatchDetailsProps {
   batch: IBatch & {
@@ -18,12 +22,15 @@ interface BatchDetailsProps {
         student: IStudent;
       }
     >;
+    freeAdmissions: Array<IFreeBatchAdmission & { student: IStudent }>;
     commissions: Array<
       ICommissionEntry & {
         referrer: IEmployee;
       }
     >;
     totalEnrollments: number;
+    totalFreeAdmissions: number;
+    completedFreeAdmissions: number;
     totalAgreedFees: number;
     totalCollected: number;
     totalDue: number;
@@ -33,10 +40,27 @@ interface BatchDetailsProps {
 }
 
 export default function BatchDetailsView({ batch }: BatchDetailsProps) {
-  const [activeTab, setActiveTab] = useState<"students" | "commissions">("students");
+  const router = useRouter();
+  const { canWrite } = usePermissions();
+  const [activeTab, setActiveTab] = useState<"students" | "freeAdmissions" | "commissions">(batch.feeType === "Free" ? "freeAdmissions" : "students");
+  const [completingAdmissionId, setCompletingAdmissionId] = useState<string | null>(null);
 
   const courseObj = batch.course as ICourse;
   const instructors = (batch.instructors || []).slice(0, 1) as IEmployee[];
+  const isFreeBatch = batch.feeType === "Free";
+
+  const handleCompleteFreeAdmission = async (admissionId: string) => {
+    setCompletingAdmissionId(admissionId);
+    try {
+      await completeFreeBatchAdmission(admissionId);
+      toast.success("Free admission approved and marked completed.");
+      router.refresh();
+    } catch (error) {
+      toast.error((error as Error).message || "Could not approve free admission.");
+    } finally {
+      setCompletingAdmissionId(null);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -71,12 +95,14 @@ export default function BatchDetailsView({ batch }: BatchDetailsProps) {
             <Badge
               variant="outline"
               className={`text-xs ${
-                batch.financialStatus === "Settled"
-                  ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20"
-                  : "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20"
+                isFreeBatch
+                  ? "bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/20"
+                  : batch.financialStatus === "Settled"
+                    ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20"
+                    : "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20"
               }`}
             >
-              Financial: {batch.financialStatus}
+              {isFreeBatch ? "Free Batch" : `Financial: ${batch.financialStatus}`}
             </Badge>
           </div>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
@@ -87,14 +113,25 @@ export default function BatchDetailsView({ batch }: BatchDetailsProps) {
         <div className="flex items-center gap-2">
           <Link href={`/students/new?batchId=${batch._id}`}>
             <Button className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs sm:text-sm gap-2 shadow-sm">
-              <Users className="w-4 h-4" /> Admit Student to Batch
+              <Users className="w-4 h-4" /> {isFreeBatch ? "Add Free Admission" : "Admit Student to Batch"}
             </Button>
           </Link>
         </div>
       </div>
 
       {/* Overview Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3.5 sm:gap-4">
+      {isFreeBatch ? (
+        <div className="grid grid-cols-2 gap-3.5 sm:gap-4">
+          <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm">
+            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">Free Admissions</span>
+            <div className="text-xl font-bold text-slate-900 dark:text-white mt-1">{batch.totalFreeAdmissions} <span className="text-xs text-slate-400 font-normal">/ {batch.maxCapacity} Seats</span></div>
+          </div>
+          <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm">
+            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">Approved</span>
+            <div className="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">{batch.completedFreeAdmissions}</div>
+          </div>
+        </div>
+      ) : <div className="grid grid-cols-2 lg:grid-cols-5 gap-3.5 sm:gap-4">
         <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm">
           <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
             Enrollments
@@ -139,7 +176,7 @@ export default function BatchDetailsView({ batch }: BatchDetailsProps) {
             ৳{batch.totalCommissionEarned.toLocaleString()}
           </div>
         </div>
-      </div>
+      </div>}
 
       {/* Meta Information Bar */}
       <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
@@ -180,16 +217,16 @@ export default function BatchDetailsView({ batch }: BatchDetailsProps) {
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 overflow-hidden shadow-sm">
         <div className="flex items-center border-b border-slate-200/80 dark:border-slate-800 px-4 pt-2">
           <button
-            onClick={() => setActiveTab("students")}
+            onClick={() => setActiveTab(isFreeBatch ? "freeAdmissions" : "students")}
             className={`px-4 py-3 text-xs sm:text-sm font-semibold border-b-2 transition-all flex items-center gap-2 ${
-              activeTab === "students"
+              (isFreeBatch ? activeTab === "freeAdmissions" : activeTab === "students")
                 ? "border-indigo-600 text-indigo-600 dark:text-indigo-400"
                 : "border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
             }`}
           >
-            <Users className="w-4 h-4" /> Enrolled Students ({batch.enrollments.length})
+            <Users className="w-4 h-4" /> {isFreeBatch ? `Free Admissions (${batch.freeAdmissions.length})` : `Enrolled Students (${batch.enrollments.length})`}
           </button>
-          <button
+          {!isFreeBatch && <button
             onClick={() => setActiveTab("commissions")}
             className={`px-4 py-3 text-xs sm:text-sm font-semibold border-b-2 transition-all flex items-center gap-2 ${
               activeTab === "commissions"
@@ -198,7 +235,7 @@ export default function BatchDetailsView({ batch }: BatchDetailsProps) {
             }`}
           >
             <Percent className="w-4 h-4" /> Instructor Payouts ({batch.commissions.length})
-          </button>
+          </button>}
         </div>
 
         <div className="p-4 sm:p-6">
@@ -303,7 +340,41 @@ export default function BatchDetailsView({ batch }: BatchDetailsProps) {
             </div>
           )}
 
-          {activeTab === "commissions" && (
+          {activeTab === "freeAdmissions" && isFreeBatch && (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-400 font-semibold uppercase tracking-wider text-[10px]">
+                    <th className="pb-3 px-3">Student</th>
+                    <th className="pb-3 px-3">Contact</th>
+                    <th className="pb-3 px-3">Submitted</th>
+                    <th className="pb-3 px-3">Status</th>
+                    <th className="pb-3 px-3 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+                  {batch.freeAdmissions.map((admission) => (
+                    <tr key={admission._id}>
+                      <td className="py-3 px-3">
+                        <div className="font-semibold text-slate-900 dark:text-white">{admission.student.fullName}</div>
+                        <span className="font-mono text-[10px] text-slate-400">{admission.student.studentId}</span>
+                      </td>
+                      <td className="py-3 px-3 text-slate-600 dark:text-slate-300">{admission.student.phone}{admission.student.email && <span className="block text-[10px] text-slate-400">{admission.student.email}</span>}</td>
+                      <td className="py-3 px-3 text-slate-600 dark:text-slate-300">{admission.createdAt ? new Date(admission.createdAt).toLocaleDateString() : "—"}</td>
+                      <td className="py-3 px-3"><Badge variant={admission.status === "Completed" ? "default" : "secondary"} className={admission.status === "Completed" ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}>{admission.status}</Badge></td>
+                      <td className="py-3 px-3 text-right">
+                        {admission.status === "Pending" && canWrite("students") && <Button size="sm" disabled={completingAdmissionId === admission._id} onClick={() => handleCompleteFreeAdmission(admission._id)} className="h-7 px-2 text-[11px] bg-emerald-600 text-white hover:bg-emerald-700">{completingAdmissionId === admission._id ? "Approving..." : "Approve & Complete"}</Button>}
+                        {admission.status === "Completed" && <span className="text-[10px] text-slate-400">{admission.completedBy?.name || "Approved"}</span>}
+                      </td>
+                    </tr>
+                  ))}
+                  {batch.freeAdmissions.length === 0 && <tr><td colSpan={5} className="py-8 text-center text-slate-400">No free admissions submitted for this batch yet.</td></tr>}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {activeTab === "commissions" && !isFreeBatch && (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>

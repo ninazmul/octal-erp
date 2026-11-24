@@ -59,6 +59,7 @@ export default function BatchManagement({
   const [batchCode, setBatchCode] = useState("");
   const [batchName, setBatchName] = useState("");
   const [courseId, setCourseId] = useState("");
+  const [feeType, setFeeType] = useState<"Paid" | "Free">("Paid");
   const [selectedInstructors, setSelectedInstructors] = useState<string[]>([]);
   const [startDate, setStartDate] = useState(
     new Date().toISOString().split("T")[0]
@@ -104,6 +105,7 @@ export default function BatchManagement({
     setEditingBatch(null);
     setBatchCode("");
     setBatchName("");
+    setFeeType("Paid");
     const firstCourse = courses[0];
     setCourseId(firstCourse?._id || "");
     if (firstCourse) {
@@ -131,6 +133,7 @@ export default function BatchManagement({
     setEditingBatch(batch);
     setBatchCode(batch.batchCode);
     setBatchName(batch.batchName);
+    setFeeType(batch.feeType || "Paid");
     const crsId =
       typeof batch.course === "string" ? batch.course : batch.course?._id;
     setCourseId(crsId || courses[0]?._id || "");
@@ -167,6 +170,7 @@ export default function BatchManagement({
       if (editingBatch) {
         const updated = await updateBatch(editingBatch._id, {
           batchName,
+          feeType,
           instructors: selectedInstructors,
           startDate,
           endDate: endDate || undefined,
@@ -187,6 +191,7 @@ export default function BatchManagement({
           batchCode,
           batchName,
           courseId,
+          feeType,
           instructors: selectedInstructors,
           startDate,
           endDate: endDate || undefined,
@@ -337,7 +342,10 @@ export default function BatchManagement({
                     >
                       {batch.status}
                     </Badge>
-                    <Badge
+                    <Badge variant="outline" className={batch.feeType === "Free" ? "border-sky-300 text-sky-700 dark:border-sky-800 dark:text-sky-300" : "border-indigo-200 text-indigo-700 dark:border-indigo-800 dark:text-indigo-300"}>
+                      {batch.feeType === "Free" ? "Free Batch" : "Paid Batch"}
+                    </Badge>
+                    {batch.feeType !== "Free" && <Badge
                       variant="outline"
                       className={`text-[11px] font-medium ${
                         batch.financialStatus === "Settled"
@@ -346,7 +354,7 @@ export default function BatchManagement({
                       }`}
                     >
                       {batch.financialStatus === "Settled" ? "Financially Cleared" : "Financials Open"}
-                    </Badge>
+                    </Badge>}
                   </div>
                 </div>
 
@@ -367,11 +375,11 @@ export default function BatchManagement({
                   <span>Instructor: <strong>{(batch.instructors || []).map((item) => typeof item === "string" ? instructors.find((inst) => inst._id === item)?.fullName : item.fullName).filter(Boolean).slice(0, 1)[0] || "None assigned"}</strong></span>
                 </p>
 
-                <p className="text-xs text-slate-600 dark:text-slate-300 flex items-center gap-1.5 mt-1 font-mono">
+                {batch.feeType !== "Free" && <p className="text-xs text-slate-600 dark:text-slate-300 flex items-center gap-1.5 mt-1 font-mono">
                   <span className="font-semibold text-indigo-600 dark:text-indigo-400">
                     Instructor payout: {batch.instructorPayoutType === "percentage" ? `${batch.instructorPayoutValue ?? 0}% of total batch fees` : batch.instructorPayoutType === "fixed" ? `৳${(batch.instructorPayoutValue ?? 0).toLocaleString()} total for batch` : "monthly salary only"}
                   </span>
-                </p>
+                </p>}
 
                 {batch.scheduleDescription && (
                   <p className="text-xs text-slate-600 dark:text-slate-300 flex items-center gap-1.5 mt-1 font-mono">
@@ -381,7 +389,18 @@ export default function BatchManagement({
                 )}
 
                 {/* Financial & Enrollment Dashboard strip */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-4 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+                {batch.feeType === "Free" ? (
+                  <div className="grid grid-cols-2 gap-2.5 mt-4 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block">Free Admissions</span>
+                      <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{batch.totalFreeAdmissions || 0} / {batch.maxCapacity}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block">Completed</span>
+                      <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">{batch.completedFreeAdmissions || 0}</span>
+                    </div>
+                  </div>
+                ) : <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-4 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
                   <div>
                     <span className="text-[10px] uppercase font-bold text-slate-400 block">
                       Enrolled
@@ -417,7 +436,7 @@ export default function BatchManagement({
                       ৳{due.toLocaleString()}
                     </span>
                   </div>
-                </div>
+                </div>}
               </div>
 
               {/* Action buttons */}
@@ -536,6 +555,26 @@ export default function BatchManagement({
                     </option>
                   ))}
                 </select>
+              </div>
+
+              <div className="sm:col-span-2">
+                <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-2">Batch Type *</span>
+                <div className="grid grid-cols-2 gap-2">
+                  {(["Paid", "Free"] as const).map((type) => (
+                    <Button
+                      key={type}
+                      type="button"
+                      variant={feeType === type ? "default" : "outline"}
+                      onClick={() => setFeeType(type)}
+                      className={feeType === type ? "bg-indigo-600 text-white hover:bg-indigo-700" : ""}
+                    >
+                      {type} batch
+                    </Button>
+                  ))}
+                </div>
+                <p className="mt-1.5 text-[11px] text-slate-500 dark:text-slate-400">
+                  {feeType === "Free" ? "Free batch applicants are listed separately and require approval. No student payments are collected." : "Paid batches use the standard admission, tuition, and payment workflow."}
+                </p>
               </div>
 
               <div>

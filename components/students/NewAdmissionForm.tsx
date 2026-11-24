@@ -97,6 +97,7 @@ export default function NewAdmissionForm({
 
   const selectedBatchObj = batches.find((b) => b._id === selectedBatchId);
   const selectedCourse = courses.find((c) => c._id === selectedCourseId);
+  const isFreeBatch = selectedBatchObj?.feeType === "Free";
   const payableAmount = Math.max(0, Number(selectedCourse?.defaultFee || 0) - Number(approvedDiscountRequest?.approvedAmount || 0));
   const paidNow = Number(initialPaymentAmount || 0);
   const dueAfterAdmission = Math.max(0, payableAmount - paidNow);
@@ -121,16 +122,19 @@ export default function NewAdmissionForm({
         notes: studentNotes || undefined,
         courseId: selectedCourseId,
         batchId: selectedBatchId,
-        discountRequestId: approvedDiscountRequest?._id,
-        initialPaymentAmount: paidNow,
-        initialPaymentMethod: paidNow > 0 ? initialPaymentMethod as "Cash" | "Bank Transfer" | "bKash" | "Nagad" | "Rocket" | "Card" | "Other" : undefined,
-        initialPaymentRef: initialPaymentRef || undefined,
+        discountRequestId: isFreeBatch ? undefined : approvedDiscountRequest?._id,
+        initialPaymentAmount: isFreeBatch ? 0 : paidNow,
+        initialPaymentMethod: !isFreeBatch && paidNow > 0 ? initialPaymentMethod as "Cash" | "Bank Transfer" | "bKash" | "Nagad" | "Rocket" | "Card" | "Other" : undefined,
+        initialPaymentRef: isFreeBatch ? undefined : initialPaymentRef || undefined,
       });
 
-      toast.success(
-        `Admitted ${result.student.fullName} (${result.student.studentId}) successfully!`
-      );
-      router.push(`/students/${result.student._id}`);
+      if (result.isFreeBatch) {
+        toast.success(`Free admission submitted for ${result.student.fullName}. It is pending approval.`);
+        router.push(`/academic/batches/${selectedBatchId}`);
+      } else {
+        toast.success(`Admitted ${result.student.fullName} (${result.student.studentId}) successfully!`);
+        router.push(`/students/${result.student._id}`);
+      }
     } catch (error: unknown) {
       const err = error as Error;
       toast.error(err.message || "Failed to admit student.");
@@ -359,7 +363,7 @@ export default function NewAdmissionForm({
         </div>
 
         {/* Section 2: Admission Payment */}
-        <div className="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
+        {!isFreeBatch && <div className="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
           <h2 className="text-sm font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">2. Admission Payment</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Payable after discount
@@ -382,7 +386,7 @@ export default function NewAdmissionForm({
           <div className={`rounded-lg p-3 text-sm ${dueAfterAdmission === 0 ? "bg-emerald-50 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300" : "bg-amber-50 text-amber-800 dark:bg-amber-950/30 dark:text-amber-300"}`}>
             {paymentAmountInvalid ? "Payment cannot exceed the payable amount." : dueAfterAdmission === 0 ? "Paid in full. Admission will be completed." : `Due after admission: ৳${dueAfterAdmission.toLocaleString()}`}
           </div>
-        </div>
+        </div>}
 
         {/* Section 3: Admission Notes */}
         <div className="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
@@ -394,15 +398,16 @@ export default function NewAdmissionForm({
         {/* Submit Actions */}
         <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
           {discountRequestSent && <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300">Admission is pending administrator review. The admin team will complete the remaining steps.</p>}
-          {!approvedDiscountRequest && !discountRequestSent && <Button type="button" variant="outline" onClick={() => setDiscountRequestOpen(true)} disabled={submitting || requestingDiscount || !selectedCourseId || !selectedBatchId} className="gap-2 border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-300 dark:hover:bg-amber-950/30">
+          {isFreeBatch && <p className="rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-800 dark:border-sky-900 dark:bg-sky-950/30 dark:text-sky-300">Free admission will be saved for administrator approval. No payment is required.</p>}
+          {!isFreeBatch && !approvedDiscountRequest && !discountRequestSent && <Button type="button" variant="outline" onClick={() => setDiscountRequestOpen(true)} disabled={submitting || requestingDiscount || !selectedCourseId || !selectedBatchId} className="gap-2 border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-300 dark:hover:bg-amber-950/30">
             <BadgePercent className="w-4 h-4" /> Request Discount
           </Button>}
           <div className="flex items-center justify-end gap-3">
             <Link href="/students">
               <Button type="button" variant="outline" disabled={submitting}>Cancel</Button>
             </Link>
-            <Button type="submit" disabled={submitting || availableBatches.length === 0 || discountRequestSent || paymentAmountInvalid} className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-6 py-2.5 shadow-sm">
-              {submitting ? "Processing Admission..." : discountRequestSent ? "Pending Admin Review" : dueAfterAdmission === 0 ? "Complete Admission" : "Submit Admission"}
+            <Button type="submit" disabled={submitting || availableBatches.length === 0 || discountRequestSent || (!isFreeBatch && paymentAmountInvalid)} className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-6 py-2.5 shadow-sm">
+              {submitting ? "Processing Admission..." : discountRequestSent ? "Pending Admin Review" : isFreeBatch ? "Submit Free Admission" : dueAfterAdmission === 0 ? "Complete Admission" : "Submit Admission"}
             </Button>
           </div>
         </div>

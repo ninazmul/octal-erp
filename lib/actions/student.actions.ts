@@ -8,6 +8,7 @@ import Account from "@/lib/database/models/account.model";
 import Ledger from "@/lib/database/models/ledger.model";
 import Course from "@/lib/database/models/course.model";
 import Batch from "@/lib/database/models/batch.model";
+import FreeBatchAdmission from "@/lib/database/models/freeBatchAdmission.model";
 import CommissionEntry from "@/lib/database/models/commissionEntry.model";
 import Counter from "@/lib/database/models/counter.model";
 import Admin from "@/lib/database/models/admin.model";
@@ -425,6 +426,11 @@ export async function admitStudent(data: {
 
   const batch = await Batch.findById(data.batchId);
   if (!batch) throw new Error("Batch not found");
+  if (String(batch.course) !== String(course._id)) throw new Error("Selected course does not match this batch.");
+  const isFreeBatch = batch.feeType === "Free";
+  if (isFreeBatch && (data.discountRequestId || Number(data.initialPaymentAmount || 0) > 0)) {
+    throw new Error("Free batch admissions do not use discounts or payments.");
+  }
 
   const isInstructorAdmission = actor.role === "instructor";
   if (isInstructorAdmission) {
@@ -437,10 +443,9 @@ export async function admitStudent(data: {
   }
 
   // Check seat capacity
-  const currentBatchEnrollments = await Enrollment.countDocuments({
-    batch: data.batchId,
-    status: { $ne: "Dropped" },
-  });
+  const currentBatchEnrollments = isFreeBatch
+    ? await FreeBatchAdmission.countDocuments({ batch: data.batchId })
+    : await Enrollment.countDocuments({ batch: data.batchId, status: { $ne: "Dropped" } });
   if (currentBatchEnrollments >= batch.maxCapacity) {
     throw new Error(
       `Batch ${batch.batchName} has reached maximum seat capacity (${batch.maxCapacity}).`
@@ -480,6 +485,36 @@ export async function admitStudent(data: {
         admissionDate: new Date(),
       });
     }
+  }
+
+  if (isFreeBatch) {
+    const existingFreeAdmission = await FreeBatchAdmission.findOne({ student: studentDoc._id, batch: batch._id });
+    if (existingFreeAdmission) {
+      throw new Error(`Student ${studentDoc.fullName} already has a free admission record for batch ${batch.batchName}.`);
+    }
+    const existingEnrollment = await Enrollment.findOne({ student: studentDoc._id, batch: batch._id });
+    if (existingEnrollment) throw new Error(`Student ${studentDoc.fullName} is already enrolled in batch ${batch.batchName}.`);
+
+    const freeAdmission = await FreeBatchAdmission.create({
+      student: studentDoc._id,
+      course: course._id,
+      batch: batch._id,
+      status: "Pending",
+      admittedBy: { email: actor.email, name: actor.name || "", userId: String(actor._id) },
+      notes: data.notes?.trim() || "",
+    });
+    await logActivityAndNotify({
+      actor,
+      action: "ADMIT_STUDENT_TO_FREE_BATCH",
+      module: "students",
+      resourceId: String(studentDoc._id),
+      resourceName: studentDoc.fullName,
+      details: `Submitted free batch admission for ${studentDoc.fullName} (${studentDoc.studentId}) to ${batch.batchName}. Approval is pending.`,
+    });
+    revalidatePath("/students");
+    revalidatePath("/academic/batches");
+    revalidatePath(`/academic/batches/${batch._id}`);
+    return JSON.parse(JSON.stringify({ student: studentDoc, freeAdmission, isFreeBatch: true }));
   }
 
   // 2. Prevent duplicate enrollment in the same batch
@@ -634,11 +669,12 @@ export async function requestAdmissionDiscount(data: {
 
   const [course, batch] = await Promise.all([
     Course.findById(data.courseId).select("title code defaultFee instructors"),
-    Batch.findById(data.batchId).select("batchName batchCode course instructors"),
+    Batch.findById(data.batchId).select("batchName batchCode course instructors feeType"),
   ]);
   if (!course || !batch || String(batch.course) !== String(course._id)) {
     throw new Error("Select a valid course and batch.");
   }
+  if (batch.feeType === "Free") throw new Error("Discount requests are not available for free batches.");
   if (requestedAmount > Number(course.defaultFee || 0)) {
     throw new Error("Requested discount cannot exceed the course fee.");
   }
@@ -739,6 +775,7 @@ export async function allowDiscountAndActivateStudent(data: {
     Batch.findById(data.batchId),
   ]);
   if (!course || !batch) throw new Error("Course or batch not found.");
+  if (batch.feeType === "Free") throw new Error("Manual discount activation is not available for free batches.");
 
   const courseFee = Number(course.defaultFee || 0);
   const discount = Math.min(Math.max(0, Number(data.allowedDiscount)), courseFee);
@@ -979,12 +1016,13 @@ export async function deleteStudent(id: string) {
   const student = await Student.findById(id).select("_id studentId fullName");
   if (!student) throw new Error("Student not found.");
 
-  const [hasEnrollment, hasPayment] = await Promise.all([
+  const [hasEnrollment, hasPayment, hasFreeAdmission] = await Promise.all([
     Enrollment.exists({ student: student._id }),
     Payment.exists({ student: student._id }),
+    FreeBatchAdmission.exists({ student: student._id }),
   ]);
-  if (hasEnrollment || hasPayment) {
-    throw new Error("This student has enrollment or payment history. Archive the student to preserve financial records.");
+  if (hasEnrollment || hasPayment || hasFreeAdmission) {
+    throw new Error("This student has admission or payment history. Archive the student to preserve those records.");
   }
 
   await Student.deleteOne({ _id: student._id });

@@ -3,9 +3,11 @@
 import { connectToDatabase } from "@/lib/database";
 import Course from "@/lib/database/models/course.model";
 import Batch from "@/lib/database/models/batch.model";
+import FreeBatchAdmission from "@/lib/database/models/freeBatchAdmission.model";
 import Employee from "@/lib/database/models/employee.model";
 import Enrollment from "@/lib/database/models/enrollment.model";
 import CommissionEntry from "@/lib/database/models/commissionEntry.model";
+import AdmissionDiscountRequest from "@/lib/database/models/admissionDiscountRequest.model";
 import { requirePermission, logActivityAndNotify } from "@/lib/auth-guard";
 import { revalidatePath } from "next/cache";
 import mongoose from "mongoose";
@@ -189,7 +191,7 @@ export async function getBatches(params?: {
 
   // Fetch all summaries in two grouped queries instead of one pair of queries per batch.
   const batchIds = batches.map((batch) => batch._id);
-  const [enrollmentSummaries, commissionSummaries] = batchIds.length
+  const [enrollmentSummaries, commissionSummaries, freeAdmissionSummaries] = batchIds.length
     ? await Promise.all([
         Enrollment.aggregate([
           { $match: { batch: { $in: batchIds } } },
@@ -212,20 +214,31 @@ export async function getBatches(params?: {
             },
           },
         ]),
+        FreeBatchAdmission.aggregate([
+          { $match: { batch: { $in: batchIds } } },
+          { $group: { _id: "$batch", count: { $sum: 1 }, completed: { $sum: { $cond: [{ $eq: ["$status", "Completed"] }, 1, 0] } } } },
+        ]),
       ])
-    : [[], []];
+    : [[], [], []];
   const enrollmentsByBatch = new Map(
     enrollmentSummaries.map((summary) => [String(summary._id), summary])
   );
   const commissionsByBatch = new Map(
     commissionSummaries.map((summary) => [String(summary._id), summary])
   );
+  const freeAdmissionsByBatch = new Map(
+    freeAdmissionSummaries.map((summary) => [String(summary._id), summary])
+  );
   const batchSummaries = batches.map((batch) => ({
     ...batch,
-    totalEnrollments: enrollmentsByBatch.get(String(batch._id))?.totalEnrollments || 0,
-    totalAgreedFees: enrollmentsByBatch.get(String(batch._id))?.totalAgreedFees || 0,
-    totalCollected: enrollmentsByBatch.get(String(batch._id))?.totalCollected || 0,
-    totalDue: enrollmentsByBatch.get(String(batch._id))?.totalDue || 0,
+    totalEnrollments: batch.feeType === "Free"
+      ? freeAdmissionsByBatch.get(String(batch._id))?.count || 0
+      : enrollmentsByBatch.get(String(batch._id))?.totalEnrollments || 0,
+    totalFreeAdmissions: freeAdmissionsByBatch.get(String(batch._id))?.count || 0,
+    completedFreeAdmissions: freeAdmissionsByBatch.get(String(batch._id))?.completed || 0,
+    totalAgreedFees: batch.feeType === "Free" ? 0 : enrollmentsByBatch.get(String(batch._id))?.totalAgreedFees || 0,
+    totalCollected: batch.feeType === "Free" ? 0 : enrollmentsByBatch.get(String(batch._id))?.totalCollected || 0,
+    totalDue: batch.feeType === "Free" ? 0 : enrollmentsByBatch.get(String(batch._id))?.totalDue || 0,
     totalCommissionEarned: commissionsByBatch.get(String(batch._id))?.totalCommissionEarned || 0,
   }));
 
@@ -261,6 +274,13 @@ export async function getBatchById(id: string) {
     .sort({ createdAt: -1 })
     .lean();
 
+  const freeAdmissions = batch.feeType === "Free"
+    ? await FreeBatchAdmission.find({ batch: id })
+        .populate("student", "fullName studentId phone email")
+        .sort({ createdAt: -1 })
+        .lean()
+    : [];
+
   // Compute metrics
   const totalAgreedFees = enrollments.reduce((sum, e) => sum + (e.finalPayableAmount || 0), 0);
   const totalCollected = enrollments.reduce((sum, e) => sum + (e.totalCollectedAmount || 0), 0);
@@ -285,8 +305,11 @@ export async function getBatchById(id: string) {
     JSON.stringify({
       ...batch,
       enrollments,
+      freeAdmissions,
       commissions,
-      totalEnrollments: enrollments.length,
+      totalEnrollments: batch.feeType === "Free" ? freeAdmissions.length : enrollments.length,
+      totalFreeAdmissions: freeAdmissions.length,
+      completedFreeAdmissions: freeAdmissions.filter((admission) => admission.status === "Completed").length,
       totalAgreedFees,
       totalCollected,
       totalDue,
@@ -300,6 +323,7 @@ export async function createBatch(data: {
   batchCode: string;
   batchName: string;
   courseId: string;
+  feeType?: "Paid" | "Free";
   instructors: string[];
   startDate: string | Date;
   endDate?: string | Date;
@@ -333,6 +357,7 @@ export async function createBatch(data: {
     batchCode: data.batchCode.trim().toUpperCase(),
     batchName: data.batchName.trim(),
     course: data.courseId,
+    feeType: data.feeType || "Paid",
     instructors: data.instructors,
     startDate: new Date(data.startDate),
     endDate: data.endDate ? new Date(data.endDate) : undefined,
@@ -362,6 +387,7 @@ export async function updateBatch(
   id: string,
   data: {
     batchName?: string;
+    feeType?: "Paid" | "Free";
     instructors?: string[];
     startDate?: string | Date;
     endDate?: string | Date;
@@ -385,6 +411,18 @@ export async function updateBatch(
 
   const batch = await Batch.findById(id);
   if (!batch) throw new Error("Batch not found");
+
+  if (data.feeType !== undefined && data.feeType !== (batch.feeType || "Paid")) {
+    const [hasEnrollments, hasFreeAdmissions, hasOpenDiscountRequests] = await Promise.all([
+      Enrollment.exists({ batch: batch._id }),
+      FreeBatchAdmission.exists({ batch: batch._id }),
+      AdmissionDiscountRequest.exists({ batch: batch._id, status: { $in: ["Pending", "Approved"] } }),
+    ]);
+    if (hasEnrollments || hasFreeAdmissions || hasOpenDiscountRequests) {
+      throw new Error("Batch type cannot be changed after an admission or open discount request exists.");
+    }
+    batch.feeType = data.feeType;
+  }
 
   if (data.batchName !== undefined) batch.batchName = data.batchName.trim();
   if (data.instructorPayoutType !== undefined) {
@@ -422,7 +460,40 @@ export async function updateBatch(
   });
 
   revalidatePath("/academic/batches");
+  revalidatePath(`/academic/batches/${id}`);
   return JSON.parse(JSON.stringify(batch));
+}
+
+export async function completeFreeBatchAdmission(admissionId: string) {
+  const actor = await requirePermission("students", "write");
+  await connectToDatabase();
+  const admission = await FreeBatchAdmission.findById(admissionId).populate("batch", "batchName feeType");
+  if (!admission) throw new Error("Free batch admission not found.");
+  const batch = admission.batch as unknown as { _id: mongoose.Types.ObjectId; batchName: string; feeType: string };
+  if (batch.feeType !== "Free") throw new Error("This admission does not belong to a free batch.");
+  if (admission.status === "Completed") throw new Error("This free batch admission is already completed.");
+
+  admission.status = "Completed";
+  admission.completedBy = {
+    email: actor.email,
+    name: actor.name || "",
+    userId: String(actor._id),
+    date: new Date(),
+  };
+  await admission.save();
+  await logActivityAndNotify({
+    actor,
+    action: "COMPLETE_FREE_BATCH_ADMISSION",
+    module: "students",
+    resourceId: String(admission._id),
+    resourceName: String(admission.student),
+    details: `Approved free admission in batch ${batch.batchName}.`,
+  });
+
+  revalidatePath("/academic/batches");
+  revalidatePath(`/academic/batches/${batch._id}`);
+  revalidatePath("/students");
+  return JSON.parse(JSON.stringify(admission));
 }
 
 // Mark academic completion separate from financial settlement

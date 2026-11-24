@@ -4,6 +4,7 @@ export interface IBatchDocument extends Document {
   batchCode: string;
   batchName: string;
   course: mongoose.Types.ObjectId;
+  feeType: "Paid" | "Free";
   instructors: mongoose.Types.ObjectId[];
   startDate: Date;
   endDate?: Date;
@@ -35,6 +36,13 @@ const BatchSchema: Schema = new Schema(
     course: {
       type: Schema.Types.ObjectId,
       ref: "Course",
+      required: true,
+    },
+    feeType: {
+      type: String,
+      enum: ["Paid", "Free"],
+      default: "Paid",
+      required: true,
     },
     instructors: [
       {
