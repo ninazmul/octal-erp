@@ -14,6 +14,7 @@ import { revalidatePath } from "next/cache";
 export type IdCardRole = "student" | "staff";
 export interface IdCardTemplateInput {
   role: IdCardRole;
+  idCardFee: number;
   institutionName: string;
   cardTitle: string;
   backMessage: string;
@@ -28,6 +29,7 @@ export interface IdCardTemplateInput {
 
 const defaults = (role: IdCardRole) => ({
   role,
+  idCardFee: 0,
   institutionName: "Octal Technical Training Institute",
   cardTitle: role === "student" ? "STUDENT IDENTITY CARD" : "STAFF IDENTITY CARD",
   backMessage: "If found, please return this card to the institute at the contact details below.",
@@ -53,6 +55,8 @@ export async function saveIdCardTemplate(input: IdCardTemplateInput) {
   await requireSuperAdmin();
   await connectToDatabase();
   const data = { ...input };
+  data.idCardFee = Number(data.idCardFee || 0);
+  if (!Number.isFinite(data.idCardFee) || data.idCardFee < 0) throw new Error("Student ID card fee must be a valid non-negative amount.");
   for (const key of ["institutionName", "cardTitle", "backMessage", "contactLine", "addressLine", "backgroundImageUrl", "signatureImageUrl", "signatoryName", "signatoryTitle"] as const) {
     data[key] = String(data[key] || "").trim();
   }
@@ -60,8 +64,16 @@ export async function saveIdCardTemplate(input: IdCardTemplateInput) {
   const template = await IdCardTemplate.findOneAndUpdate({ role: data.role }, data, { new: true, upsert: true, runValidators: true });
   revalidatePath("/settings");
   revalidatePath("/students");
+  revalidatePath("/students/new");
   revalidatePath("/staff");
   return JSON.parse(JSON.stringify(template));
+}
+
+export async function getStudentIdCardFee() {
+  await requirePermission("students", "read");
+  await connectToDatabase();
+  const template = await IdCardTemplate.findOne({ role: "student" }).select("idCardFee").lean();
+  return Math.max(0, Number(template?.idCardFee || 0));
 }
 
 export async function getIdCardTemplateForRender(role: IdCardRole, recordId?: string) {

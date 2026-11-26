@@ -11,6 +11,7 @@ import toast from "react-hot-toast";
 
 const blank = (role: IdCardRole): IdCardTemplateInput => ({
   role,
+  idCardFee: 0,
   institutionName: "Octal Technical Training Institute",
   cardTitle: role === "student" ? "STUDENT IDENTITY CARD" : "STAFF IDENTITY CARD",
   backMessage: "If found, please return this card to the institute at the contact details below.",
@@ -35,7 +36,7 @@ export default function IdCardTemplateSettings() {
   }, []);
 
   const current = templates[role];
-  const update = (field: keyof IdCardTemplateInput, value: string) => setTemplates((previous) => ({ ...previous, [role]: { ...previous[role], [field]: value } }));
+  const update = <K extends keyof IdCardTemplateInput>(field: K, value: IdCardTemplateInput[K]) => setTemplates((previous) => ({ ...previous, [role]: { ...previous[role], [field]: value } }));
   const save = async () => {
     setSaving(true);
     try {
@@ -65,6 +66,7 @@ export default function IdCardTemplateSettings() {
         <div className="space-y-4">
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="space-y-1 text-xs font-medium text-slate-600 dark:text-slate-300"><span>Institution name</span><Input value={current.institutionName} onChange={(e) => update("institutionName", e.target.value)} /></label>
+            {role === "student" && <label className="space-y-1 text-xs font-medium text-slate-600 dark:text-slate-300"><span>Student ID card fee (৳)</span><Input type="number" min="0" step="1" value={current.idCardFee} onChange={(e) => update("idCardFee", Number(e.target.value))} /><span className="block text-[11px] text-slate-400">Added to the payable amount for paid batch admissions.</span></label>}
             <label className="space-y-1 text-xs font-medium text-slate-600 dark:text-slate-300"><span>Card heading</span><Input value={current.cardTitle} onChange={(e) => update("cardTitle", e.target.value)} /></label>
             <label className="space-y-1 text-xs font-medium text-slate-600 dark:text-slate-300 sm:col-span-2"><span>Back message if card is found</span><Input value={current.backMessage} onChange={(e) => update("backMessage", e.target.value)} /></label>
             <label className="space-y-1 text-xs font-medium text-slate-600 dark:text-slate-300"><span>Contact details</span><Input value={current.contactLine} onChange={(e) => update("contactLine", e.target.value)} placeholder="Phone · website" /></label>

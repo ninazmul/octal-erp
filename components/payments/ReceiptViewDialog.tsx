@@ -87,6 +87,10 @@ export default function ReceiptViewDialog({
 
       <section className="mt-3 overflow-hidden rounded border border-slate-300 text-[11px]">
         <div className="grid grid-cols-[1fr_auto] gap-4 bg-slate-100 px-3 py-1.5 font-bold text-slate-700"><span>Course payment summary</span><span>Amount</span></div>
+        <div className="grid grid-cols-[1fr_auto] gap-4 border-t border-slate-200 px-3 py-1.5"><span>Course fee</span><span className="font-mono font-semibold">৳{Number(enrollment?.agreedFee || 0).toLocaleString()}</span></div>
+        {Number(enrollment?.discount || 0) > 0 && <div className="grid grid-cols-[1fr_auto] gap-4 border-t border-slate-200 px-3 py-1.5"><span>Discount</span><span className="font-mono font-semibold">− ৳{Number(enrollment?.discount || 0).toLocaleString()}</span></div>}
+        {Number(enrollment?.registrationFee || 0) > 0 && <div className="grid grid-cols-[1fr_auto] gap-4 border-t border-slate-200 px-3 py-1.5"><span>Registration amount</span><span className="font-mono font-semibold">৳{Number(enrollment?.registrationFee || 0).toLocaleString()}</span></div>}
+        {Number(enrollment?.idCardFee || 0) > 0 && <div className="grid grid-cols-[1fr_auto] gap-4 border-t border-slate-200 px-3 py-1.5"><span>ID card fee</span><span className="font-mono font-semibold">৳{Number(enrollment?.idCardFee || 0).toLocaleString()}</span></div>}
         <div className="grid grid-cols-[1fr_auto] gap-4 border-t border-slate-200 px-3 py-1.5"><span>Total payable</span><span className="font-mono font-semibold">৳{totalPayable.toLocaleString()}</span></div>
         <div className="grid grid-cols-[1fr_auto] gap-4 border-t border-slate-200 px-3 py-1.5"><span>Total paid to date</span><span className="font-mono font-semibold">৳{totalPaid.toLocaleString()}</span></div>
         <div className="grid grid-cols-[1fr_auto] gap-4 border-t border-slate-200 px-3 py-1.5"><span>Due balance</span><span className="font-mono font-semibold">৳{amountDue.toLocaleString()}</span></div>

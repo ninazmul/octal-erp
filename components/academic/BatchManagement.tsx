@@ -60,6 +60,8 @@ export default function BatchManagement({
   const [batchName, setBatchName] = useState("");
   const [courseId, setCourseId] = useState("");
   const [feeType, setFeeType] = useState<"Paid" | "Free">("Paid");
+  const [courseType, setCourseType] = useState<"NSDA" | "BTEB" | "Custom">("Custom");
+  const [registrationAmount, setRegistrationAmount] = useState(0);
   const [selectedInstructors, setSelectedInstructors] = useState<string[]>([]);
   const [startDate, setStartDate] = useState(
     new Date().toISOString().split("T")[0]
@@ -106,6 +108,8 @@ export default function BatchManagement({
     setBatchCode("");
     setBatchName("");
     setFeeType("Paid");
+    setCourseType("Custom");
+    setRegistrationAmount(0);
     const firstCourse = courses[0];
     setCourseId(firstCourse?._id || "");
     if (firstCourse) {
@@ -134,6 +138,8 @@ export default function BatchManagement({
     setBatchCode(batch.batchCode);
     setBatchName(batch.batchName);
     setFeeType(batch.feeType || "Paid");
+    setCourseType(batch.courseType || "Custom");
+    setRegistrationAmount(batch.registrationAmount || 0);
     const crsId =
       typeof batch.course === "string" ? batch.course : batch.course?._id;
     setCourseId(crsId || courses[0]?._id || "");
@@ -171,6 +177,8 @@ export default function BatchManagement({
         const updated = await updateBatch(editingBatch._id, {
           batchName,
           feeType,
+          courseType,
+          registrationAmount: Number(registrationAmount),
           instructors: selectedInstructors,
           startDate,
           endDate: endDate || undefined,
@@ -192,6 +200,8 @@ export default function BatchManagement({
           batchName,
           courseId,
           feeType,
+          courseType,
+          registrationAmount: Number(registrationAmount),
           instructors: selectedInstructors,
           startDate,
           endDate: endDate || undefined,
@@ -345,6 +355,7 @@ export default function BatchManagement({
                     <Badge variant="outline" className={batch.feeType === "Free" ? "border-sky-300 text-sky-700 dark:border-sky-800 dark:text-sky-300" : "border-indigo-200 text-indigo-700 dark:border-indigo-800 dark:text-indigo-300"}>
                       {batch.feeType === "Free" ? "Free Batch" : "Paid Batch"}
                     </Badge>
+                    <Badge variant="outline" className="border-slate-200 text-slate-600 dark:border-slate-700 dark:text-slate-300">{batch.courseType || "Custom"}</Badge>
                     {batch.feeType !== "Free" && <Badge
                       variant="outline"
                       className={`text-[11px] font-medium ${
@@ -361,6 +372,7 @@ export default function BatchManagement({
                 <h3 className="font-bold text-lg text-slate-900 dark:text-white mt-1">
                   {batch.batchName}
                 </h3>
+                {batch.feeType !== "Free" && Number(batch.registrationAmount || 0) > 0 && <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">Registration amount: <strong>৳{Number(batch.registrationAmount).toLocaleString()}</strong></p>}
 
                 <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5 mt-1">
                   <Calendar className="w-3.5 h-3.5 text-slate-400" />
@@ -575,6 +587,17 @@ export default function BatchManagement({
                 <p className="mt-1.5 text-[11px] text-slate-500 dark:text-slate-400">
                   {feeType === "Free" ? "Free batch applicants are listed separately and require approval. No student payments are collected." : "Paid batches use the standard admission, tuition, and payment workflow."}
                 </p>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">Course Type *</label>
+                <select value={courseType} onChange={(e) => setCourseType(e.target.value as typeof courseType)} aria-label="Course Type" className="w-full h-10 px-3 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm">
+                  <option value="NSDA">NSDA</option><option value="BTEB">BTEB</option><option value="Custom">Custom</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">Registration Amount (৳) <span className="font-normal text-slate-400">Optional</span></label>
+                <Input type="number" min="0" step="1" value={registrationAmount} onChange={(e) => setRegistrationAmount(Number(e.target.value))} />
               </div>
 
               <div>

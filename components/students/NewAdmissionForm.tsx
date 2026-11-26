@@ -23,6 +23,7 @@ interface NewAdmissionFormProps {
   batches: IBatch[];
   preselectedBatchId?: string;
   approvedDiscountRequest?: { _id: string; studentName: string; studentPhone: string; studentEmail?: string; approvedAmount?: number; course: { _id: string }; batch: { _id: string } } | null;
+  idCardFee: number;
 }
 
 export default function NewAdmissionForm({
@@ -30,6 +31,7 @@ export default function NewAdmissionForm({
   batches,
   preselectedBatchId,
   approvedDiscountRequest,
+  idCardFee,
 }: NewAdmissionFormProps) {
   const router = useRouter();
 
@@ -101,7 +103,11 @@ export default function NewAdmissionForm({
   const selectedBatchObj = batches.find((b) => b._id === selectedBatchId);
   const selectedCourse = courses.find((c) => c._id === selectedCourseId);
   const isFreeBatch = selectedBatchObj?.feeType === "Free";
-  const payableAmount = Math.max(0, Number(selectedCourse?.defaultFee || 0) - Number(approvedDiscountRequest?.approvedAmount || 0));
+  const courseFee = Math.max(0, Number(selectedCourse?.defaultFee || 0));
+  const discountAmount = Math.min(courseFee, Number(approvedDiscountRequest?.approvedAmount || 0));
+  const registrationFee = isFreeBatch ? 0 : Math.max(0, Number(selectedBatchObj?.registrationAmount || 0));
+  const billableIdCardFee = isFreeBatch ? 0 : Math.max(0, Number(idCardFee || 0));
+  const payableAmount = isFreeBatch ? 0 : Math.max(0, courseFee - discountAmount) + registrationFee + billableIdCardFee;
   const paidNow = Number(initialPaymentAmount || 0);
   const dueAfterAdmission = Math.max(0, payableAmount - paidNow);
   const paymentAmountInvalid = paidNow < 0 || paidNow > payableAmount;
@@ -372,9 +378,13 @@ export default function NewAdmissionForm({
         {!isFreeBatch && <div className="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
           <h2 className="text-sm font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">2. Admission Payment</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Payable after discount
-              <div className="mt-1 text-lg font-bold text-slate-900 dark:text-white">৳{payableAmount.toLocaleString()}</div>
-            </label>
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs dark:border-slate-700 dark:bg-slate-800/50">
+              <div className="flex justify-between py-1"><span>Course fee</span><strong>৳{courseFee.toLocaleString()}</strong></div>
+              {discountAmount > 0 && <div className="flex justify-between py-1 text-emerald-700 dark:text-emerald-300"><span>Approved discount</span><strong>− ৳{discountAmount.toLocaleString()}</strong></div>}
+              {registrationFee > 0 && <div className="flex justify-between py-1"><span>Registration amount</span><strong>৳{registrationFee.toLocaleString()}</strong></div>}
+              {billableIdCardFee > 0 && <div className="flex justify-between py-1"><span>ID card fee</span><strong>৳{billableIdCardFee.toLocaleString()}</strong></div>}
+              <div className="mt-1 flex justify-between border-t border-slate-200 pt-2 text-sm dark:border-slate-700"><span className="font-semibold">Total payable</span><strong>৳{payableAmount.toLocaleString()}</strong></div>
+            </div>
             <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Amount paid now (৳)
               <Input type="number" min="0" max={payableAmount} step="0.01" value={initialPaymentAmount} onChange={(event) => setInitialPaymentAmount(event.target.value)} className="mt-1" placeholder="0" />
             </label>

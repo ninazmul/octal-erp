@@ -5,6 +5,7 @@ import {
 import NewAdmissionForm from "@/components/students/NewAdmissionForm";
 import { getAdmissionDiscountRequestForUse } from "@/lib/actions/student.actions";
 import { getCurrentAdminProfile } from "@/lib/auth-guard";
+import { getStudentIdCardFee } from "@/lib/actions/idCard.actions";
 import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
@@ -28,10 +29,11 @@ export default async function NewAdmissionPage({
 
   const { batchId, discountRequestId } = await searchParams;
 
-  const [courses, batches, discountRequest] = await Promise.all([
+  const [courses, batches, discountRequest, idCardFee] = await Promise.all([
     getCourses({ status: "active" }),
     getBatches(),
     discountRequestId ? getAdmissionDiscountRequestForUse(discountRequestId) : Promise.resolve(null),
+    getStudentIdCardFee(),
   ]);
 
   return (
@@ -41,6 +43,7 @@ export default async function NewAdmissionPage({
         batches={batches}
         preselectedBatchId={batchId}
         approvedDiscountRequest={discountRequest}
+        idCardFee={idCardFee}
       />
     </div>
   );

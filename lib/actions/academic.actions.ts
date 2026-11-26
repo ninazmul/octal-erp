@@ -324,6 +324,8 @@ export async function createBatch(data: {
   batchName: string;
   courseId: string;
   feeType?: "Paid" | "Free";
+  courseType?: "NSDA" | "BTEB" | "Custom";
+  registrationAmount?: number;
   instructors: string[];
   startDate: string | Date;
   endDate?: string | Date;
@@ -348,6 +350,8 @@ export async function createBatch(data: {
   }
 
   const payoutType = data.instructorPayoutType || "none";
+  const registrationAmount = Number(data.registrationAmount || 0);
+  if (!Number.isFinite(registrationAmount) || registrationAmount < 0) throw new Error("Registration amount must be a valid non-negative amount.");
   const payoutValue = payoutType === "none" ? 0 : Number(data.instructorPayoutValue || 0);
   if (!Number.isFinite(payoutValue) || payoutValue < 0 || (payoutType === "percentage" && payoutValue > 100)) {
     throw new Error("Instructor batch payout must be a valid non-negative amount (percentage up to 100).");
@@ -358,6 +362,8 @@ export async function createBatch(data: {
     batchName: data.batchName.trim(),
     course: data.courseId,
     feeType: data.feeType || "Paid",
+    courseType: data.courseType || "Custom",
+    registrationAmount,
     instructors: data.instructors,
     startDate: new Date(data.startDate),
     endDate: data.endDate ? new Date(data.endDate) : undefined,
@@ -388,6 +394,8 @@ export async function updateBatch(
   data: {
     batchName?: string;
     feeType?: "Paid" | "Free";
+    courseType?: "NSDA" | "BTEB" | "Custom";
+    registrationAmount?: number;
     instructors?: string[];
     startDate?: string | Date;
     endDate?: string | Date;
@@ -425,6 +433,12 @@ export async function updateBatch(
   }
 
   if (data.batchName !== undefined) batch.batchName = data.batchName.trim();
+  if (data.courseType !== undefined) batch.courseType = data.courseType;
+  if (data.registrationAmount !== undefined) {
+    const amount = Number(data.registrationAmount);
+    if (!Number.isFinite(amount) || amount < 0) throw new Error("Registration amount must be a valid non-negative amount.");
+    batch.registrationAmount = amount;
+  }
   if (data.instructorPayoutType !== undefined) {
     batch.instructorPayoutType = data.instructorPayoutType;
   }

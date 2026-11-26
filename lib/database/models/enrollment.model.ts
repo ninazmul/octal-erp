@@ -7,6 +7,8 @@ export interface IEnrollmentDocument extends Document {
   batch: mongoose.Types.ObjectId;
   agreedFee: number;
   discount: number;
+  registrationFee: number;
+  idCardFee: number;
   finalPayableAmount: number;
   totalCollectedAmount: number;
   remainingDue: number;
@@ -56,6 +58,8 @@ const EnrollmentSchema: Schema = new Schema(
       default: 0,
       min: 0,
     },
+    registrationFee: { type: Number, default: 0, min: 0 },
+    idCardFee: { type: Number, default: 0, min: 0 },
     finalPayableAmount: {
       type: Number,
       required: true,

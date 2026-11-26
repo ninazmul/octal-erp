@@ -135,6 +135,14 @@ export default function CollectPaymentDialog({
           </div>
 
           {selectedEnrollment && (
+            <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs dark:border-slate-700 dark:bg-slate-900">
+              <div className="flex justify-between py-1"><span>Course fee</span><strong>৳{Number(selectedEnrollment.agreedFee || 0).toLocaleString()}</strong></div>
+              {Number(selectedEnrollment.discount || 0) > 0 && <div className="flex justify-between py-1 text-emerald-700 dark:text-emerald-300"><span>Discount</span><strong>− ৳{Number(selectedEnrollment.discount).toLocaleString()}</strong></div>}
+              {Number(selectedEnrollment.registrationFee || 0) > 0 && <div className="flex justify-between py-1"><span>Registration amount</span><strong>৳{Number(selectedEnrollment.registrationFee).toLocaleString()}</strong></div>}
+              {Number(selectedEnrollment.idCardFee || 0) > 0 && <div className="flex justify-between py-1"><span>ID card fee</span><strong>৳{Number(selectedEnrollment.idCardFee).toLocaleString()}</strong></div>}
+            </div>
+          )}
+          {selectedEnrollment && (
             <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-100 dark:border-slate-800 text-xs grid grid-cols-3 gap-2 text-center">
               <div>
                 <span className="text-slate-400 block text-[10px] uppercase">Final Payable</span>

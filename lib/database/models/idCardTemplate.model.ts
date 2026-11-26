@@ -2,6 +2,7 @@ import mongoose, { Document, Model, Schema } from "mongoose";
 
 export interface IIdCardTemplateDocument extends Document {
   role: "student" | "staff";
+  idCardFee: number;
   institutionName: string;
   cardTitle: string;
   backMessage: string;
@@ -17,6 +18,7 @@ export interface IIdCardTemplateDocument extends Document {
 
 const IdCardTemplateSchema = new Schema<IIdCardTemplateDocument>({
   role: { type: String, enum: ["student", "staff"], required: true, unique: true },
+  idCardFee: { type: Number, min: 0, default: 0 },
   institutionName: { type: String, trim: true, default: "Octal Technical Training Institute" },
   cardTitle: { type: String, trim: true, default: "IDENTITY CARD" },
   backMessage: { type: String, trim: true, default: "If found, please return this card to the institute at the contact details below." },

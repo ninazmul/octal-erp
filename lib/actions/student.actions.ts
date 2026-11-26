@@ -14,6 +14,7 @@ import Counter from "@/lib/database/models/counter.model";
 import Admin from "@/lib/database/models/admin.model";
 import Notification from "@/lib/database/models/notification.model";
 import AdmissionDiscountRequest from "@/lib/database/models/admissionDiscountRequest.model";
+import IdCardTemplate from "@/lib/database/models/idCardTemplate.model";
 import type { IAdmissionDiscountRequestDocument } from "@/lib/database/models/admissionDiscountRequest.model";
 import { escapeRegex, formatSL, normalizePagination } from "@/lib/utils";
 import {
@@ -550,7 +551,10 @@ export async function admitStudent(data: {
     if (approvedDiscountRequest.studentPhone !== data.phone.trim()) throw new Error("Discount request does not match this student.");
     discount = Math.min(Math.max(0, approvedDiscountRequest.approvedAmount), agreedFee);
   }
-  const finalPayableAmount = Math.max(0, agreedFee - discount);
+  const registrationFee = Math.max(0, Number(batch.registrationAmount || 0));
+  const idCardTemplate = await IdCardTemplate.findOne({ role: "student" }).select("idCardFee").lean();
+  const idCardFee = Math.max(0, Number(idCardTemplate?.idCardFee || 0));
+  const finalPayableAmount = Math.max(0, agreedFee - discount) + registrationFee + idCardFee;
   const initialPaymentAmount = Number(data.initialPaymentAmount || 0);
   if (!Number.isFinite(initialPaymentAmount) || initialPaymentAmount < 0 || initialPaymentAmount > finalPayableAmount) {
     throw new Error("Admission payment must be between ৳0 and the final payable amount.");
@@ -572,6 +576,8 @@ export async function admitStudent(data: {
     batch: batch._id,
     agreedFee,
     discount,
+    registrationFee,
+    idCardFee,
     finalPayableAmount,
     totalCollectedAmount,
     remainingDue,
@@ -636,7 +642,7 @@ export async function admitStudent(data: {
     module: "students",
     resourceId: String(studentDoc._id),
     resourceName: studentDoc.fullName,
-    details: `Admitted student ${studentDoc.fullName} (${studentDoc.studentId}) to batch ${batch.batchName}. Final payable: ৳${finalPayableAmount}. Instructor batch earning: ৳${commissionEarned}.`,
+    details: `Admitted student ${studentDoc.fullName} (${studentDoc.studentId}) to batch ${batch.batchName}. Course fee: ৳${agreedFee}, discount: ৳${discount}, registration: ৳${registrationFee}, ID card: ৳${idCardFee}, total payable: ৳${finalPayableAmount}. Instructor batch earning: ৳${commissionEarned}.`,
   });
 
   revalidatePath("/students");
@@ -786,7 +792,10 @@ export async function allowDiscountAndActivateStudent(data: {
 
   const courseFee = Number(course.defaultFee || 0);
   const discount = Math.min(Math.max(0, Number(data.allowedDiscount)), courseFee);
-  const finalPayable = Math.max(0, courseFee - discount);
+  const registrationFee = Math.max(0, Number(batch.registrationAmount || 0));
+  const idCardTemplate = await IdCardTemplate.findOne({ role: "student" }).select("idCardFee").lean();
+  const idCardFee = Math.max(0, Number(idCardTemplate?.idCardFee || 0));
+  const finalPayable = Math.max(0, courseFee - discount) + registrationFee + idCardFee;
 
   const phone = (data.phone || requestDoc?.studentPhone || "").trim();
   const fullName = (data.fullName || requestDoc?.studentName || "Student").trim();
@@ -831,6 +840,8 @@ export async function allowDiscountAndActivateStudent(data: {
       batch: batch._id,
       agreedFee: courseFee,
       discount,
+      registrationFee,
+      idCardFee,
       finalPayableAmount: finalPayable,
       totalCollectedAmount: 0,
       remainingDue: finalPayable,
@@ -845,6 +856,8 @@ export async function allowDiscountAndActivateStudent(data: {
   } else {
     enrollment.agreedFee = courseFee;
     enrollment.discount = discount;
+    enrollment.registrationFee = registrationFee;
+    enrollment.idCardFee = idCardFee;
     enrollment.finalPayableAmount = finalPayable;
     enrollment.remainingDue = Math.max(0, finalPayable - (enrollment.totalCollectedAmount || 0));
     if (data.adminNotes?.trim()) {
@@ -1074,7 +1087,7 @@ export async function updateEnrollment(
     enrollment.discount = Math.max(0, Number(data.discount));
     enrollment.finalPayableAmount = Math.max(
       0,
-      enrollment.agreedFee - enrollment.discount
+      Math.max(0, enrollment.agreedFee - enrollment.discount) + Number(enrollment.registrationFee || 0) + Number(enrollment.idCardFee || 0)
     );
     enrollment.remainingDue = Math.max(
       0,

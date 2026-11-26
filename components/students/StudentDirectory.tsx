@@ -212,9 +212,7 @@ export default function StudentDirectory({
         adminNotes,
       });
 
-      const courseObj = courses.find((c) => c._id === selectedCourseId);
-      const standardFee = courseObj?.defaultFee || discountingStudent.requestedCourse?.defaultFee || 0;
-      const netPayable = Math.max(0, standardFee - discountVal);
+      const netPayable = Number(res.enrollment.finalPayableAmount || 0);
 
       setStudents((prev) =>
         prev.map((s) => {
@@ -226,8 +224,8 @@ export default function StudentDirectory({
               status: "Active" as const,
               totalEnrollmentsCount: (s.totalEnrollmentsCount || 0) + 1,
               totalPayableSum: netPayable,
-              totalPaidSum: 0,
-              totalDueSum: netPayable,
+              totalPaidSum: Number(res.enrollment.totalCollectedAmount || 0),
+              totalDueSum: Number(res.enrollment.remainingDue ?? netPayable),
               discountRequestId: undefined,
               requestedDiscount: undefined,
             };

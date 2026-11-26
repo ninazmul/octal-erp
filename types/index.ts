@@ -99,6 +99,8 @@ export interface IBatch {
   batchName: string;
   course: ICourse | string;
   feeType?: "Paid" | "Free";
+  courseType?: "NSDA" | "BTEB" | "Custom";
+  registrationAmount?: number;
   instructors: Array<IEmployee | string>;
   startDate: Date | string;
   endDate?: Date | string;
@@ -179,6 +181,8 @@ export interface IEnrollment {
   batch: IBatch | string;
   agreedFee: number;
   discount: number;
+  registrationFee?: number;
+  idCardFee?: number;
   finalPayableAmount: number; // agreedFee - discount
   totalCollectedAmount: number;
   remainingDue: number; // finalPayableAmount - totalCollectedAmount
